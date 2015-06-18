@@ -13,7 +13,7 @@ except Exception, e:
 
 
 from dynamic_reconfigure.server import Server
-from rostful.cfg import RosInterfaceConfig
+from rostful_node.cfg import RostfulNodeConfig
 import ast
 
 
@@ -41,7 +41,7 @@ class RostfulNode(object):
             self.rocon_if = None
 
         # Create a dynamic reconfigure server.
-        self.server = Server(RosInterfaceConfig, self.reconfigure)
+        self.server = Server(RostfulNodeConfig, self.reconfigure)
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
@@ -62,7 +62,7 @@ class RostfulNode(object):
         return config
 
     def spin(self):
-        rate = rospy.Rate(10) # 10hz
+        rate = rospy.Rate(10)  # 10hz
         while not rospy.is_shutdown():
             # do stuff here only if needed in emergency.
             # Async event based programming is preferred.

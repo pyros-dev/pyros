@@ -1,7 +1,22 @@
-### Unit tests
+##############################################################################
+# Unit Tests
 #
-#   Only configured when CATKIN_ENABLE_TESTING is true.
+#   Only run when CATKIN_ENABLE_TESTING is true.
+##############################################################################
 
-# Unit tests using nose, but needing a running ROS core.
+##############################################################################
+# Nose Tests
+##############################################################################
+
+# catkin_add_nosetests(nosetests)
+
+##############################################################################
+# Ros Tests
+##############################################################################
+
 find_package(catkin REQUIRED COMPONENTS rostest)
-#TODO add_rostest(rostful-node.test)
+
+# Absolute naming test
+add_rostest(rosinterface/testStringTopic.test)
+
+# Relative naming test

@@ -1,0 +1,14 @@
+<launch>
+  <arg name="topic_name" default="test_topic"/>
+  <node name="pub_node" pkg="rostful_node" type="string_pub_node.py" output="screen">
+    <param name="topic_name" value="$(arg topic_name)" type="str"/>
+  </node>
+
+  <node name="sub_node" pkg="rostful_node" type="string_sub_node.py" output="screen">
+    <param name="topic_name" value="$(arg topic_name)" type="str"/>
+  </node>
+
+  <!-- params for tests are always absolute -->
+  <param name="/stringTopicTest/topic_name" value="$(arg topic_name)"/>-->
+  <test test-name="StringTopic" pkg="rostful_node" type="testStringTopic.py" name="stringTopicTest"/>
+</launch>
