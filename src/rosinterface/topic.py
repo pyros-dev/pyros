@@ -46,7 +46,7 @@ class TopicBack:
 
         self.pub = None
         if self.allow_pub:
-            self.pub = rospy.Publisher(self.name, self.rostype, queue_size=1 )
+            self.pub = rospy.Publisher(self.name, self.rostype, queue_size=1)
 
         self.sub = None
         if self.allow_sub:
@@ -56,10 +56,10 @@ class TopicBack:
         self.pub.publish(msg)
         return
 
-    def get(self, num=None):
+    def get(self, num=0):
         if not self.msg:
             return None
-
+        #TODO : implement returning multiple messages
         return self.msg[0]
 
     def topic_callback(self, msg):

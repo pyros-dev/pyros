@@ -9,22 +9,25 @@ import common
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('pub_node')
-        rospy.loginfo('pub node started. [' + rospy.get_name() + ']')
+        rospy.init_node('string_pub_node')
+        rospy.loginfo('String Pub node started. [' + rospy.get_name() + ']')
 
         topic_name = rospy.get_param("~topic_name", "")
         print 'Parameter %s has value %s' % (rospy.resolve_name('~topic_name'), topic_name)
         if topic_name == "":
             print "{0} parameter not found".format(rospy.resolve_name('~topic_name'))
             raise common.TestArgumentNotFound
+        test_message = rospy.get_param("~test_message", "")
+        print 'Parameter %s has value %s' % (rospy.resolve_name('~test_message'), test_message)
+        if test_message == "":
+            print "{0} parameter not found".format(rospy.resolve_name('~test_message'))
+            raise common.TestArgumentNotFound
 
-        pub = rospy.Publisher(topic_name, std_msgs.msg.String, queue_size=10)
+        pub = rospy.Publisher(topic_name, std_msgs.msg.String, queue_size=1)
 
         rate = rospy.Rate(10)  # 10hz
         while not rospy.is_shutdown():
-            test_str = "test %s" % rospy.get_time()
-            rospy.loginfo(test_str)
-            pub.publish(test_str)
+            pub.publish(test_message)
             rate.sleep()
 
     except rospy.ROSInterruptException:
