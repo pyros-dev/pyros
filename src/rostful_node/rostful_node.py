@@ -16,6 +16,7 @@ from dynamic_reconfigure.server import Server
 from rostful_node.cfg import RostfulNodeConfig
 import ast
 
+from flask import request
 
 """
 Interface with ROS.
@@ -24,8 +25,15 @@ No inheritance to make sure destructor is called properly.
 class RostfulNode(object):
     def __init__(self, ros_args):
         #we initialize the node here, passing ros parameters
-        rospy.init_node('rostful_server', argv=ros_args, anonymous=True, disable_signals=True)
-        rospy.logwarn('rostful_server node started with args : %r', ros_args)
+
+        #signal.signal(signal.SIGINT, signal_handler)
+
+        rospy.init_node('rostful', argv=ros_args, anonymous=True, disable_signals=True)
+
+        #setting up our own signal handler to be able to quit
+
+
+        rospy.logwarn('rostful node started with args : %r', ros_args)
 
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon or (
@@ -41,7 +49,7 @@ class RostfulNode(object):
             self.rocon_if = None
 
         # Create a dynamic reconfigure server.
-        self.server = Server(RostfulNodeConfig, self.reconfigure)
+        # self.server = Server(RostfulNodeConfig, self.reconfigure)
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
@@ -74,7 +82,7 @@ class RostfulNode(object):
     Does all necessary cleanup to bring down RosInterface
     """
     def __del__(self):
-        rospy.logwarn('rostful_server node stopped')
+        rospy.logwarn('rostful node stopped')
         rospy.signal_shutdown('Closing')
 
 

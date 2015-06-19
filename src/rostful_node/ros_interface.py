@@ -83,8 +83,8 @@ class RosInterface():
         actions_args = ast.literal_eval(rospy.get_param('~actions', "[]"))
 
         self.expose_topics(topics_args)
-        self.expose_services(services_args)
-        self.expose_actions(actions_args)
+        #self.expose_services(services_args)
+        #self.expose_actions(actions_args)
 
         self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
         self.ros_watcher.start()
