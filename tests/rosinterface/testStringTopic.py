@@ -42,9 +42,9 @@ class TestStringTopic(unittest.TestCase):
             msg = self.msg_extract()
             for s in strings:
                 if msg == s:
-                    print('msg \"{0}\" == s \"{1}\"'.format(msg,s))
+                    print('msg \"{0}\" == s \"{1}\"'.format(msg, s))
                 else:
-                    print('msg \"{0}\" != s \"{1}\"'.format(msg,s))
+                    print('msg \"{0}\" != s \"{1}\"'.format(msg, s))
         if retry >= retries:
             self.fail('No Expected message {0} arrived. Failing.'.format(strings))
         else:
@@ -107,56 +107,55 @@ class TestStringTopic(unittest.TestCase):
 
 
     def test_topic(self):
-        self.logPoint()
-        # Test message on topic
-        msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
-        self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
+        try:
+            self.logPoint()
+            # Test message on topic
+            msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
+            self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
 
-        # send message
-        self.topic.publish(self.test_message + self.test_message)
+            # send message
+            self.topic.publish(self.test_message + self.test_message)
 
-        # wait for echo
-        msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
-        self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
+            # wait for echo
+            msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
+            self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
 
-        # be happy
-        pass
-
+        except KeyboardInterrupt:
+            self.fail("Test Interrupted !")
 
     def test_topic_sub(self):
-        self.logPoint()
-        # Test message on topic
-        msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
-        self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
+        try:
+            self.logPoint()
+            # Test message on topic
+            msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
+            self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
 
-        # with self.assertRaises():
-        # send message
-        self.topic.publish(self.test_message + self.test_message)
+            # with self.assertRaises():
+            # send message
+            self.topic.publish(self.test_message + self.test_message)
 
-        # wait for echo
-        msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
-        self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
-
-        # be happy
-        pass
+            # wait for echo
+            msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
+            self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
+        except KeyboardInterrupt:
+            self.fail("Test Interrupted !")
 
     def test_topic_pub(self):
-        self.logPoint()
-        # with self.assertRaises():
-        # Test message on topic
-        msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
-        self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
+        try:
+            self.logPoint()
+            # with self.assertRaises():
+            # Test message on topic
+            msg = self.msg_wait([self.test_message, self.echo_prefix + self.test_message])
+            self.assertIn(msg, [self.test_message, self.echo_prefix + self.test_message])
 
-        # send message
-        self.topic.publish(self.test_message + self.test_message)
+            # send message
+            self.topic.publish(self.test_message + self.test_message)
 
-        # wait for echo
-        msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
-        self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
-
-        # be happy
-        pass
-
+            # wait for echo
+            msg = self.msg_wait([self.echo_prefix + self.test_message + self.test_message])
+            self.assertIn(msg, [self.echo_prefix + self.test_message + self.test_message])
+        except KeyboardInterrupt:
+            self.fail("Test Interrupted !")
 
 
 if __name__ == '__main__':
