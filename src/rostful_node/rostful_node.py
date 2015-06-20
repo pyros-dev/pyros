@@ -15,24 +15,11 @@ except Exception, e:
 from dynamic_reconfigure.server import Server
 from rostful_node.cfg import RostfulNodeConfig
 import ast
-import signal
-
-from flask import request
 
 """
 Interface with ROS.
-No inheritance to make sure destructor is called properly.
 """
 from contextlib import contextmanager
-
-#@contextmanager
-#def tag(name):
-#    print "<%s>" % name
-#    yield
-#    print "</%s>" % name
-
-#>>> with tag("h1"):
-#...    print "foo"
 
 # A context manager to handle rospy init and shutdown properly.
 @contextmanager
