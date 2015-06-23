@@ -2,14 +2,34 @@ cmake_minimum_required(VERSION 2.8.3)
 project(rostful_node)
 
 # Minimal Python module setup
-find_package(catkin REQUIRED COMPONENTS roslint rospy actionlib_msgs dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS
+    roslint
+    rospy
+    actionlib_msgs
+    dynamic_reconfigure
+    std_msgs
+    message_generation
+)
 catkin_python_setup()
 generate_dynamic_reconfigure_options(cfg/rostful-node.cfg)
+
+add_service_files(DIRECTORY srv
+    FILES
+    InjectTopic.srv
+    ExtractTopic.srv
+    CallService.srv
+    StartAction.srv
+    CancelAction.srv
+    StatusAction.srv
+    FeedbackAction.srv
+    ResultAction.srv
+)
+generate_messages(DEPENDENCIES std_msgs)
 
 # make sure configure headers are built before any node using them
 #add_dependencies(rostful-node ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
-catkin_package()
+catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
 
 # Lint Python modules
 file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS

@@ -61,9 +61,8 @@ def response_500(start_response, error, content_type='text/plain'):
 
 """
 Interface with ROS.
-No inheritance to make sure destructor is called properly.
 """
-class RosInterface():
+class RosInterface(object):
     def __init__(self):
         #current services topics and actions exposed
         self.services = {}

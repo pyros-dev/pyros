@@ -1,0 +1,4 @@
+string topic_name
+string data_json
+---
+bool injected
