@@ -246,6 +246,39 @@ class RostfulNodeImpl(object):
 
             return srv.ResultActionResponse(output_data)
 
+        def start_rapp(req):  # Keep this minimal
+            rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
+                rapp=req.rapp_name
+            ))
+            #normalizing names... ( somewhere else ?)
+            #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
+            #service is raw str
+            if req.rapp_name[0] == '/':
+                req.rapp_name = req.rapp_name[1:]
+
+            if self.rocon_if :
+                #TMP
+                if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
+                    self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
+
+
+
+
+            res = True
+
+            return srv.StartRappResponse(res)
+
+        def stop_rapp(req):  # Keep this minimal
+            rospy.logwarn("""Requesting Rapp Stop: """)
+
+
+            if self.rocon_if :
+                #TMP
+                self.rocon_if.stop_rapp()
+
+            res = {"stopped": True}
+            output_data = json.dumps(res)
+            return srv.StopRappResponse(output_data)
 
         self.TopicInjectService = rospy.Service('inject_topic', srv.InjectTopic, inject_topic)
         self.TopicExtractService = rospy.Service('extract_topic', srv.ExtractTopic, extract_topic)
@@ -255,6 +288,8 @@ class RostfulNodeImpl(object):
         self.ActionStatusService = rospy.Service('status_action', srv.StatusAction, status_action)
         self.ActionFeedbackService = rospy.Service('feedback_action', srv.FeedbackAction, feedback_action)
         self.ActionResultService = rospy.Service('result_action', srv.ResultAction, result_action)
+        self.RappStartService = rospy.Service('start_rapp', srv.StartRapp, start_rapp)
+        self.RappStopService = rospy.Service('stop_rapp', srv.StopRapp, stop_rapp)
 
         ##############################################################################################
 

@@ -12,13 +12,18 @@ import rospy
 _ROCON = False
 try:
     from rocon_interactions.rapp_watcher import RappWatcher
-    import rocon_app_manager_msgs.msg as rocon_app_manager_msgs
+    from rocon_app_manager.rapp import Rapp
+    import rocon_app_manager_msgs.msg
+    import rocon_app_manager_msgs.srv
 
     _ROCON = True
 except Exception, e:
     rospy.logwarn('Missing rocon codebase. Rocon features disabled')
 
 from roconinterface import InteractionWatcher
+from rosinterface import ServiceBack
+from rosinterface import message_conversion as msgconv
+import rosservice, rostopic
 import ast
 
 """
@@ -100,7 +105,7 @@ class RoconInterface(object):
 
         def _available_rapps_list_changed(self, namespace, added_available_rapps, removed_available_rapps):
             namespace = namespace.strip("/") # remove potential parasits characters #TODO : check absolute/relative naming
-            if namespace in self.rapps_namespaces.keys() :
+            if namespace in self.rapps_namespaces.keys():
                 for k, v in added_available_rapps.iteritems():
                     self.rapps_namespaces[namespace][k] = v
                     rospy.loginfo('found rapp in %r : %r', namespace, k)
@@ -113,10 +118,10 @@ class RoconInterface(object):
         def _running_rapp_status_changed(self, namespace, rapp_status, rapp):
             namespace = namespace.strip("/")  # remove potential parasites characters #TODO : check absolute/relative naming
             if namespace in self.rapps_namespaces.keys():
-                if rapp_status == rocon_app_manager_msgs.Status.RAPP_RUNNING:
+                if rapp_status == rocon_app_manager_msgs.msg.Status.RAPP_RUNNING:
                     self.running_rapp_namespaces[namespace] = rapp
                     rospy.loginfo('started rapp in %r : %r', namespace, rapp['display_name'])
-                elif rapp_status == rocon_app_manager_msgs.Status.RAPP_STOPPED and namespace in self.running_rapp_namespaces:
+                elif rapp_status == rocon_app_manager_msgs.msg.Status.RAPP_STOPPED and namespace in self.running_rapp_namespaces:
                     del self.running_rapp_namespaces[namespace]
                     if 'display_name' in rapp.keys():
                         rospy.loginfo('stopped rapp in %r : %r', namespace, rapp['display_name'])
@@ -166,7 +171,103 @@ class RoconInterface(object):
                     rospy.loginfo('Removed Rapp Namespace %s', rapp_ns)
 
         #Updating the list of Rapps Namespaces
-        self.rapps_namespaces_args = [ n.strip("/") for n in rapp_namespaces ]  # normalizing ns names #TODO : check absolute/relative naming
+        self.rapps_namespaces_args = [n.strip("/") for n in rapp_namespaces]  # normalizing ns names
+        # TODO : check absolute/relative naming
+
+    def start_rapp(self, rapp_ns, rapp_name):
+        if rapp_ns in self.rapps_namespaces:
+            if rapp_name in self.rapps_namespaces[rapp_ns]:
+                rapp = self.rapps_namespaces[rapp_ns][rapp_name]
+
+                # starting the rapp via rocon_app_manager
+                # TODO avoid hardcoding the /gocart path here
+                rospy.wait_for_service('/gocart/start_rapp')
+
+                # TODO : expose this always by default in ros_interface, and just use it from here
+                start_rapp_service_name = rospy.resolve_name('/gocart/start_rapp')
+                start_rapp_service_type = rosservice.get_service_type(start_rapp_service_name)
+                if not start_rapp_service_type:
+                    #problem : service is not available ?
+                    return False
+
+                try:
+                    start_rapp_service = ServiceBack(start_rapp_service_name, start_rapp_service_type)
+
+                    # Name of the rapp to launch
+#string name
+#rocon_std_msgs/Remapping[] remappings
+
+# Key value pairs representing rapp parameters
+#rocon_std_msgs/KeyValue[] parameters
+#---
+#bool started
+
+# classifying start success/failure, see ErrorCodes.msg
+#int32 error_code
+
+# human friendly string for debugging (usually upon error)
+#string message
+
+# Namespace where the rapp interface can be found
+#string application_namespace
+
+                    input_msg_type = start_rapp_service.rostype_req
+                    input_msg = input_msg_type()
+                    input_msg.name = rapp_name
+                    #input_msg.remappings =
+                    #input_msg.parameters =
+
+                    ret_msg = start_rapp_service.call(input_msg)
+                    output_data = msgconv.extract_values(ret_msg)
+
+                    return output_data
+                except rospy.ServiceException, e:
+                    print "Rapp start call failed: %r" % e
+        return False
+
+    def stop_rapp(self):
+
+        # stopping the rapp via rocon_app_manager
+        # TODO avoid hardcoding the /gocart path here
+        rospy.wait_for_service('/gocart/stop_rapp')
+
+        # TODO : expose this always by default in ros_interface, and just use it from here
+        stop_rapp_service_name = rospy.resolve_name('/gocart/stop_rapp')
+        stop_rapp_service_type = rosservice.get_service_type(stop_rapp_service_name)
+        if not stop_rapp_service_type:
+            #problem : service is not available ?
+            return False
+
+        try:
+            stop_rapp_service = ServiceBack(stop_rapp_service_name, stop_rapp_service_type)
+
+
+#---
+# true if app stopped, false otherwise
+#bool stopped
+# classifying start success/failure, see ErrorCodes.msg
+#int32 error_code
+# human friendly string for debugging (usually upon error)
+#string message
+
+
+            input_msg_type = stop_rapp_service.rostype_req
+            input_msg = input_msg_type()
+
+            ret_msg = stop_rapp_service.call(input_msg)
+            output_data = msgconv.extract_values(ret_msg)
+
+            return output_data
+        except rospy.ServiceException, e:
+            print "Rapp stop call failed: %r" % e
+
+        return False
+
+
+
+    def is_running_rapp(self, rapp_name):
+        pass
+
 
     def get_interactions(self):
         return self.interactions
