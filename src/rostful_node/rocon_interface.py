@@ -7,18 +7,18 @@ import threading
 import roslib
 import rospy
 
+#TODO : detect rocon based on running ros system, not based on python modules...
+# we might want to import all that is needed or mark them as dependencies.
 _ROCON = False
 try:
     from rocon_interactions.rapp_watcher import RappWatcher
-    from .interaction_watcher import InteractionWatcher
-
     import rocon_app_manager_msgs.msg as rocon_app_manager_msgs
 
     _ROCON = True
 except Exception, e:
     rospy.logwarn('Missing rocon codebase. Rocon features disabled')
 
-
+from roconinterface import InteractionWatcher
 import ast
 
 """

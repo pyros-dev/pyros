@@ -3,14 +3,7 @@ from __future__ import absolute_import
 import rospy
 
 from .ros_interface import RosInterface
-
-_ROCON_IF = False
-try :
-    from roconinterface.rocon_interface import RoconInterface
-    _ROCON_IF = True
-except Exception, e:
-    rospy.logwarn('Missing rocon interface. Rocon features disabled')
-
+from .rocon_interface import RoconInterface
 
 from dynamic_reconfigure.server import Server
 from rostful_node.cfg import RostfulNodeConfig
@@ -35,7 +28,7 @@ class RostfulNodeImpl(object):
 
         self.ros_if = RosInterface()
 
-        if _ROCON_IF and self.enable_rocon:
+        if self.enable_rocon:
             self.rocon_if = RoconInterface(self.ros_if)
             pass
         else:
@@ -273,12 +266,12 @@ class RostfulNodeImpl(object):
             or len(ast.literal_eval(config["interactions"])) > 0
         )
 
-        if _ROCON_IF and not self.rocon_if and self.enable_rocon:
+        if not self.rocon_if and self.enable_rocon:
             self.rocon_if = RoconInterface(self.ros_if)
 
         config = self.ros_if.reconfigure(config, level)
 
-        if _ROCON_IF and self.rocon_if:
+        if self.rocon_if:
             config = self.rocon_if.reconfigure(config, level)
 
         return config
