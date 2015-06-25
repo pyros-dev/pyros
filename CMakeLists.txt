@@ -15,9 +15,6 @@ generate_dynamic_reconfigure_options(cfg/rostful-node.cfg)
 
 add_service_files(DIRECTORY srv
     FILES
-    InjectTopic.srv
-    ExtractTopic.srv
-    CallService.srv
     StartAction.srv
     CancelAction.srv
     StatusAction.srv

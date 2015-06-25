@@ -28,6 +28,8 @@ from rosinterface import TopicBack
 
 from .ros_watcher import ROSWatcher
 
+import unicodedata
+
 CONFIG_PATH = '_rosdef'
 SRV_PATH = '_srv'
 MSG_PATH = '_msg'
@@ -58,16 +60,6 @@ def response_405(start_response, data=[], content_type='text/plain'):
 def response_500(start_response, error, content_type='text/plain'):
     e_str = '%s: %s' % (str(type(error)), str(error))
     return response(start_response, '500 Internal Server Error', e_str, content_type)
-
-class TopicNotExposed(Exception):
-    def __init__(self, topic_name):
-        self.topic_name = topic_name
-    pass
-
-class ServiceNotExposed(Exception):
-    def __init__(self, service_name):
-        self.service_name = service_name
-    pass
 
 class ActionNotExposed(Exception):
     def __init__(self, action_name):
@@ -119,9 +111,14 @@ class RosInterface(object):
     def add_service(self, service_name, ws_name=None, service_type=None):
         resolved_service_name = rospy.resolve_name(service_name)
         if service_type is None:
-            service_type = rosservice.get_service_type(resolved_service_name)
-            if not service_type:
-                rospy.logwarn('Cannot Expose unknown service %s' % service_name)
+            try:
+                service_type = rosservice.get_service_type(resolved_service_name)
+                if not service_type:
+                    rospy.logwarn('Cannot Expose unknown service %s' % service_name)
+                    self.services_waiting.append(service_name)
+                    return False
+            except rosservice.ROSServiceIOException, e:
+                rospy.logwarn('Error trying to Expose service {name} : {error}'.format(name=service_name, error=e))
                 self.services_waiting.append(service_name)
                 return False
 
@@ -163,20 +160,30 @@ class RosInterface(object):
         #Updating the list of services
         self.services_args = service_names
 
-    def get_service(self, service_name):
-        if service_name in self.services:
-            service = self.services[service_name]
+    def get_service(self, service_name, ws_name=None):
+        if ws_name is None:
+            ws_name = service_name
+        if ws_name.startswith('/'):
+            ws_name = ws_name[1:]
+
+        if ws_name in self.services.keys():
+            service = self.services[ws_name]
             return service
         else:
-            raise ServiceNotExposed(service_name)
+            return None  # service not exposed
 
 
     def add_topic(self, topic_name, ws_name=None, topic_type=None, allow_pub=True, allow_sub=True):
         resolved_topic_name = rospy.resolve_name(topic_name)
         if topic_type is None:
-            topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
-            if not topic_type:
-                rospy.logwarn('Cannot Expose unknown topic %s' % topic_name)
+            try:
+                topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
+                if not topic_type:
+                    rospy.logwarn('Cannot Expose unknown topic %s' % topic_name)
+                    self.topics_waiting.append(topic_name)
+                    return False
+            except rosservice.ROSServiceIOException, e:
+                rospy.logwarn('Error trying to Expose topic {name} : {error}'.format(name=topic_name, error=e))
                 self.topics_waiting.append(topic_name)
                 return False
 
@@ -194,7 +201,7 @@ class RosInterface(object):
         if ws_name.startswith('/'):
             ws_name = ws_name[1:]
 
-        if not self.topics.pop(ws_name,None) :
+        if not self.topics.pop(ws_name, None):
             self.topics_waiting.remove(topic_name)
         return True
 
@@ -220,12 +227,24 @@ class RosInterface(object):
         # Updating the list of topics
         self.topics_args = topic_names
 
-    def get_topic(self, topic_name):
-        if topic_name in self.topics:
-            topic = self.topics[topic_name]
+    def get_topic(self, topic_name, ws_name=None):
+        #normalizing names... ( somewhere else ?)
+        if isinstance(topic_name, unicode):
+            topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
+        if isinstance(ws_name, unicode):
+            ws_name = unicodedata.normalize('NFKD', ws_name).encode('ascii', 'ignore')
+
+        #topic is raw str from here
+        if ws_name is None:
+            ws_name = topic_name
+        if ws_name.startswith('/'):
+            ws_name = ws_name[1:]
+
+        if ws_name in self.topics.keys():
+            topic = self.topics[ws_name]
             return topic
         else:
-            raise TopicNotExposed(topic_name)
+            return None  # topic not exposed
 
     def add_action(self, action_name, ws_name=None, action_type=None):
         if action_type is None:

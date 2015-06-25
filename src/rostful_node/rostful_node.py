@@ -4,21 +4,26 @@ import rospy
 
 from .ros_interface import RosInterface
 from .rocon_interface import RoconInterface
+from .rostful_prtcl import MsgBuild, Topic, Service
 
 from dynamic_reconfigure.server import Server
 from rostful_node.cfg import RostfulNodeConfig
 import ast
 import json
+import os
 
 import rostful_node.srv as srv
 from rosinterface import message_conversion as msgconv
 from rosinterface.action import ActionBack
+
+from multiprocessing import Pipe
+import threading
 """
 Interface with ROS.
 """
 
-class RostfulNodeImpl(object):
-    def __init__(self):
+class RostfulNode(object):
+    def __init__(self, pipe_conn = None):
 
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon or (
@@ -269,7 +274,7 @@ class RostfulNodeImpl(object):
         def stop_rapp(req):  # Keep this minimal
             rospy.logwarn("""Requesting Rapp Stop: """)
 
-            if self.rocon_if :
+            if self.rocon_if:
                 #TMP
                 self.rocon_if.stop_rapp()
 
@@ -289,6 +294,102 @@ class RostfulNodeImpl(object):
         self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
 
         ##############################################################################################
+        # REPLACEMENT :
+        ###
+
+        #queue used to pass commands from another python process
+        self.pipe_conn = pipe_conn
+
+        self.async_spin()
+
+
+        ####
+
+    ### These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
+    def msg_build(self, connec_name):
+        msg = None
+        if self.ros_if:
+            if self.ros_if.get_topic(connec_name):
+                input_msg_type = self.ros_if.get_topic(connec_name).rostype
+                msg = input_msg_type()
+            elif self.ros_if.get_service(connec_name):
+                input_msg_type = self.ros_if.get_service(connec_name).rostype_req
+                msg = input_msg_type()
+        return msg
+
+    def topic(self, name, msg_value=None):
+        msg = msg_value
+        if self.ros_if and self.ros_if.get_topic(name):
+            if msg_value:
+                self.ros_if.get_topic(name).publish(msg_value)
+                msg = None  # consuming the message
+            else:
+                msg = self.ros_if.get_topic(name).get()
+        return msg
+
+    def service(self, name, rqst_value):
+        resp_value = None
+        if self.ros_if and self.ros_if.get_service(name):
+            resp_value = self.ros_if.get_service(name).call(rqst_value)
+        return resp_value
+    ###
+
+    def spin(self):
+        """
+        Spinning, processing commands arriving in the queue
+        :return:
+        """
+
+        if not rospy.core.is_initialized():
+            raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
+        rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
+        try:
+            while not rospy.core.is_shutdown():
+                try:
+                    if self.pipe_conn.poll(0.5):
+
+                        rqst = self.pipe_conn.recv()
+                        resp = rqst  # if problem we send back the exact same request message.
+                        # here we need to make sure we always send something back ( so the client can block safely )
+                        try:
+                            if isinstance(rqst, MsgBuild):
+                                resp = MsgBuild(
+                                    connec_name=rqst.connec_name,
+                                    msg_value=self.msg_build(rqst.connec_name)
+                                )
+
+                            elif isinstance(rqst, Topic):
+                                resp = Topic(
+                                    name=rqst.name,
+                                    msg_value=self.topic(rqst.name, rqst.msg_value)
+                                )
+
+                            elif isinstance(rqst, Service):
+                                resp = Service(
+                                    name=rqst.name,
+                                    rqst_value=rqst.rqst_value,
+                                    resp_value=self.service(rqst.name, rqst.rqst_value)
+                                )
+
+                        finally:
+                            # to make sure we always return something, no matter what
+                            self.pipe_conn.send(resp)
+                    else:  # no data, no worries.
+                        pass
+                except EOFError:  # empty pipe, no worries.
+                    pass
+                except Exception, e:
+                    raise e
+
+        except KeyboardInterrupt:
+            rospy.logdebug("keyboard interrupt, shutting down")
+            rospy.core.signal_shutdown('keyboard interrupt')  # still needed from inside a context ?
+
+    def async_spin(self):
+        spinner = threading.Thread(target=self.spin)
+        spinner.start()
+
+
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
@@ -308,17 +409,4 @@ class RostfulNodeImpl(object):
 
         return config
 
-from contextlib import contextmanager
-# A context manager to handle rospy init and shutdown properly.
-@contextmanager
-#TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
-def RostfulNode(name='rostful_node', argv=None, anonymous=True, disable_signals=True):
-    #we initialize the node here, passing ros parameters.
-    #disabling signal to avoid overriding callers behavior
-    rospy.init_node(name, argv=argv, anonymous=anonymous, disable_signals=disable_signals)
-    rospy.logwarn('rostful node started with args : %r', argv)
-
-    yield RostfulNodeImpl()
-    rospy.logwarn('rostful node stopped')
-    rospy.signal_shutdown('Closing')
 
