@@ -41,6 +41,7 @@ class RostfulNodeImpl(object):
         #### Helpers in case we need to listen to someone talking from a different process
         # Needed because of limitation in rospy that we cannot publish on topic from different process
         # Note : It should be working fine for services however
+        # TODO : change this to use pure python code to avoid confusion ( for ex. using multiprocessing lib )
         ##############################################################################################
         def inject_topic(req):  # Keep this minimal
             rospy.logwarn("""Requesting Topic {topic} Injection: \n{data} """.format(
@@ -261,16 +262,12 @@ class RostfulNodeImpl(object):
                 if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
                     self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
 
-
-
-
             res = True
 
             return srv.StartRappResponse(res)
 
         def stop_rapp(req):  # Keep this minimal
             rospy.logwarn("""Requesting Rapp Stop: """)
-
 
             if self.rocon_if :
                 #TMP
@@ -280,16 +277,16 @@ class RostfulNodeImpl(object):
             output_data = json.dumps(res)
             return srv.StopRappResponse(output_data)
 
-        self.TopicInjectService = rospy.Service('inject_topic', srv.InjectTopic, inject_topic)
-        self.TopicExtractService = rospy.Service('extract_topic', srv.ExtractTopic, extract_topic)
-        self.ServiceCallService = rospy.Service('call_service', srv.CallService, call_service)
-        self.ActionStartService = rospy.Service('start_action', srv.StartAction, start_action)
-        self.ActionCancelService = rospy.Service('cancel_action', srv.CancelAction, cancel_action)
-        self.ActionStatusService = rospy.Service('status_action', srv.StatusAction, status_action)
-        self.ActionFeedbackService = rospy.Service('feedback_action', srv.FeedbackAction, feedback_action)
-        self.ActionResultService = rospy.Service('result_action', srv.ResultAction, result_action)
-        self.RappStartService = rospy.Service('start_rapp', srv.StartRapp, start_rapp)
-        self.RappStopService = rospy.Service('stop_rapp', srv.StopRapp, stop_rapp)
+        self.TopicInjectService = rospy.Service('~inject_topic', srv.InjectTopic, inject_topic)
+        self.TopicExtractService = rospy.Service('~extract_topic', srv.ExtractTopic, extract_topic)
+        self.ServiceCallService = rospy.Service('~call_service', srv.CallService, call_service)
+        self.ActionStartService = rospy.Service('~start_action', srv.StartAction, start_action)
+        self.ActionCancelService = rospy.Service('~cancel_action', srv.CancelAction, cancel_action)
+        self.ActionStatusService = rospy.Service('~status_action', srv.StatusAction, status_action)
+        self.ActionFeedbackService = rospy.Service('~feedback_action', srv.FeedbackAction, feedback_action)
+        self.ActionResultService = rospy.Service('~result_action', srv.ResultAction, result_action)
+        self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
+        self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
 
         ##############################################################################################
 

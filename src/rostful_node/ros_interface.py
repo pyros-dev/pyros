@@ -45,7 +45,7 @@ def response(start_response, status, data, content_type):
     headers = [('Content-Type', content_type), ('Content-Length', str(content_length))]
     start_response(status, headers)
     return data
-
+#TODO clean this
 def response_200(start_response, data='', content_type='application/json'):
     return response(start_response, '200 OK', data, content_type)
 
@@ -58,6 +58,22 @@ def response_405(start_response, data=[], content_type='text/plain'):
 def response_500(start_response, error, content_type='text/plain'):
     e_str = '%s: %s' % (str(type(error)), str(error))
     return response(start_response, '500 Internal Server Error', e_str, content_type)
+
+class TopicNotExposed(Exception):
+    def __init__(self, topic_name):
+        self.topic_name = topic_name
+    pass
+
+class ServiceNotExposed(Exception):
+    def __init__(self, service_name):
+        self.service_name = service_name
+    pass
+
+class ActionNotExposed(Exception):
+    def __init__(self, action_name):
+        self.action_name = action_name
+    pass
+
 
 """
 Interface with ROS.
@@ -147,6 +163,14 @@ class RosInterface(object):
         #Updating the list of services
         self.services_args = service_names
 
+    def get_service(self, service_name):
+        if service_name in self.services:
+            service = self.services[service_name]
+            return service
+        else:
+            raise ServiceNotExposed(service_name)
+
+
     def add_topic(self, topic_name, ws_name=None, topic_type=None, allow_pub=True, allow_sub=True):
         resolved_topic_name = rospy.resolve_name(topic_name)
         if topic_type is None:
@@ -196,6 +220,13 @@ class RosInterface(object):
         # Updating the list of topics
         self.topics_args = topic_names
 
+    def get_topic(self, topic_name):
+        if topic_name in self.topics:
+            topic = self.topics[topic_name]
+            return topic
+        else:
+            raise TopicNotExposed(topic_name)
+
     def add_action(self, action_name, ws_name=None, action_type=None):
         if action_type is None:
             resolved_topic_name = rospy.resolve_name(action_name + '/result')
@@ -243,6 +274,13 @@ class RosInterface(object):
 
         # Updating the list of actions
         self.actions_args = action_names
+
+    def get_action(self, action_name):
+        if action_name in self.actions:
+            action = self.actions[action_name]
+            return action
+        else:
+            raise ActionNotExposed(action_name)
 
     def topics_change_cb(self, new_topics, lost_topics):
         # rospy.logwarn('new topics : %r, lost topics : %r', new_topics, lost_topics)
