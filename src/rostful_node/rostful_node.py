@@ -201,8 +201,11 @@ class RostfulNodeImpl(object):
 
                 msg = action.get_status()
 
-                output_data = msgconv.extract_values(msg) if msg is not None else None
-                output_data['_format'] = 'ros'  # to follow existing REST behavior
+                if msg is not None:
+                    output_data = msgconv.extract_values(msg)
+                    output_data['_format'] = 'ros'  # to follow existing REST behavior
+                else:
+                    output_data = None
                 output_data = json.dumps(output_data)
 
             return srv.StatusActionResponse(output_data)
@@ -224,8 +227,11 @@ class RostfulNodeImpl(object):
 
                 msg = action.get_feedback()
 
-                output_data = msgconv.extract_values(msg) if msg is not None else None
-                output_data['_format'] = 'ros'  # to follow existing REST behavior
+                if msg is not None:
+                    output_data = msgconv.extract_values(msg)
+                    output_data['_format'] = 'ros'  # to follow existing REST behavior
+                else:
+                    output_data = None
                 output_data = json.dumps(output_data)
 
             return srv.FeedbackActionResponse(output_data)
