@@ -23,12 +23,12 @@ add_service_files(DIRECTORY srv
     StartRapp.srv
     StopRapp.srv
 )
-generate_messages(DEPENDENCIES std_msgs)
+generate_messages(DEPENDENCIES std_msgs actionlib_msgs)
 
 # make sure configure headers are built before any node using them
 #add_dependencies(rostful-node ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
-catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
+catkin_package( CATKIN_DEPENDS message_runtime std_msgs actionlib_msgs)
 
 # Lint Python modules
 file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
