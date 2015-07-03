@@ -288,9 +288,6 @@ class RostfulNode(object):
             output_data = json.dumps(res)
             return srv.StopRappResponse(output_data)
 
-        self.TopicInjectService = rospy.Service('~inject_topic', srv.InjectTopic, inject_topic)
-        self.TopicExtractService = rospy.Service('~extract_topic', srv.ExtractTopic, extract_topic)
-        self.ServiceCallService = rospy.Service('~call_service', srv.CallService, call_service)
         self.ActionStartService = rospy.Service('~start_action', srv.StartAction, start_action)
         self.ActionCancelService = rospy.Service('~cancel_action', srv.CancelAction, cancel_action)
         self.ActionStatusService = rospy.Service('~status_action', srv.StatusAction, status_action)
