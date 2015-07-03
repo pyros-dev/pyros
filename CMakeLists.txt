@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 catkin_python_setup()
 generate_dynamic_reconfigure_options(cfg/rostful-node.cfg)
+#include_directories(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 
 add_service_files(DIRECTORY srv
     FILES
@@ -23,12 +24,14 @@ add_service_files(DIRECTORY srv
     StartRapp.srv
     StopRapp.srv
 )
-generate_messages(DEPENDENCIES std_msgs actionlib_msgs)
+generate_messages(DEPENDENCIES std_msgs)
 
+#add_custom_target(rostful_node)  # dummy target
 # make sure configure headers are built before any node using them
-#add_dependencies(rostful-node ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#add_dependencies(rostful_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#add_dependencies(rostful_node ${PROJECT_NAME}_gencfg)
 
-catkin_package( CATKIN_DEPENDS message_runtime std_msgs actionlib_msgs)
+catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
 
 # Lint Python modules
 file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
