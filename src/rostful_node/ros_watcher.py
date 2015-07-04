@@ -73,7 +73,7 @@ class ROSWatcher(threading.Thread):  #TODO : DO NOT inherit from thread. instead
                     self.services_change_cb([c.name for c in new_conns[SERVICE]], [c.name for c in lost_conns[SERVICE]])
 
                 if len(new_conns[ACTION_SERVER]) > 0 or len(lost_conns[ACTION_SERVER]) > 0:
-                    #FIXME : do we need clients here ??
+                    #FIXME : do we need clients here ?? => YES because we can get flipped actions by gateway...
                     self.actions_change_cb([c.name for c in new_conns[ACTION_SERVER]], [c.name for c in lost_conns[ACTION_SERVER]])
 
             except rospy.ROSException:
