@@ -57,10 +57,11 @@ class Interaction(rocon_interactions.Interaction):
         self.launch_list = {}
         self.index = None
         icon_name = msg.icon.resource_name.split('/').pop()
-        if msg.icon.data:
-            icon = open(os.path.join(utils.get_icon_cache_home(), icon_name), 'w')
-            icon.write(msg.icon.data)
-            icon.close()
+        # ignoring icon for now. problem no cache home on robot.
+        #if msg.icon.data:
+        #    icon = open(os.path.join(utils.get_icon_cache_home(), icon_name), 'w')
+        #    icon.write(msg.icon.data)
+        #    icon.close()
         self.icon = icon_name
 
     def __str__(self):
