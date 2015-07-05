@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
 )
 catkin_python_setup()
-generate_dynamic_reconfigure_options(cfg/rostful-node.cfg)
+generate_dynamic_reconfigure_options(cfg/RostfulNode.cfg)
 #include_directories(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 
 add_service_files(DIRECTORY srv
