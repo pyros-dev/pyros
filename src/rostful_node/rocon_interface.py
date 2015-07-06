@@ -192,6 +192,7 @@ class RoconInterface(object):
     def stop_rapp(self):
         try:
             # hack
+            # TODO : fix it. only one namespae on robot. only one rapp running at a time on robot
             rapp_ns = self.rapps_namespaces.keys()[0]
             #fixing namespace
             if not rapp_ns.startswith("/"):
