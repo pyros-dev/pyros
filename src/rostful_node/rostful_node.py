@@ -308,7 +308,6 @@ class RostfulNode(object):
 
         ####
 
-    ### These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
     def msg_build(self, connec_name):
         msg = None
         if self.ros_if:
@@ -320,21 +319,27 @@ class RostfulNode(object):
                 msg = input_msg_type()
         return msg
 
-    def topic(self, name, msg_value=None):
-        msg = msg_value
+    # These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
+    def topic(self, name, msg_content=None):
+        msg = self.msg_build(name)
         if self.ros_if and self.ros_if.get_topic(name):
-            if msg_value:
-                self.ros_if.get_topic(name).publish(msg_value)
+            if msg_content:
+                msgconv.populate_instance(msg_content, msg)
+                self.ros_if.get_topic(name).publish(msg)
                 msg = None  # consuming the message
             else:
-                msg = self.ros_if.get_topic(name).get()
+                res = self.ros_if.get_topic(name).get()
+                msg = msgconv.extract_values(res.msg_value)
         return msg
 
-    def service(self, name, rqst_value):
-        resp_value = None
+    def service(self, name, rqst_content=None):
+        rqst = self.msg_build(name)
+        msgconv.populate_instance(rqst_content, rqst)
+        resp_content = None
         if self.ros_if and self.ros_if.get_service(name):
-            resp_value = self.ros_if.get_service(name).call(rqst_value)
-        return resp_value
+            resp = self.ros_if.get_service(name).call(rqst)
+            resp_content = msgconv.extract_values(resp)
+        return resp_content
     ###
 
     def spin(self):
