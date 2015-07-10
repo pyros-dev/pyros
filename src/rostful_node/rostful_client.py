@@ -8,7 +8,7 @@ Client to rostful node, Python style.
 Required for multiprocess communication.
 """
 
-from .rostful_prtcl import MsgBuild, Topic, Service
+from .rostful_prtcl import Topic, Service
 
 class RostfulClient(object):
     def __init__(self, pipe_conn):

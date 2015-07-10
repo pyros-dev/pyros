@@ -5,32 +5,117 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
 from rostful_node.rostful_mock import RostfulMock
+from multiprocessing import Pipe
+
+from rostful_node.rostful_prtcl import Topic, Service
+
+def test__msg_build():
+    msg = RostfulMock()._msg_build('fake_connec_name')
+    print "msg is of type {0}".format(type(msg))
+    assert isinstance(msg, str)
+
+def test_echo_topic_default():
+    mock = RostfulMock()
+    recv_msg = mock.topic('random_topic')
+    assert recv_msg is None
+
+def test_echo_same_topic():
+    msg = 'testing'
+    mock = RostfulMock()
+    mock.topic('random_topic', msg)
+    print "msg sent is {0}".format(msg)
+    recv_msg = mock.topic('random_topic')
+    print "msg received is {0}".format(recv_msg)
+    assert msg == recv_msg
+
+def test_other_topic():
+    msg = 'testing'
+    mock = RostfulMock()
+    mock.topic('random_topic', msg)
+    print "msg sent is {0}".format(msg)
+    recv_msg = mock.topic('random_topic_2')
+    print "msg received is {0}".format(recv_msg)
+    assert recv_msg is None
+
+def test_echo_service_default():
+    msg = 'testing'
+    mock = RostfulMock()
+    assert mock.service('random_service') is None
+
+def test_echo_service():
+    msg = 'testing'
+    mock = RostfulMock()
+    print "msg sent is {0}".format(msg)
+    recv_msg = mock.service('random_service', msg)
+    print "msg received is {0}".format(recv_msg)
+    assert msg == recv_msg
+
+def test_async_spinner_stop():
+    mock = RostfulMock()
+    #TODO : improve and check corner cases
+    mock.async_spin()
+    mock.async_stop()
 
 class TestRostfulMock:
     def setUp(self):
         self.mockInstance = RostfulMock()
-        self.mockInstance.async_spin()
+        self.cmd_conn = self.mockInstance.async_spin()
 
     def tearDown(self):
         self.mockInstance.async_stop()
         pass
 
-    def test_msg_build(self):
-        msg = self.mockInstance.msg_build('fake_connec_name')
-        assert isinstance(msg, str)
+    def test_echo_topic_default(self):
+        msg = Topic(name='random_topic', msg_content=None)
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert recv_msg.name == msg.name and recv_msg.msg_content == msg.msg_content
 
     def test_echo_topic(self):
-        msg = 'testing random_topic'
-        self.mockInstance.topic('random_topic', msg)
-        print self.mockInstance.topic('random_topic')
-        assert msg == self.mockInstance.topic('random_topic')
+        msg = Topic(name='random_topic', msg_content='testing')
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg sent is {0}".format(msg)
+        assert recv_msg.name == msg.name and recv_msg.msg_content is None  # message consumed
+
+        next_msg = Topic(name='random_topic', msg_content=None)
+        print "next_msg sent is {0}".format(next_msg)
+        self.cmd_conn.send(next_msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert recv_msg.name == next_msg.name and recv_msg.name == msg.name and msg.msg_content == recv_msg.msg_content  # message echoed
+
+    def test_other_topic(self):
+        msg = Topic(name='random_topic', msg_content='testing')
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg sent is {0}".format(msg)
+        assert recv_msg.name == msg.name and recv_msg.msg_content is None  # message consumed
+
+        next_msg = Topic(name='random_topic_2', msg_content=None)
+        print "next_msg sent is {0}".format(next_msg)
+        self.cmd_conn.send(next_msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert recv_msg.name == next_msg.name and recv_msg.name != msg.name and recv_msg.msg_content is None  # message not echoed
+
+    def test_echo_service_default(self):
+        msg = Service(name='random_topic', rqst_content=None, resp_content=None)
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert msg.name == recv_msg.name and msg.rqst_content == recv_msg.rqst_content and msg.rqst_content == recv_msg.resp_content
 
     def test_echo_service(self):
-        msg = 'testing random_service'
-        print self.mockInstance.service('random_service', msg)
-        assert msg == self.mockInstance.service('random_service', msg)
+        msg = Service(name='random_topic', rqst_content='testing', resp_content=None)
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert msg.name == recv_msg.name and msg.rqst_content == recv_msg.rqst_content and msg.rqst_content == recv_msg.resp_content
 
-    #TODO : choose and test proper default values
-
-
-    #TODO : test pipe interface in another fixture
