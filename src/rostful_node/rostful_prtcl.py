@@ -7,6 +7,10 @@ Pure python protocol ( only for pipe communication between process )
 Designed to have always atomic sensible data on the pipe.
 """
 
+MsgBuild = namedtuple("MsgBuild", "name msg_content")
+# rqst : msg_content = None
+# resp : msg_content = <msg_asdict>
+
 Topic = namedtuple("Topic", "name msg_content")
 # Inject :
 # rqst : msg_content = <msg_asdict>

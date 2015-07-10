@@ -7,7 +7,7 @@ import logging
 import time
 
 # python protocol should be usable without ROS.
-from .rostful_prtcl import Topic, Service
+from .rostful_prtcl import MsgBuild, Topic, Service
 from multiprocessing import Pipe
 import threading
 """
@@ -18,10 +18,12 @@ class RostfulMock(object):
 
     def __init__(self):
         self._topic_msg = {}  # storage for the echo topic
+        self._stop_event = None  # stop_event to signal the thread for soft shutdown
+        self._spinner = None  # thread instance
         pass
 
     # These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
-    def _msg_build(self, connec_name):
+    def msg_build(self, name):
         msg = str()
         return msg
 
@@ -45,12 +47,16 @@ class RostfulMock(object):
         resp = rqst  # if problem we send back the exact same request message.
         # here we need to make sure we always send something back ( so the client can block safely )
         try:
-            if isinstance(rqst, Topic):
+            if isinstance(rqst, MsgBuild):
+                resp = MsgBuild(
+                    name=rqst.name,
+                    msg_content=self.msg_build(rqst.name)
+                )
+            elif isinstance(rqst, Topic):
                 resp = Topic(
                     name=rqst.name,
                     msg_content=self.topic(rqst.name, rqst.msg_content)
                 )
-
             elif isinstance(rqst, Service):
                 resp = Service(
                     name=rqst.name,

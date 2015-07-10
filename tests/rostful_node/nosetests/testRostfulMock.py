@@ -5,12 +5,10 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
 from rostful_node.rostful_mock import RostfulMock
-from multiprocessing import Pipe
+from rostful_node.rostful_prtcl import MsgBuild, Topic, Service
 
-from rostful_node.rostful_prtcl import Topic, Service
-
-def test__msg_build():
-    msg = RostfulMock()._msg_build('fake_connec_name')
+def test_msg_build():
+    msg = RostfulMock().msg_build('fake_connec_name')
     print "msg is of type {0}".format(type(msg))
     assert isinstance(msg, str)
 
@@ -56,7 +54,7 @@ def test_async_spinner_stop():
     mock.async_spin()
     mock.async_stop()
 
-class TestRostfulMock:
+class TestRostfulMock(object):
     def setUp(self):
         self.mockInstance = RostfulMock()
         self.cmd_conn = self.mockInstance.async_spin()
@@ -64,6 +62,14 @@ class TestRostfulMock:
     def tearDown(self):
         self.mockInstance.async_stop()
         pass
+
+    def test_msg_build(self):
+        msg = MsgBuild(name='fake_connec_name', msg_content=None)
+        print "msg sent is {0}".format(msg)
+        self.cmd_conn.send(msg)
+        recv_msg = self.cmd_conn.recv()
+        print "msg received is {0}".format(recv_msg)
+        assert recv_msg.name == msg.name and isinstance(recv_msg.msg_content, str)
 
     def test_echo_topic_default(self):
         msg = Topic(name='random_topic', msg_content=None)
@@ -104,7 +110,7 @@ class TestRostfulMock:
         assert recv_msg.name == next_msg.name and recv_msg.name != msg.name and recv_msg.msg_content is None  # message not echoed
 
     def test_echo_service_default(self):
-        msg = Service(name='random_topic', rqst_content=None, resp_content=None)
+        msg = Service(name='random_service', rqst_content=None, resp_content=None)
         print "msg sent is {0}".format(msg)
         self.cmd_conn.send(msg)
         recv_msg = self.cmd_conn.recv()
@@ -112,7 +118,7 @@ class TestRostfulMock:
         assert msg.name == recv_msg.name and msg.rqst_content == recv_msg.rqst_content and msg.rqst_content == recv_msg.resp_content
 
     def test_echo_service(self):
-        msg = Service(name='random_topic', rqst_content='testing', resp_content=None)
+        msg = Service(name='random_service', rqst_content='testing', resp_content=None)
         print "msg sent is {0}".format(msg)
         self.cmd_conn.send(msg)
         recv_msg = self.cmd_conn.recv()
