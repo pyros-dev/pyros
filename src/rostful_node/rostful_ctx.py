@@ -27,14 +27,14 @@ def RostfulCtx(name='rostful_node', argv=None, anonymous=True, disable_signals=T
         rospy.init_node(name, argv=argv, anonymous=anonymous, disable_signals=disable_signals)
         rospy.logwarn('rostful node started with args : %r', argv)
 
-        # TODO : check about synchronization to avoid concurrency on pip write/read ( in case of multiple clients for example )
-        node_conn, client_conn = Pipe()
-        # TODO : change design to match Mock
+        node = RostfulNode()
+        client_conn = node.async_spin()
         ctx = namedtuple("rostful_context", "node client")
-        yield ctx(node=RostfulNode(node_conn), client=RostfulClient(client_conn))
+        yield ctx(node=node, client=RostfulClient(client_conn))
 
+        node.async_stop()
         rospy.logwarn('rostful node stopped')
-        rospy.signal_shutdown('Closing')
+        # rospy.signal_shutdown('Closing')  # probably useless now ?
 
     else:
         logging.warn('rostful mock node started with args : %r', argv)

@@ -42,7 +42,7 @@ class RostfulMock(object):
         resp_content = rqst_content
         return resp_content
 
-    def _process_pipe_msg(self, pipe_conn):
+    def _dispatch_msg(self, pipe_conn):
         rqst = pipe_conn.recv()
         resp = rqst  # if problem we send back the exact same request message.
         # here we need to make sure we always send something back ( so the client can block safely )
@@ -68,20 +68,22 @@ class RostfulMock(object):
             # to make sure we always return something, no matter what
             pipe_conn.send(resp)
 
-    def spin(self, pipe_conn, stop_event):
+    def spin(self, pipe_conn, check_init_fn, check_spinnable_fn):
         """
+
         Spinning, processing commands arriving in the queue
+        :param pipe_conn :
+        :param check_init_fn : needs to raise an exception to prevent starting the spin
+        :param check_stop_fn : just returns true to break the spin
         :return:
         """
-        # check if INITED ( using Context or not )
-
-        logging.debug("mock entering spin(), pid[%s]", os.getpid())
         try:
+            check_init_fn()  # raise an exception to break
             # we should exit if we lose connection or stop_event disappear.
-            while pipe_conn and stop_event and not stop_event.is_set():
+            while pipe_conn and check_spinnable_fn and check_spinnable_fn():
                 try:
                     if pipe_conn.poll(0.5):
-                        self._process_pipe_msg(pipe_conn)
+                        self._dispatch_msg(pipe_conn)
                     else:  # no data, no worries.
                         pass
                 except EOFError:  # empty pipe, no worries.
@@ -93,7 +95,6 @@ class RostfulMock(object):
         # If run asynchronously these can only be caught in the main thread
         except KeyboardInterrupt:
             logging.debug("Keyboard Interrupt , shutting down")
-            # trigger shutdown
         except SystemExit:
             logging.debug("System Exit , shutting down")
 
@@ -104,7 +105,17 @@ class RostfulMock(object):
         """
         self._stop_event = threading.Event()
         pipe_conn, other_end = Pipe()
-        self._spinner = threading.Thread(target=self.spin, args=(pipe_conn, self._stop_event,))
+
+        # TODO : check about synchronization to avoid concurrency on pip write/read ( in case of multiple clients for example )
+
+        def check_init():  # no special init needed with mock
+            logging.debug("mock entering spin(), pid[%s]", os.getpid())
+
+        self._spinner = threading.Thread(target=self.spin, args=(
+            pipe_conn,
+            check_init,
+            lambda: not self._stop_event.is_set(),  # setting the stop_event will stop the thread
+        ))
         self._spinner.start()
         return other_end
 
