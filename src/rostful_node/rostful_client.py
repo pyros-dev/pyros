@@ -56,7 +56,10 @@ class RostfulClient(object):
         except Exception, e:
             raise
 
-        res_obj = msgconv.extract_values(res.msg_value)
+        if res.msg_value:
+            res_obj = msgconv.extract_values(res.msg_value)
+        else:
+            res_obj = None
 
         return res_obj
 

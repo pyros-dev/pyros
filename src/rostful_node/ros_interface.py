@@ -84,6 +84,8 @@ class RosInterface(object):
         self.services_args = []
         self.topics_args = []
         self.actions_args = []
+        #current topics waiting for deletion ( still contain messages )
+        self.topics_waiting_del = {}
 
         topics_args = ast.literal_eval(rospy.get_param('~topics', "[]"))
         services_args = ast.literal_eval(rospy.get_param('~services', "[]"))
@@ -192,17 +194,30 @@ class RosInterface(object):
         if ws_name.startswith('/'):
             ws_name = ws_name[1:]
 
+        if ws_name in self.topics_waiting_del.keys() > 0:
+            # here the intent is obviously to erase the old homonym topic data
+            self.topics_waiting_del.pop(ws_name, None)
+
         self.topics[ws_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
         return True
 
-    def del_topic(self, topic_name, ws_name=None):
+    def del_topic(self, topic_name, ws_name=None, noloss=True):
         if ws_name is None:
             ws_name = topic_name
         if ws_name.startswith('/'):
             ws_name = ws_name[1:]
 
-        if not self.topics.pop(ws_name, None):
-            self.topics_waiting.remove(topic_name)
+        if ws_name in self.topics:
+            if noloss and self.topics.get(ws_name).unread() > 0:
+                # we want to delete it later, after last message has been consumed
+                # we make a copy of the topic to still be able to access it
+                self.topics_waiting_del[ws_name] = (self.topics.get(ws_name))
+
+            if not self.topics.pop(ws_name, None):
+                self.topics_waiting.remove(topic_name)
+        elif not noloss and ws_name in self.topics_waiting_del:  # in this case we want to actually remove it completely
+            self.topics_waiting_del.pop(ws_name, None)
+
         return True
 
     """
@@ -240,8 +255,12 @@ class RosInterface(object):
         if ws_name.startswith('/'):
             ws_name = ws_name[1:]
 
+        #hiding topics waiting for deletion with no messages waiting to be read.
         if ws_name in self.topics.keys():
             topic = self.topics[ws_name]
+            return topic
+        elif ws_name in self.topics_waiting_del.keys() and self.topics_waiting_del[ws_name].unread() > 0:
+            topic = self.topics_waiting_del[ws_name]
             return topic
         else:
             return None  # topic not exposed
@@ -316,6 +335,17 @@ class RosInterface(object):
             # Removing extra ones
             for topic_name in topics_lst:
                 ret = self.del_topic(topic_name)
+
+        #taking the opportunity to try cleaning the topics that have been emptied
+        # TODO : think about a clean way to link that to the topic.get() method
+        if len(self.topics_waiting_del) > 0:
+            cleanup = []
+            for ws_name in self.topics_waiting_del.keys():
+                if 0 == self.topics_waiting_del.get(ws_name).unread():  # FIXME : careful about the difference between topic_name and ws_name
+                    cleanup.append(ws_name)
+            for ws_name in cleanup:
+                self.topics_waiting_del.pop(ws_name, None)
+                #TODO : cleaner way by calling self.del_topic ?
 
     def services_change_cb(self, new_services, lost_services):
         # rospy.logwarn('new services : %r, lost services : %r', new_services, lost_services)

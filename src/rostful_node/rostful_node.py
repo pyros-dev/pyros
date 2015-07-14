@@ -327,7 +327,7 @@ class RostfulNode(object):
                 self.ros_if.get_topic(name).publish(msg_value)
                 msg = None  # consuming the message
             else:
-                msg = self.ros_if.get_topic(name).get()
+                msg = self.ros_if.get_topic(name).get(consume=True)
         return msg
 
     def service(self, name, rqst_value):
