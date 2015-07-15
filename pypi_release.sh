@@ -2,7 +2,7 @@
 
 #TODO : find ~/.pypirc and extract repository
 if [ $# -lt 1 ]; then
-    echo "Usage : $0 <pypi|pypitest>"
+    echo "Usage : $0 <pypi|testpypi>"
     exit 127
 fi
 
@@ -29,6 +29,7 @@ if [ $VERSION_EXISTS -eq 1 ]; then
     exit 64
 fi
 
+#TODO : Make sure everything is commited already
 #tagging new release
 ${GIT_TAG_CMD}
 
