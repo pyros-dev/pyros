@@ -66,7 +66,7 @@ class TopicBack:
         #TODO : implement returning multiple messages
         if consume:
             res = self.msg.popleft()
-            if 0 == len(self.msg) and self.empty_cb :
+            if 0 == len(self.msg) and self.empty_cb:
                 self.empty_cb()
                 #TODO : CHECK that we can survive here even if we get dropped from the topic list
         else:

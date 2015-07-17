@@ -201,7 +201,7 @@ class RosInterface(object):
         self.topics[ws_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
         return True
 
-    def del_topic(self, topic_name, ws_name=None, noloss=True):
+    def del_topic(self, topic_name, ws_name=None, noloss=False):
         if ws_name is None:
             ws_name = topic_name
         if ws_name.startswith('/'):
