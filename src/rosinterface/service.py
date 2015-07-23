@@ -45,7 +45,7 @@ class ServiceBack:
 
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
 
-    def call(self, rosreq):
+    def call(self, rosreq = None):
 #       rosreq = self.rostype_req()
 #       if use_ros:
 #           rosreq.deserialize(req)
@@ -53,8 +53,9 @@ class ServiceBack:
 #           msgconv.populate_instance(req, rosreq)
 
         fields = []
-        for slot in rosreq.__slots__:
-            fields.append(getattr(rosreq, slot))
-        fields = tuple(fields)
+        if rosreq:
+            for slot in rosreq.__slots__:
+                fields.append(getattr(rosreq, slot))
+            fields = tuple(fields)
 
         return self.proxy(*fields)

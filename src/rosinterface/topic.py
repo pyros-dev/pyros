@@ -52,15 +52,34 @@ class TopicBack:
         if self.allow_sub:
             self.sub = rospy.Subscriber(self.name, self.rostype, self.topic_callback)
 
+        self.empty_cb = None
+
     def publish(self, msg):
         self.pub.publish(msg)
         return
 
-    def get(self, num=0):
+    def get(self, num=0, consume=False):
         if not self.msg:
             return None
+
+        res = None
         #TODO : implement returning multiple messages
-        return self.msg[0]
+        if consume:
+            res = self.msg.popleft()
+            if 0 == len(self.msg) and self.empty_cb:
+                self.empty_cb()
+                #TODO : CHECK that we can survive here even if we get dropped from the topic list
+        else:
+            res = self.msg[0]
+
+        return res
+
+    #returns the number of unread message
+    def unread(self):
+        return len(self.msg)
+
+    def set_empty_callback(self, cb):
+        self.empty_cb = cb
 
     def topic_callback(self, msg):
         self.msg.appendleft(msg)

@@ -62,7 +62,12 @@ class RostfulClient(object):
         except Exception, e:
             raise
 
-        return res.msg_content
+        if res.msg_value:
+            res_obj = msgconv.extract_values(res.msg_value)
+        else:
+            res_obj = None
+
+        return res_obj
 
     def call(self, service_name, _msg_content=None, **kwargs):
         #changing unicode to string ( testing stability of multiprocess debugging )

@@ -319,7 +319,7 @@ class RostfulNode(RostfulMock):
                 self.ros_if.get_topic(name).publish(msg)
                 msg = None  # consuming the message
             else:
-                res = self.ros_if.get_topic(name).get()
+                res = self.ros_if.get_topic(name).get(consume=False)
                 msg = msgconv.extract_values(res.msg_value)
         return msg
 
