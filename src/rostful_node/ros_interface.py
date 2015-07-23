@@ -213,8 +213,12 @@ class RosInterface(object):
                 # we make a copy of the topic to still be able to access it
                 self.topics_waiting_del[ws_name] = (self.topics.get(ws_name))
 
-            if not self.topics.pop(ws_name, None):
+            t = self.topics.pop(ws_name, None)
+            if t:
+                self.topics_waiting.append(topic_name)
+            else:
                 self.topics_waiting.remove(topic_name)
+
         elif not noloss and ws_name in self.topics_waiting_del:  # in this case we want to actually remove it completely
             self.topics_waiting_del.pop(ws_name, None)
 
