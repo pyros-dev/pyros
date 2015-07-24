@@ -320,7 +320,7 @@ class RostfulNode(RostfulMock):
                 msg = None  # consuming the message
             else:
                 res = self.ros_if.get_topic(name).get(consume=False)
-                msg = msgconv.extract_values(res.msg_value)
+                msg = msgconv.extract_values(res) if res else res
         return msg
 
     def service(self, name, rqst_content=None):
