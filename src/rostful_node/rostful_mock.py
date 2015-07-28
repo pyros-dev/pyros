@@ -108,6 +108,8 @@ class RostfulMock(object):
 
         # TODO : check about synchronization to avoid concurrency on pip write/read ( in case of multiple clients for example )
 
+        # TODO : close the ends of the pipe that should not be used ( so that exceptions can be triggered when producer / consumer dies )
+
         def check_init():  # no special init needed with mock
             logging.debug("mock entering spin(), pid[%s]", os.getpid())
 
