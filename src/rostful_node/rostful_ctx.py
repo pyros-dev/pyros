@@ -6,7 +6,9 @@ from .rostful_client import RostfulClient
 try:
     import rospy
     from .rostful_node import RostfulNode
-except:
+except ImportError, e:
+    import logging
+    logging.warn("Error: Could not find rospy. %s" % e)
     rospy = None
 
 import logging

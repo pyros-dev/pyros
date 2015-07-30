@@ -3,7 +3,14 @@ from __future__ import absolute_import
 import rospy
 
 from .ros_interface import RosInterface
-from .rocon_interface import RoconInterface
+try:
+    from .rocon_interface import RoconInterface
+    _ROCON_AVAILABLE = True
+except ImportError, e:
+    import logging
+    logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
+    _ROCON_AVAILABLE = False
+    
 from .rostful_prtcl import MsgBuild, Topic, Service
 from .rostful_mock import RostfulMock
 
@@ -34,7 +41,7 @@ class RostfulNode(RostfulMock):
 
         self.ros_if = RosInterface()
 
-        if self.enable_rocon:
+        if _ROCON_AVAILABLE and self.enable_rocon:
             self.rocon_if = RoconInterface(self.ros_if)
             pass
         else:
