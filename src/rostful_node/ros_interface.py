@@ -86,7 +86,6 @@ class RosInterface(object):
         self.topics_waiting = []
         self.actions_waiting = []
         #last requested services topics and actions to be exposed
-        # TODO: If you put anything in these, it won't appear on the REST interface...
         self.services_args = []
         self.topics_args = []
         self.actions_args = []
@@ -100,33 +99,20 @@ class RosInterface(object):
 
         all_topics = ast.literal_eval(rospy.get_param('~topics', "[]"))
         for topic in all_topics:
-            has_regex = any(char in topic for char in self.REGEX_CHARS)
-            target = self.topics_match if has_regex else self.topics_args
-            target.append(topic)
+            if any(char in topic for char in self.REGEX_CHARS):
+                self.topics_match.append(topic)
             
         all_services = ast.literal_eval(rospy.get_param('~services', "[]"))
         for service in all_services:
-            has_regex = any(char in service for char in self.REGEX_CHARS)
-            target = self.services_match if has_regex else self.services_args
-            target.append(service)
+            if any(char in service for char in self.REGEX_CHARS):
+                self.services_match.append(service)
             
         all_actions = ast.literal_eval(rospy.get_param('~actions', "[]"))
         for action in all_actions:
-            has_regex = any(char in action for char in self.REGEX_CHARS)
-            target = self.actions_match if has_regex else self.actions_args
-            target.append(action)
+            if any(char in action for char in self.REGEX_CHARS):
+                self.actions_match.append(action)
 
-        print("non-regex topics", self.topics_args)
-        print("non-regex services", self.services_args)
-        print("non-regex actions", self.actions_args)
-        print("topics with regex matches", self.topics_match)
-        print("services with regex matches", self.services_match)
-        print("actions with regex matches", self.actions_match)
-        
-        self.expose_topics(self.topics_args)
-        self.topics_args = []
-        self.services_args = []
-        self.actions_args = []
+        #self.expose_topics(topics_args)
         #self.expose_services(services_args)
         #self.expose_actions(actions_args)
 
@@ -149,11 +135,8 @@ class RosInterface(object):
     def is_regex_match(self, key, match_candidates):
         for cand in match_candidates:
             pattern = re.compile(self.regexify_match_string(cand))
-            print("Trying to match %s with regex %s" % (key, pattern.pattern))
             if pattern.match(key):
-                print("matched")
                 return True
-        print("failed")
         return False
         
     ##
@@ -206,10 +189,6 @@ class RosInterface(object):
                 new_actions.append(action)
 
         self.expose_actions(new_actions)
-
-        print("topics with regex matches", self.topics_match)
-        print("services with regex matches", self.services_match)
-        print("actions with regex matches", self.actions_match)
 
         return config
 
