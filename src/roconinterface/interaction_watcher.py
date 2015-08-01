@@ -114,6 +114,7 @@ class InteractionWatcher(threading.Thread):  #TODO : DO NOT inherit from thread.
 
                 try:
                     rospy.logdebug("InteractionWatcher : Get interactions service Handles")
+                    # TODO : BUGFIX : sometimes the service is not up when we arrive here...
                     interactions_namespace = rocon_python_comms.find_service_namespace('get_interactions', 'rocon_interaction_msgs/GetInteractions', unique=True)
                     self._hook_interaction_manager(interactions_namespace)
 
