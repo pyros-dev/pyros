@@ -5,6 +5,7 @@ import rospy
 from rospy.service import ServiceManager
 import rosservice, rostopic
 import actionlib_msgs.msg
+import string
 
 from importlib import import_module
 from collections import deque
@@ -71,6 +72,10 @@ class ActionNotExposed(Exception):
 Interface with ROS.
 """
 class RosInterface(object):
+    # dict of allowed matching characters, and their corresponding replacement regex
+    # strings.
+    REGEX_CHARS = {'*' : '.*'}
+    
     def __init__(self):
         #current services topics and actions exposed
         self.services = {}
@@ -87,18 +92,53 @@ class RosInterface(object):
         #current topics waiting for deletion ( still contain messages )
         self.topics_waiting_del = {}
 
-        topics_args = ast.literal_eval(rospy.get_param('~topics', "[]"))
-        services_args = ast.literal_eval(rospy.get_param('~services', "[]"))
-        actions_args = ast.literal_eval(rospy.get_param('~actions', "[]"))
+        # all_topics = ast.literal_eval(rospy.get_param('~topics', "[]"))
+        # for topic in all_topics:
+        #     if any(char in topic for char in self.REGEX_CHARS):
+        #         self.topics_match.append(topic)
+            
+        # all_services = ast.literal_eval(rospy.get_param('~services', "[]"))
+        # for service in all_services:
+        #     if any(char in service for char in self.REGEX_CHARS):
+        #         self.services_match.append(service)
+            
+        # all_actions = ast.literal_eval(rospy.get_param('~actions', "[]"))
+        # for action in all_actions:
+        #     if any(char in action for char in self.REGEX_CHARS):
+        #         self.actions_match.append(action)
 
-        self.expose_topics(topics_args)
+        #self.expose_topics(topics_args)
         #self.expose_services(services_args)
         #self.expose_actions(actions_args)
 
         self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
         self.ros_watcher.start()
 
+    def regexify_match_string(self, match):
+        new_match = match
+        # replace all occurrences of each possible match char in the string with
+        # the corresponding replacement regex character
+        for key in self.REGEX_CHARS:
+            new_match = string.replace(new_match, key, self.REGEX_CHARS[key])
+        return '^' + new_match + '$'
 
+        
+    ##
+    # @param key The topic, action or service name to check against the strings
+    # that we have in the list of matchable candidates
+    # @param match_candidates list of match candidates that we should try to match against
+    def is_regex_match(self, key, match_candidates):
+        for cand in match_candidates:
+            pattern = re.compile(self.regexify_match_string(cand))
+            if pattern.match(key):
+                return True
+        return False
+        
+    ##
+    # This callback is called when dynamic_reconfigure gets an update on
+    # parameter information. Topics which are received through here will be
+    # added to the list of topics which are monitored and added to or removed
+    # from the view on the REST interface
     def reconfigure(self, config, level):
         rospy.logwarn("""ROSInterface Reconfigure Request: \ntopics : {topics} \nservices : {services} \nactions : {actions}""".format(**config))
         new_topics = ast.literal_eval(config["topics"])
@@ -131,8 +171,9 @@ class RosInterface(object):
 
         self.services[ws_name] = ServiceBack(service_name, service_type)
         return True
-
+ 
     def del_service(self, service_name, ws_name=None):
+        print("deleting service", service_name)
         if ws_name is None:
             ws_name = service_name
         if ws_name.startswith('/'):
@@ -146,7 +187,7 @@ class RosInterface(object):
     This exposes a list of services as REST API. services not listed here will be removed from the API
     """
     def expose_services(self, service_names):
-        #rospy.loginfo('Exposing services : %r', service_names)
+        rospy.loginfo('Exposing services : %r', service_names)
         if not service_names:
             return
         for service_name in service_names:
@@ -228,7 +269,7 @@ class RosInterface(object):
     This exposes a list of topics as REST API. topics not listed here will be removed from the API
     """
     def expose_topics(self, topic_names, allow_pub=True, allow_sub=True):
-        # rospy.loginfo('Exposing topics : %r', topic_names)
+        rospy.loginfo('Exposing topics : %r', topic_names)
         if not topic_names:
             return
         # Adding missing ones
@@ -323,10 +364,13 @@ class RosInterface(object):
             return action
         else:
             raise ActionNotExposed(action_name)
-
+            
+    ##
+    # This callback is called when the ros_watcher receives information about
+    # new topics, or topics which dropped off the ros network.
     def topics_change_cb(self, new_topics, lost_topics):
-        # rospy.logwarn('new topics : %r, lost topics : %r', new_topics, lost_topics)
-        topics_lst = [t for t in new_topics if t in self.topics_waiting]
+        rospy.logwarn('new topics : %r, lost topics : %r', new_topics, lost_topics)
+        topics_lst = [t for t in new_topics if t in self.topics_waiting or self.is_regex_match(t, self.topics_waiting)]
         if len(topics_lst) > 0:
             # rospy.logwarn('exposing new topics : %r', topics_lst)
             # Adding missing ones
@@ -353,7 +397,7 @@ class RosInterface(object):
 
     def services_change_cb(self, new_services, lost_services):
         # rospy.logwarn('new services : %r, lost services : %r', new_services, lost_services)
-        svc_list = [s for s in new_services if s in self.services_waiting]
+        svc_list = [s for s in new_services if s in self.services_waiting or self.is_regex_match(s, self.services_waiting)]
         if len(svc_list) > 0:
             # rospy.logwarn('exposing new services : %r', svc_list)
             for svc_name in svc_list:
@@ -367,7 +411,7 @@ class RosInterface(object):
 
     def actions_change_cb(self, new_actions, lost_actions):
         # rospy.logwarn('new actions : %r, lost actions : %r', new_actions, lost_actions)
-        act_list = [a for a in new_actions if a in self.actions_waiting]
+        act_list = [a for a in new_actions if a in self.actions_waiting or self.is_regex_match(a, self.actions_waiting)]
         if len(act_list) > 0:
             # rospy.logwarn('exposing new actions : %r', act_list)
             for act_name in act_list:
@@ -378,3 +422,4 @@ class RosInterface(object):
             # rospy.logwarn('hiding lost actions : %r', act_list)
             for act_name in act_list:
                 self.del_action(act_name)
+
