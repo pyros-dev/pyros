@@ -120,7 +120,7 @@ class RosInterface(object):
         # the corresponding replacement regex character
         for key in self.REGEX_CHARS:
             new_match = string.replace(new_match, key, self.REGEX_CHARS[key])
-        return new_match
+        return '^' + new_match + '$'
 
         
     ##
