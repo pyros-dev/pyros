@@ -72,10 +72,7 @@ class ActionNotExposed(Exception):
 Interface with ROS.
 """
 class RosInterface(object):
-    # dict of allowed matching characters, and their corresponding replacement regex
-    # strings.
-    REGEX_CHARS = {'*' : '.*'}
-    
+
     def __init__(self):
         #current services topics and actions exposed
         self.services = {}
@@ -114,14 +111,14 @@ class RosInterface(object):
         self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
         self.ros_watcher.start()
 
-    def regexify_match_string(self, match):
-        new_match = match
-        # replace all occurrences of each possible match char in the string with
-        # the corresponding replacement regex character
-        for key in self.REGEX_CHARS:
-            new_match = string.replace(new_match, key, self.REGEX_CHARS[key])
-        return '^' + new_match + '$'
-
+    ##
+    # Attach beginning of line and end of line characters to the given string.
+    # Ensures that raw topics like /test do not match other topics containing
+    # the same string (e.g. /items/test would result in a regex match at char 7)
+    # regex goes through each position in the string to find matches - this
+    # forces it to consider only the first position
+    def cap_match_string(self, match):
+        return '^' + match + '$'
         
     ##
     # @param key The topic, action or service name to check against the strings
@@ -129,9 +126,13 @@ class RosInterface(object):
     # @param match_candidates list of match candidates that we should try to match against
     def is_regex_match(self, key, match_candidates):
         for cand in match_candidates:
-            pattern = re.compile(self.regexify_match_string(cand))
-            if pattern.match(key):
-                return True
+            try:
+                pattern = re.compile(self.cap_match_string(cand))
+                if pattern.match(key):
+                    return True
+            except:
+                rospy.logwarn('Invalid regex string "%s"!' % cand)
+
         return False
         
     ##
@@ -141,12 +142,22 @@ class RosInterface(object):
     # from the view on the REST interface
     def reconfigure(self, config, level):
         rospy.logwarn("""ROSInterface Reconfigure Request: \ntopics : {topics} \nservices : {services} \nactions : {actions}""".format(**config))
-        new_topics = ast.literal_eval(config["topics"])
-        self.expose_topics(new_topics)
-        new_services = ast.literal_eval(config["services"])
-        self.expose_services(new_services)
-        new_actions = ast.literal_eval(config["actions"])
-        self.expose_actions(new_actions)
+        try:
+            new_topics = ast.literal_eval(config["topics"])
+            self.expose_topics(new_topics)
+        except ValueError:
+            rospy.logwarn('Ignored list %s containing malformed topic strings. Fix your input!' % str(config["topics"]))
+        try:
+            new_services = ast.literal_eval(config["services"])
+            self.expose_services(new_services)
+        except ValueError:
+            rospy.logwarn('Ignored list %s containing malformed service strings. Fix your input!' % str(config["services"]))
+            
+        try:
+            new_actions = ast.literal_eval(config["actions"])
+            self.expose_actions(new_actions)
+        except ValueError:
+            rospy.logwarn('Ignored list %s containing malformed action strings. Fix your input!' % str(config["actions"]))
 
         return config
 
@@ -156,7 +167,7 @@ class RosInterface(object):
             try:
                 service_type = rosservice.get_service_type(resolved_service_name)
                 if not service_type:
-                    rospy.logwarn('Cannot Expose unknown service %s' % service_name)
+                    rospy.logwarn('Cannot Expose unknown service %s (maybe it is a regex?)' % service_name)
                     self.services_waiting.append(service_name)
                     return False
             except rosservice.ROSServiceIOException, e:
@@ -222,7 +233,7 @@ class RosInterface(object):
             try:
                 topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
                 if not topic_type:
-                    rospy.logwarn('Cannot Expose unknown topic %s' % topic_name)
+                    rospy.logwarn('Cannot Expose unknown topic %s (maybe it is a regex?)' % topic_name)
                     self.topics_waiting.append(topic_name)
                     return False
             except rosservice.ROSServiceIOException, e:
@@ -315,7 +326,7 @@ class RosInterface(object):
             resolved_topic_name = rospy.resolve_name(action_name + '/result')
             topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
             if not topic_type:
-                rospy.logwarn( 'Cannot Expose unknown action %s', action_name )
+                rospy.logwarn( 'Cannot Expose unknown action %s (maybe it is a regex?)', action_name )
                 self.actions_waiting.append(action_name)
                 return False
             action_type = topic_type[:-len('ActionResult')]
