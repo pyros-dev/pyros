@@ -74,39 +74,30 @@ Interface with ROS.
 class RosInterface(object):
 
     def __init__(self):
-        #current services topics and actions exposed
+        # Current services topics and actions exposed, i.e. those which are
+        # active in the system.
         self.services = {}
         self.topics = {}
         self.actions = {}
-        #current services topics and actions we are waiting for
+        # The *_waiting and *args should be consistent with the initial
+        # character of the strings they contain. Currently we ensure that all
+        # the lists contain strings which do not have a leading slash.
+        
+        # Current services topics and actions we are waiting for. These are
+        # either those which have not yet appeared, or which have disappeared
+        # from the system.
         self.services_waiting = []
         self.topics_waiting = []
         self.actions_waiting = []
-        #last requested services topics and actions to be exposed
+        # Last requested services topics and actions to be exposed, received
+        # from a reconfigure request. Topics which match topics containing
+        # wildcards go in here after they are added, but when a new reconfigure
+        # request is received, they disappear.
         self.services_args = []
         self.topics_args = []
         self.actions_args = []
         #current topics waiting for deletion ( still contain messages )
         self.topics_waiting_del = {}
-
-        # all_topics = ast.literal_eval(rospy.get_param('~topics', "[]"))
-        # for topic in all_topics:
-        #     if any(char in topic for char in self.REGEX_CHARS):
-        #         self.topics_match.append(topic)
-            
-        # all_services = ast.literal_eval(rospy.get_param('~services', "[]"))
-        # for service in all_services:
-        #     if any(char in service for char in self.REGEX_CHARS):
-        #         self.services_match.append(service)
-            
-        # all_actions = ast.literal_eval(rospy.get_param('~actions', "[]"))
-        # for action in all_actions:
-        #     if any(char in action for char in self.REGEX_CHARS):
-        #         self.actions_match.append(action)
-
-        #self.expose_topics(topics_args)
-        #self.expose_services(services_args)
-        #self.expose_actions(actions_args)
 
         self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
         self.ros_watcher.start()
@@ -134,7 +125,12 @@ class RosInterface(object):
                 rospy.logwarn('Invalid regex string "%s"!' % cand)
 
         return False
-        
+
+    def repslash(self, string):
+        if string[0] == '/':
+            return string[1:]
+        return string
+
     ##
     # This callback is called when dynamic_reconfigure gets an update on
     # parameter information. Topics which are received through here will be
@@ -175,6 +171,9 @@ class RosInterface(object):
                 self.services_waiting.append(service_name)
                 return False
 
+        if service_name in self.services_waiting:
+            self.services_waiting.remove(service_name)
+            
         if ws_name is None:
             ws_name = service_name
         if ws_name.startswith('/'):
@@ -182,16 +181,22 @@ class RosInterface(object):
 
         self.services[ws_name] = ServiceBack(service_name, service_type)
         return True
- 
+        
     def del_service(self, service_name, ws_name=None):
-        print("deleting service", service_name)
+        rospy.loginfo("deleting service %s" % service_name)
         if ws_name is None:
             ws_name = service_name
         if ws_name.startswith('/'):
             ws_name = ws_name[1:]
 
         if not self.services.pop(ws_name, None):
-            self.services_waiting.remove(service_name)
+            # if the service didn't exist, remove it from the waiting list
+            # (when does this happen?)
+            self.services_waiting.remove(service_name) 
+        else:
+            # if the service existed, we add it to the list of services that we
+            # are waiting to appear again.
+            self.services_waiting.append(service_name)
         return True
 
     """
@@ -249,6 +254,10 @@ class RosInterface(object):
         if ws_name in self.topics_waiting_del.keys() > 0:
             # here the intent is obviously to erase the old homonym topic data
             self.topics_waiting_del.pop(ws_name, None)
+        if ws_name in self.topics_waiting:
+            self.topics_waiting.remove(ws_name)
+        if not ws_name in self.topics_args:
+            self.topics_args.append(ws_name)
 
         self.topics[ws_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
         return True
@@ -380,6 +389,9 @@ class RosInterface(object):
     # This callback is called when the ros_watcher receives information about
     # new topics, or topics which dropped off the ros network.
     def topics_change_cb(self, new_topics, lost_topics):
+        # internal lists store topics without the initial slash, but we receive them with it from outside
+        new_topics = map(self.repslash, new_topics)
+        lost_topics = map(self.repslash, lost_topics)
         rospy.logwarn('new topics : %r, lost topics : %r', new_topics, lost_topics)
         topics_lst = [t for t in new_topics if t in self.topics_waiting or self.is_regex_match(t, self.topics_waiting)]
         if len(topics_lst) > 0:
@@ -395,7 +407,7 @@ class RosInterface(object):
             for topic_name in topics_lst:
                 ret = self.del_topic(topic_name)
 
-        #taking the opportunity to try cleaning the topics that have been emptied
+        # taking the opportunity to try cleaning the topics that have been emptied
         # TODO : think about a clean way to link that to the topic.get() method
         if len(self.topics_waiting_del) > 0:
             cleanup = []
@@ -407,7 +419,10 @@ class RosInterface(object):
                 #TODO : cleaner way by calling self.del_topic ?
 
     def services_change_cb(self, new_services, lost_services):
-        # rospy.logwarn('new services : %r, lost services : %r', new_services, lost_services)
+        # internal lists store topics without the initial slash, but we receive them with it from outside
+        new_services = map(self.repslash, new_services)
+        lost_services = map(self.repslash, lost_services)
+        rospy.logwarn('new services : %r, lost services : %r', new_services, lost_services)
         svc_list = [s for s in new_services if s in self.services_waiting or self.is_regex_match(s, self.services_waiting)]
         if len(svc_list) > 0:
             # rospy.logwarn('exposing new services : %r', svc_list)
@@ -421,6 +436,9 @@ class RosInterface(object):
                 self.del_service(svc_name)
 
     def actions_change_cb(self, new_actions, lost_actions):
+        # internal lists store topics without the initial slash, but we receive them with it from outside
+        new_actions = map(self.repslash, new_actions)
+        lost_actions = map(self.repslash, lost_actions)
         # rospy.logwarn('new actions : %r, lost actions : %r', new_actions, lost_actions)
         act_list = [a for a in new_actions if a in self.actions_waiting or self.is_regex_match(a, self.actions_waiting)]
         if len(act_list) > 0:
