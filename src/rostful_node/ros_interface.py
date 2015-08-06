@@ -92,10 +92,12 @@ class RosInterface(object):
         # Last requested services topics and actions to be exposed, received
         # from a reconfigure request. Topics which match topics containing
         # wildcards go in here after they are added, but when a new reconfigure
-        # request is received, they disappear.
+        # request is received, they disappear. The value of the topic and action
+        # dicts is the number of instances that that that item has, i.e. how
+        # many times the add function has been called for the given key.
         self.services_args = []
-        self.topics_args = []
-        self.actions_args = []
+        self.topics_args = {} # dict to keep track of the number of connections
+        self.actions_args = {}
         #current topics waiting for deletion ( still contain messages )
         self.topics_waiting_del = {}
 
@@ -139,71 +141,70 @@ class RosInterface(object):
     def reconfigure(self, config, level):
         rospy.logwarn("""ROSInterface Reconfigure Request: \ntopics : {topics} \nservices : {services} \nactions : {actions}""".format(**config))
         try:
-            new_topics = ast.literal_eval(config["topics"])
+            # convert new topics to a set and then back to a list to ensure uniqueness
+            new_topics = map(self.repslash, list(set(ast.literal_eval(config["topics"]))))
+            self.topics_waiting = new_topics
             self.expose_topics(new_topics)
         except ValueError:
             rospy.logwarn('Ignored list %s containing malformed topic strings. Fix your input!' % str(config["topics"]))
         try:
-            new_services = ast.literal_eval(config["services"])
+            # convert new services to a set and then back to a list to ensure uniqueness
+            new_services = map(self.repslash, list(set(ast.literal_eval(config["services"]))))
+            self.services_waiting = new_services
             self.expose_services(new_services)
         except ValueError:
             rospy.logwarn('Ignored list %s containing malformed service strings. Fix your input!' % str(config["services"]))
             
         try:
-            new_actions = ast.literal_eval(config["actions"])
+            # convert new actions to a set and then back to a list to ensure uniqueness
+            new_actions = map(self.repslash, list(set(ast.literal_eval(config["actions"]))))
+            self.actions_waiting = new_actions
             self.expose_actions(new_actions)
         except ValueError:
             rospy.logwarn('Ignored list %s containing malformed action strings. Fix your input!' % str(config["actions"]))
 
         return config
 
-    def add_service(self, service_name, ws_name=None, service_type=None):
+    def add_service(self, service_name, service_type=None):
+        rospy.loginfo("Adding service %s" % service_name)
         resolved_service_name = rospy.resolve_name(service_name)
         if service_type is None:
             try:
                 service_type = rosservice.get_service_type(resolved_service_name)
                 if not service_type:
-                    rospy.logwarn('Cannot Expose unknown service %s (maybe it is a regex?)' % service_name)
+                    rospy.logwarn('Cannot Expose unknown service %s (maybe it is a regex or doesn\'t exist yet?)' % service_name)
                     self.services_waiting.append(service_name)
                     return False
             except rosservice.ROSServiceIOException, e:
-                rospy.logwarn('Error trying to Expose service {name} : {error}'.format(name=service_name, error=e))
-                self.services_waiting.append(service_name)
-                return False
+               rospy.logwarn('Error trying to Expose service {name} : {error}'.format(name=service_name, error=e))
+               self.services_waiting.append(service_name)
+               return False
 
+        # only create a new backend for the service when it is in the waiting list
         if service_name in self.services_waiting:
             self.services_waiting.remove(service_name)
-            
-        if ws_name is None:
-            ws_name = service_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
+            self.services[service_name] = ServiceBack(service_name, service_type)
 
-        self.services[ws_name] = ServiceBack(service_name, service_type)
         return True
-        
-    def del_service(self, service_name, ws_name=None):
+
+    ##
+    # @return false if the service did not exist, true if the connection was
+    # deleted.
+    def del_service(self, service_name):
         rospy.loginfo("deleting service %s" % service_name)
-        if ws_name is None:
-            ws_name = service_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
-
-        if not self.services.pop(ws_name, None):
-            # if the service didn't exist, remove it from the waiting list
-            # (when does this happen?)
-            self.services_waiting.remove(service_name) 
-        else:
-            # if the service existed, we add it to the list of services that we
-            # are waiting to appear again.
+        if service_name in self.services:
             self.services_waiting.append(service_name)
-        return True
+            self.services.pop(service_name, None)
+            return True
+        return False
 
     """
     This exposes a list of services as REST API. services not listed here will be removed from the API
     """
     def expose_services(self, service_names):
         rospy.loginfo('Exposing services : %r', service_names)
+
+        
         if not service_names:
             return
         for service_name in service_names:
@@ -216,29 +217,27 @@ class RosInterface(object):
                 ret = self.del_service(service_name)
                 #if ret: rospy.loginfo ( 'Removed Service %s', service_name )
 
-        #Updating the list of services
         self.services_args = service_names
 
-    def get_service(self, service_name, ws_name=None):
-        if ws_name is None:
-            ws_name = service_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
 
-        if ws_name in self.services.keys():
-            service = self.services[ws_name]
+    def get_service(self, service_name):
+        if service_name in self.services.keys():
+            service = self.services[service_name]
             return service
         else:
             return None  # service not exposed
 
-
-    def add_topic(self, topic_name, ws_name=None, topic_type=None, allow_pub=True, allow_sub=True):
+    def add_topic(self, topic_name, topic_type=None, allow_pub=True, allow_sub=True):
+        rospy.loginfo("Adding topic %s" % topic_name)
         resolved_topic_name = rospy.resolve_name(topic_name)
+        if topic_name not in self.topics_args:
+            self.topics_args[topic_name] = -2
+
         if topic_type is None:
             try:
                 topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
                 if not topic_type:
-                    rospy.logwarn('Cannot Expose unknown topic %s (maybe it is a regex?)' % topic_name)
+                    rospy.logwarn('Cannot Expose unknown topic %s (maybe it is a regex or doesn\'t exist yet?)' % topic_name)
                     self.topics_waiting.append(topic_name)
                     return False
             except rosservice.ROSServiceIOException, e:
@@ -246,43 +245,49 @@ class RosInterface(object):
                 self.topics_waiting.append(topic_name)
                 return False
 
-        if ws_name is None:
-            ws_name = topic_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
-
-        if ws_name in self.topics_waiting_del.keys() > 0:
+        if topic_name in self.topics_waiting_del.keys() > 0:
             # here the intent is obviously to erase the old homonym topic data
-            self.topics_waiting_del.pop(ws_name, None)
-        if ws_name in self.topics_waiting:
-            self.topics_waiting.remove(ws_name)
-        if not ws_name in self.topics_args:
-            self.topics_args.append(ws_name)
+            self.topics_waiting_del.pop(topic_name, None)
+        # if the topic didn't exist yet, create a backend for it and remove it from the waiting list.
+        if topic_name in self.topics_waiting or self.topics_args[topic_name] == -2:
+            self.topics[topic_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
+            self.topics_waiting.remove(topic_name)
 
-        self.topics[ws_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
+        self.topics_args[topic_name] += 1
+        
         return True
 
-    def del_topic(self, topic_name, ws_name=None, noloss=False):
-        if ws_name is None:
-            ws_name = topic_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
+    ##
+    # @return false if the topic did not exist, or there was more than one
+    # connection to the topic, true if the last connection was deleted.
+    def del_topic(self, topic_name, noloss=False):
+        # can only delete topic if we have it in the topic list
+        if topic_name in self.topics:
+            rospy.loginfo("Deleting topic %s" % topic_name)
+            # if there is more than one connection to the topic, we decrement
+            # the count
+            if self.topics_args[topic_name] > 1:
+                self.topics_args[topic_name] -= 1
+                return False
 
-        if ws_name in self.topics:
-            if noloss and self.topics.get(ws_name).unread() > 0:
+            # if there is only one connection left, and the topic is a noloss
+            # topic with more than one message left, add it to the list of
+            # topics waiting for deletion
+            if noloss and self.topics.get(topic_name).unread() > 0 and self.topics_args[topic_name] == 1:
                 # we want to delete it later, after last message has been consumed
                 # we make a copy of the topic to still be able to access it
-                self.topics_waiting_del[ws_name] = (self.topics.get(ws_name))
+                self.topics_waiting_del[topic_name] = (self.topics.get(topic_name))
+            elif not noloss and topic_name in self.topics_waiting_del:  # in this case we want to actually remove it completely
+                self.topics_waiting_del.pop(topic_name, None)
 
-            t = self.topics.pop(ws_name, None)
-            if t:
+            # if there is only one connection left, remove the topic from the
+            # list, add it to the waiting list, and set its number of
+            # connections to zero.
+            if self.topics_args[topic_name] == 1:
+                self.topics.pop(topic_name, None)
                 self.topics_waiting.append(topic_name)
-            else:
-                self.topics_waiting.remove(topic_name)
-
-        elif not noloss and ws_name in self.topics_waiting_del:  # in this case we want to actually remove it completely
-            self.topics_waiting_del.pop(ws_name, None)
-
+                self.topics_args[topic_name] = -2
+                    
         return True
 
     """
@@ -304,65 +309,62 @@ class RosInterface(object):
                 ret = self.del_topic(topic_name)
                 # if ret: rospy.loginfo('Removed Topic %s', topic_name)
 
-        # Updating the list of topics
-        self.topics_args = topic_names
-
-    def get_topic(self, topic_name, ws_name=None):
+    def get_topic(self, topic_name):
         #normalizing names... ( somewhere else ?)
         if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
-        if isinstance(ws_name, unicode):
-            ws_name = unicodedata.normalize('NFKD', ws_name).encode('ascii', 'ignore')
-
-        #topic is raw str from here
-        if ws_name is None:
-            ws_name = topic_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
 
         #hiding topics waiting for deletion with no messages waiting to be read.
-        if ws_name in self.topics.keys():
-            topic = self.topics[ws_name]
+        if topic_name in self.topics.keys():
+            topic = self.topics[topic_name]
             return topic
-        elif ws_name in self.topics_waiting_del.keys() and self.topics_waiting_del[ws_name].unread() > 0:
-            topic = self.topics_waiting_del[ws_name]
+        elif topic_name in self.topics_waiting_del.keys() and self.topics_waiting_del[topic_name].unread() > 0:
+            topic = self.topics_waiting_del[topic_name]
             return topic
         else:
             return None  # topic not exposed
 
-    def add_action(self, action_name, ws_name=None, action_type=None):
+    def add_action(self, action_name, action_type=None):
+        rospy.loginfo("Adding action %s" % action_name)
+        if action_name not in self.actions_args:
+            self.action_args[action_name] = 0
         if action_type is None:
             resolved_topic_name = rospy.resolve_name(action_name + '/result')
             topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
             if not topic_type:
-                rospy.logwarn( 'Cannot Expose unknown action %s (maybe it is a regex?)', action_name )
+                rospy.logwarn( 'Cannot Expose unknown action %s (maybe it is a regex, or doesn\'t exist yet?)', action_name )
                 self.actions_waiting.append(action_name)
                 return False
             action_type = topic_type[:-len('ActionResult')]
 
-        if ws_name is None:
-            ws_name = action_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
-
-        self.actions[ws_name] = ActionBack(action_name, action_type)
-        return True
-
-    def del_action(self, action_name, ws_name=None):
-        if ws_name is None:
-            ws_name = action_name
-        if ws_name.startswith('/'):
-            ws_name = ws_name[1:]
-
-        if not self.actions.pop(ws_name,None) :
+        if action_name in self.actions_waiting or self.actions_args[action_name] == 0:
             self.actions_waiting.remove(action_name)
+            self.actions[action_name] = ActionBack(action_name, action_type)
+            
+        self.actions_args[action_name] += 1
         return True
+
+    ##
+    # @return false if the action did not exist, or there was more than one
+    # connection to the action, true if the last connection was deleted.
+    def del_action(self, action_name):
+        if action_name in self.actions:
+            rospy.loginfo("Deleting action %s" % action_name)
+            if self.actions_args[action_name] == 1:
+                self.actions.pop(action_name, None)
+                self.actions_waiting.append(action_name)
+                self.actions_args[action_name] = 0
+                return True
+            else:
+                self.actions_args[action_name] -= 1
+
+        return False
 
     """
     This exposes a list of actions as REST API. actions not listed here will be removed from the API
     """
     def expose_actions(self, action_names):
-        #rospy.loginfo('Exposing actions : %r', action_names)
+        rospy.loginfo('Exposing actions : %r', action_names)
         if not action_names:
             return
         for action_name in action_names:
@@ -376,7 +378,7 @@ class RosInterface(object):
                 #if ret: rospy.loginfo ( 'Removed Action %s', action_name)
 
         # Updating the list of actions
-        self.actions_args = action_names
+
 
     def get_action(self, action_name):
         if action_name in self.actions:
@@ -393,12 +395,14 @@ class RosInterface(object):
         new_topics = map(self.repslash, new_topics)
         lost_topics = map(self.repslash, lost_topics)
         rospy.logwarn('new topics : %r, lost topics : %r', new_topics, lost_topics)
-        topics_lst = [t for t in new_topics if t in self.topics_waiting or self.is_regex_match(t, self.topics_waiting)]
+        # convert new topics to a set and then back to a list to ensure uniqueness
+        topics_lst = [t for t in list(set(new_topics)) if t in self.topics_args]
         if len(topics_lst) > 0:
             # rospy.logwarn('exposing new topics : %r', topics_lst)
             # Adding missing ones
             for topic_name in topics_lst:
                 ret = self.add_topic(topic_name)
+        rospy.loginfo("Currently waiting on topics %r" % self.topics_waiting)
 
         topics_lst = [t for t in lost_topics if t in self.topics_args]
         if len(topics_lst) > 0:
@@ -423,12 +427,14 @@ class RosInterface(object):
         new_services = map(self.repslash, new_services)
         lost_services = map(self.repslash, lost_services)
         rospy.logwarn('new services : %r, lost services : %r', new_services, lost_services)
-        svc_list = [s for s in new_services if s in self.services_waiting or self.is_regex_match(s, self.services_waiting)]
+        # convert new services to a set and then back to a list to ensure uniqueness
+        svc_list = [s for s in list(set(new_services)) if s in self.services_args]
         if len(svc_list) > 0:
             # rospy.logwarn('exposing new services : %r', svc_list)
             for svc_name in svc_list:
                 self.add_service(svc_name)
-
+        rospy.loginfo("Currently waiting on services %r" % self.services_waiting)
+                
         svc_list = [s for s in lost_services if s in self.services_args]
         if len(svc_list) > 0:
             # rospy.logwarn('hiding lost services : %r', svc_list)
@@ -440,7 +446,8 @@ class RosInterface(object):
         new_actions = map(self.repslash, new_actions)
         lost_actions = map(self.repslash, lost_actions)
         # rospy.logwarn('new actions : %r, lost actions : %r', new_actions, lost_actions)
-        act_list = [a for a in new_actions if a in self.actions_waiting or self.is_regex_match(a, self.actions_waiting)]
+        # convert new actions to a set and then back to a list to ensure uniqueness
+        act_list = [a for a in list(set(new_actions)) if a in self.actions_args]
         if len(act_list) > 0:
             # rospy.logwarn('exposing new actions : %r', act_list)
             for act_name in act_list:
