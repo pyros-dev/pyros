@@ -128,11 +128,6 @@ class RosInterface(object):
 
         return False
 
-    def repslash(self, string):
-        if string[0] == '/':
-            return string[1:]
-        return string
-
     ##
     # This callback is called when dynamic_reconfigure gets an update on
     # parameter information. Topics which are received through here will be
@@ -142,27 +137,27 @@ class RosInterface(object):
         rospy.logwarn("""[ros_interface] Interface Reconfigure Request: \ntopics : {topics} \nservices : {services} \nactions : {actions}""".format(**config))
         try:
             # convert new topics to a set and then back to a list to ensure uniqueness
-            new_topics = map(self.repslash, list(set(ast.literal_eval(config["topics"]))))
+            new_topics = list(set(ast.literal_eval(config["topics"])))
             self.expose_topics(new_topics)
         except ValueError:
             rospy.logwarn('[ros_interface] Ignored list %s containing malformed topic strings. Fix your input!' % str(config["topics"]))
         try:
             # convert new services to a set and then back to a list to ensure uniqueness
-            new_services = map(self.repslash, list(set(ast.literal_eval(config["services"]))))
+            new_services = list(set(ast.literal_eval(config["services"])))
             self.expose_services(new_services)
         except ValueError:
             rospy.logwarn('[ros_interface] Ignored list %s containing malformed service strings. Fix your input!' % str(config["services"]))
             
         try:
             # convert new actions to a set and then back to a list to ensure uniqueness
-            new_actions = map(self.repslash, list(set(ast.literal_eval(config["actions"]))))
+            new_actions = list(set(ast.literal_eval(config["actions"])))
             self.expose_actions(new_actions)
         except ValueError:
             rospy.logwarn('[ros_interface] Ignored list %s containing malformed action strings. Fix your input!' % str(config["actions"]))
 
         return config
 
-    def add_service(self, service_name, service_type=None):
+    def add_service(self, service_name, ws_name=None, service_type=None):
         rospy.loginfo("[ros_interface] Adding service %s" % service_name)
         resolved_service_name = rospy.resolve_name(service_name)
         if service_name not in self.services_args:
@@ -402,8 +397,8 @@ class RosInterface(object):
     # new topics, or topics which dropped off the ros network.
     def topics_change_cb(self, new_topics, lost_topics):
         # internal lists store topics without the initial slash, but we receive them with it from outside
-        new_topics = map(self.repslash, new_topics)
-        lost_topics = map(self.repslash, lost_topics)
+        new_topics = new_topics
+        lost_topics = lost_topics
         # rospy.logwarn('new topics : %r, lost topics : %r' % (new_topics, lost_topics))
         # convert new topics to a set and then back to a list to ensure uniqueness
         topics_lst = [t for t in list(set(new_topics)) if t in self.topics_args or self.is_regex_match(t, self.topics_waiting)]
@@ -435,8 +430,8 @@ class RosInterface(object):
 
     def services_change_cb(self, new_services, lost_services):
         # internal lists store topics without the initial slash, but we receive them with it from outside
-        new_services = map(self.repslash, new_services)
-        lost_services = map(self.repslash, lost_services)
+        new_services = new_services
+        lost_services = lost_services
         # rospy.logwarn('new services : %r, lost services : %r' % (new_services, lost_services))
         # convert new services to a set and then back to a list to ensure uniqueness
         svc_list = [s for s in list(set(new_services)) if s in self.services_args or self.is_regex_match(s, self.services_waiting)]
@@ -455,8 +450,8 @@ class RosInterface(object):
 
     def actions_change_cb(self, new_actions, lost_actions):
         # internal lists store topics without the initial slash, but we receive them with it from outside
-        new_actions = map(self.repslash, new_actions)
-        lost_actions = map(self.repslash, lost_actions)
+        new_actions = new_actions
+        lost_actions = lost_actions
         # rospy.logwarn('new actions : %r, lost actions : %r', new_actions, lost_actions)
         # convert new actions to a set and then back to a list to ensure uniqueness
         act_list = [a for a in list(set(new_actions)) if a in self.actions_args or self.is_regex_match(a, self.topics_waiting)]
