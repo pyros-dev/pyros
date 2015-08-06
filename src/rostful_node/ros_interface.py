@@ -312,7 +312,7 @@ class RosInterface(object):
         for topic_name in self.topics_args:
             if not topic_name in topic_names or not self.is_regex_match(topic_name, topic_names):
                 ret = self.del_topic(topic_name)
-                self.topics_args.remove(topic_name)
+                self.topics_args.pop(topic_name)
 
     def get_topic(self, topic_name):
         #normalizing names... ( somewhere else ?)
