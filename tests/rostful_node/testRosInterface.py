@@ -5,6 +5,7 @@ import os
 import rostest
 import rospy
 from std_msgs.msg import String, Empty
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
 from rostful_node.ros_interface import RosInterface
@@ -24,33 +25,45 @@ class TestRosInterface(unittest.TestCase):
     # Test basic topic adding functionality for a topic which already exists in
     # the ros environment.
     def test_topic_add_basic_existing(self):
-        self.interface.add_topic('/test/string')
+        topicname = '/test/string'
+        self.interface.add_topic(topicname)
         # every added topic should be in the list of args
-        self.assertTrue('/test/string' in self.interface.topics_args)
+        self.assertTrue(topicname in self.interface.topics_args)
         # added a single instance of the topic, so the number of the topics
         # existing should be incremented by one (because we consider the fact
         # that when the entire system is running, two additional topics will be
         # created by the subscriber proxy)
-        self.assertEqual(-1, self.interface.topics_args['/test/string'])
+        self.assertEqual(-1, self.interface.topics_args[topicname])
         # the topic already exists in the environment, so it should not be in
         # the waiting list
-        self.assertTrue('/test/string' not in self.interface.topics_waiting)
+        self.assertTrue(topicname not in self.interface.topics_waiting)
         # make sure the topic backend has been created
-        self.assertTrue('/test/string' in self.interface.topics)
+        self.assertTrue(topicname in self.interface.topics)
 
     ##
     # Test basic topic adding functionality for a topic which does not yet exist
     # in the ros environment
     def test_topic_add_basic_nonexistent(self):
-        self.interface.add_topic('/test/nonexistent')
+        topicname = '/test/nonexistent'
+        self.interface.add_topic(topicname)
         # every added topic should be in the list of args
-        self.assertTrue('/test/nonexistent' in self.interface.topics_args)
+        self.assertTrue(topicname in self.interface.topics_args)
         # we added the topic, but it didn't exist yet, so the count should be -2
-        self.assertEqual(-2, self.interface.topics_args['/test/nonexistent'])
+        self.assertEqual(-2, self.interface.topics_args[topicname])
         # topic does not exist in the environment, so it should be in the waiting list
-        self.assertTrue('/test/nonexistent' in self.interface.topics_waiting)
+        self.assertTrue(topicname in self.interface.topics_waiting)
         # the backend should not have been created
-        self.assertTrue('/test/nonexistent' not in self.interface.topics)
+        self.assertTrue(topicname not in self.interface.topics)
+
+        # create the publisher and then try adding the topic again, simulating
+        # it coming online.
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        self.interface.add_topic(topicname)
+
+        self.assertTrue(topicname in self.interface.topics_args)
+        self.assertEqual(-1, self.interface.topics_args[topicname])
+        self.assertTrue(topicname in self.interface.topics)
+        self.assertTrue(topicname not in self.interface.topics_waiting)
 
     @unittest.expectedFailure
     def test_topic_del(self):
@@ -73,9 +86,30 @@ class TestRosInterface(unittest.TestCase):
         self.interface.add_topic('/test/empty')
         
         self.interface.expose_topics(['/test/string'])
+        # ensure all the lists/dicts no longer contain the deleted topic
         self.assertTrue('/test/empty' not in self.interface.topics_args)
         self.assertTrue('/test/empty' not in self.interface.topics)
         self.assertTrue('/test/empty' not in self.interface.topics_waiting)
+        # ensure all relevant lists have the remaining one
+        self.assertTrue('/test/string' in self.interface.topics_args)
+        self.assertTrue('/test/string' in self.interface.topics)
+
+    ##
+    # Ensure that no crash occurs when the expose services function is called by
+    # a reconfigure request which requires the deletion of some services from the
+    # service arguments that already exist.
+    def test_expose_services_deletion_crash(self):
+        self.interface.add_service('/test/empsrv')
+        self.interface.add_service('/test/trgsrv')
+        self.interface.expose_services(['/test/empsrv'])
+        # ensure all the lists/dicts no longer contain the deleted service
+        self.assertTrue('/test/trgsrv' not in self.interface.services_args)
+        self.assertTrue('/test/trgsrv' not in self.interface.services)
+        self.assertTrue('/test/trgsrv' not in self.interface.services_waiting)
+
+        # ensure all relevant lists have the remaining one
+        self.assertTrue('/test/empsrv' in self.interface.services_args)
+        self.assertTrue('/test/empsrv' in self.interface.services)
 
     # def test_reconfigure_topic(self):
     #     config = {'services': [], 'actions': []}

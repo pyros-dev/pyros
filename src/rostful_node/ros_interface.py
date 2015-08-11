@@ -187,10 +187,16 @@ class RosInterface(object):
     ##
     # @return false if the service did not exist, true if the connection was
     # deleted.
-    def del_service(self, service_name):
+    def del_service(self, service_name, force=False):
         rospy.loginfo("[ros_interface] Deleting service %s" % service_name)
         if service_name in self.services:
-            self.services_waiting.append(service_name)
+            if force:
+                self.services_args.remove(service_name)
+                if service_name in self.services_waiting:
+                    self.services_waiting.remove(service_name)
+            else:
+                self.services_waiting.append(service_name)
+                
             self.services.pop(service_name, None)
             return True
         return False
@@ -211,10 +217,11 @@ class RosInterface(object):
                 ret = self.add_service(service_name)
 
         # look through the current service args and delete those values which
-        # will not be valid when the args are replaced with the new ones.
-        for service_name in self.services_args:
+        # will not be valid when the args are replaced with the new ones. run on
+        # a copy so that we will remove from the original without crashing
+        for service_name in list(self.services_args):
             if not service_name in service_names or not self.is_regex_match(service_name, service_names):
-                ret = self.del_service(service_name)
+                ret = self.del_service(service_name, force=True)
 
         self.services_args = service_names
 
@@ -391,9 +398,9 @@ class RosInterface(object):
                 ret = self.add_action(action_name)
                 #if ret: rospy.loginfo( 'Exposed Action %s', action_name)
 
-        for action_name in self.actions_args:
-            if not action_name in action_names or not self.is_regex_match(action_name, action_names):
-                ret = self.del_action(action_name)
+        for action_name in self.actions_args.items():
+            if not action_name[0] in action_names or not self.is_regex_match(action_name[0], action_names):
+                ret = self.del_action(action_name[0])
                 #if ret: rospy.loginfo ( 'Removed Action %s', action_name)
 
         # Updating the list of actions
