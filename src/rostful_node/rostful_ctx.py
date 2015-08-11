@@ -22,8 +22,8 @@ from contextlib import contextmanager
 # So stable interprocess communication can happen via the pipe
 @contextmanager
 #TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
-def RostfulCtx(name='rostful_node', argv=None, anonymous=True, disable_signals=True):
-    if rospy:
+def RostfulCtx(name='rostful_node', argv=None, anonymous=True, disable_signals=True, mock=False):
+    if rospy and not mock:
         #we initialize the node here, passing ros parameters.
         #disabling signal to avoid overriding callers behavior
         rospy.init_node(name, argv=argv, anonymous=anonymous, disable_signals=disable_signals)

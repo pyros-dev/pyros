@@ -8,6 +8,8 @@ from std_msgs.msg import String, Empty
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
+import roslaunch
+
 from rostful_node.ros_interface import RosInterface
 
 class TestRosInterface(unittest.TestCase):
@@ -136,4 +138,29 @@ class TestRosInterface(unittest.TestCase):
     #     assert self.interface.services_args == []
         
 if __name__ == '__main__':
-    rostest.rosrun('test_ros_interface', 'test_all', TestRosInterface)
+
+    # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
+
+    # Ros arguments will tell us if we started from ros, or from straight python
+    rosargs = [arg for arg in sys.argv if arg.startswith("__")]
+
+    if len(rosargs) > 0 :
+        rostest.rosrun('test_ros_interface', 'test_all', TestRosInterface)
+    else :
+        print("PURE PYTHON TEST NOT IMPLEMENTED YET")
+        # Need this solved : http://answers.ros.org/question/215600/how-can-i-run-roscore-from-python/
+
+        # TODO : use this to start all we need to test from here :
+
+        #Start roslaunch
+        #launch = roslaunch.scriptapi.ROSLaunch()
+        #launch.start()
+
+        # start required nodes
+        #empty_srv_node = roslaunch.core.Node('rostful_node', 'emptyService.py', name='empty_service')
+        #trigger_srv_node = roslaunch.core.Node('rostful_node', 'triggerService.py', name='trigger_service')
+        #empty_srv_process = launch.launch(empty_srv_node)
+        #trigger_srv_process = launch.launch(trigger_srv_node)
+
+        #import nose
+        #nose.runmodule()
