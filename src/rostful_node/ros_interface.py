@@ -73,7 +73,7 @@ Interface with ROS.
 """
 class RosInterface(object):
 
-    def __init__(self):
+    def __init__(self, run_watcher=True):
         # Current services topics and actions exposed, i.e. those which are
         # active in the system.
         self.services = {}
@@ -101,8 +101,9 @@ class RosInterface(object):
         #current topics waiting for deletion ( still contain messages )
         self.topics_waiting_del = {}
 
-        self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
-        self.ros_watcher.start()
+        if run_watcher:
+            self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
+            self.ros_watcher.start()
 
     ##
     # Attach beginning of line and end of line characters to the given string.
@@ -134,6 +135,7 @@ class RosInterface(object):
     # added to the list of topics which are monitored and added to or removed
     # from the view on the REST interface
     def reconfigure(self, config, level):
+        print(config)
         rospy.logwarn("""[ros_interface] Interface Reconfigure Request: \ntopics : {topics} \nservices : {services} \nactions : {actions}""".format(**config))
         try:
             # convert new topics to a set and then back to a list to ensure uniqueness
@@ -242,7 +244,7 @@ class RosInterface(object):
                 rospy.logwarn('[ros_interface] Error trying to Expose topic {name} : {error}'.format(name=topic_name, error=e))
                 self.topics_waiting.append(topic_name)
                 return False
-
+            
         if topic_name in self.topics_waiting_del.keys() > 0:
             # here the intent is obviously to erase the old homonym topic data
             self.topics_waiting_del.pop(topic_name, None)
@@ -255,18 +257,27 @@ class RosInterface(object):
         if self.topics_args[topic_name] == -2:
             self.topics[topic_name] = TopicBack(topic_name, topic_type, allow_pub=allow_pub, allow_sub=allow_sub)
 
-
         self.topics_args[topic_name] += 1
         
         return True
 
     ##
+    # @param force force deletion of the topic - remove it from the list of
+    # topics, waiting list and args, ignoring the total number of connections to
+    # the topic, and whether or not it has waiting messages
     # @return false if the topic did not exist, or there was more than one
     # connection to the topic, true if the last connection was deleted.
-    def del_topic(self, topic_name, noloss=False):
+    def del_topic(self, topic_name, noloss=False, force=False):
         # can only delete topic if we have it in the topic list
         if topic_name in self.topics:
             rospy.loginfo("[ros_interface] Deleting topic %s" % topic_name)
+            if force:
+                self.topics_args.pop(topic_name)
+                self.topics.pop(topic_name)
+                if topic_name in self.topics_waiting:
+                    self.topics_waiting.remove(topic_name)
+                return True
+                
             # if there is more than one connection to the topic, we decrement
             # the count
             if self.topics_args[topic_name] > 1:
@@ -290,7 +301,8 @@ class RosInterface(object):
                 self.topics.pop(topic_name, None)
                 self.topics_waiting.append(topic_name)
                 self.topics_args[topic_name] = -2
-                    
+        else:
+            return False
         return True
 
     """
@@ -307,12 +319,14 @@ class RosInterface(object):
             if not topic_name in self.topics_args:
                 ret = self.add_topic(topic_name, allow_pub=allow_pub, allow_sub=allow_sub)
 
-        # look through the current topic args and delete those values which
-        # will not be valid when the args are replaced with the new ones.
-        for topic_name in self.topics_args:
-            if not topic_name in topic_names or not self.is_regex_match(topic_name, topic_names):
-                ret = self.del_topic(topic_name)
-                self.topics_args.pop(topic_name)
+        # look through the current topic args and delete those values which will
+        # not be valid when the args are replaced with the new ones. use
+        # .items() copy to allow removal of items from the dict in the del_topic
+        # function
+        for topic_name in self.topics_args.items():
+            if not topic_name[0] in topic_names or not self.is_regex_match(topic_name[0], topic_names):
+                rospy.loginfo("topic %s not in topic names %r" % (topic_name[0], topic_names))
+                ret = self.del_topic(topic_name[0], force=True)
 
     def get_topic(self, topic_name):
         #normalizing names... ( somewhere else ?)
