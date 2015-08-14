@@ -42,7 +42,7 @@ class ROSWatcher(threading.Thread):  #TODO : DO NOT inherit from thread. instead
         """
         Starting this thread asynchronously
         """
-        rate = rospy.Rate(1) # 1hz
+        rate = rospy.Rate(1)  # 1hz
         # Night gathers, and now my watch begins. It shall not end until my death.
         # I shall take no wife, hold no lands, father no children.
         # I shall wear no crowns and win no glory.
@@ -52,8 +52,8 @@ class ROSWatcher(threading.Thread):  #TODO : DO NOT inherit from thread. instead
         # I am the fire that burns against cold, the light that brings the dawn, the horn that wakes the sleepers, the shield that guards the realms of men.
         # I pledge my life and honor to the Night's Watch, for this night and all the nights to come
         while not rospy.is_shutdown():
-            rate.sleep()  # quick sleep for safety
             self.update()
+            rate.sleep()  # sleeping to not panic the master
 
     def update(self):
         """
