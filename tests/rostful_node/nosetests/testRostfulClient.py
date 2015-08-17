@@ -4,19 +4,18 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from rostful_node.rostful_mock import RostfulMock
+from rostful_node.rostful_node_process import RostfulNodeProcess
 from rostful_node.rostful_client import RostfulClient
 
 
 class TestRostfulClientOnMock(object):
     def setUp(self):
-        self.mockInstance = RostfulMock()
-        cmd_conn = self.mockInstance.async_spin()
+        self.mockInstance = RostfulNodeProcess(mock=True)
+        cmd_conn = self.mockInstance.launch()
         self.client = RostfulClient(cmd_conn)
 
     def tearDown(self):
-        self.mockInstance.async_stop()
-        pass
+        self.mockInstance.terminate()
 
     def test_inject_None(self):
         assert self.client.inject('random_topic')  # simply check if injected

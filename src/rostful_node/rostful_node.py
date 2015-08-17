@@ -24,8 +24,7 @@ import rostful_node.srv as srv
 from rosinterface import message_conversion as msgconv
 from rosinterface.action import ActionBack
 
-from multiprocessing import Pipe
-import threading
+from multiprocessing import Pipe, Process, Event
 """
 Interface with ROS.
 """
@@ -340,36 +339,6 @@ class RostfulNode(RostfulMock):
         return resp_content
     ###
 
-    def async_spin(self):
-        """
-        Starts spinning in another thread and returns the pipe connection to send commands to
-        :return: pipe end used to communicate with the thread.
-        """
-        self._stop_event = threading.Event()
-        pipe_conn, other_end = Pipe()
-
-        # TODO : check about synchronization to avoid concurrency on pip write/read ( in case of multiple clients for example )
-
-        def check_init():
-            if rospy.core.is_initialized():
-                rospy.logdebug("node[%s, %s] entering spin(), pid[%s]", rospy.core.get_caller_id(), rospy.core.get_node_uri(), os.getpid())
-            else:
-                raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
-
-        self._spinner = threading.Thread(target=self.spin, args=(
-            pipe_conn,
-            check_init,
-            lambda: not self._stop_event.is_set() and not rospy.core.is_shutdown(),
-        ))
-        self._spinner.start()
-        return other_end
-
-    # parent thread needs to call this to terminate the thread gracefully
-    def async_stop(self):
-        if self._stop_event:
-            self._stop_event.set()
-        if self._spinner:
-            self._spinner.join()
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):

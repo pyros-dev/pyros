@@ -98,33 +98,3 @@ class RostfulMock(object):
         except SystemExit:
             logging.debug("System Exit , shutting down")
 
-    def async_spin(self):
-        """
-        Starts spinning in another thread and returns the pipe connection to send commands to
-        :return: pipe end used to communicate with the thread.
-        """
-        self._stop_event = threading.Event()
-        pipe_conn, other_end = Pipe()
-
-        # TODO : check about synchronization to avoid concurrency on pip write/read ( in case of multiple clients for example )
-
-        # TODO : close the ends of the pipe that should not be used ( so that exceptions can be triggered when producer / consumer dies )
-
-        def check_init():  # no special init needed with mock
-            logging.debug("mock entering spin(), pid[%s]", os.getpid())
-
-        self._spinner = threading.Thread(target=self.spin, args=(
-            pipe_conn,
-            check_init,
-            lambda: not self._stop_event.is_set(),  # setting the stop_event will stop the thread
-        ))
-        self._spinner.start()
-        return other_end
-
-    # parent thread needs to call this to terminate the thread gracefully
-    def async_stop(self):
-        if self._stop_event:
-            self._stop_event.set()
-        if self._spinner:
-            self._spinner.join()
-

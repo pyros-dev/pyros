@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
 from rostful_node.rostful_mock import RostfulMock
+from rostful_node.rostful_node_process import RostfulNodeProcess
 from rostful_node.rostful_prtcl import MsgBuild, Topic, Service
 
 def test_msg_build():
@@ -48,20 +49,13 @@ def test_echo_service():
     print "msg received is {0}".format(recv_msg)
     assert msg == recv_msg
 
-def test_async_spinner_stop():
-    mock = RostfulMock()
-    #TODO : improve and check corner cases
-    mock.async_spin()
-    mock.async_stop()
-
-class TestRostfulMock(object):
+class TestRostfulMockProcess(object):
     def setUp(self):
-        self.mockInstance = RostfulMock()
-        self.cmd_conn = self.mockInstance.async_spin()
+        self.mockInstance = RostfulNodeProcess(mock=True)
+        self.cmd_conn = self.mockInstance.launch()
 
     def tearDown(self):
-        self.mockInstance.async_stop()
-        pass
+        self.mockInstance.terminate()
 
     def test_msg_build(self):
         msg = MsgBuild(name='fake_connec_name', msg_content=None)
@@ -125,3 +119,7 @@ class TestRostfulMock(object):
         print "msg received is {0}".format(recv_msg)
         assert msg.name == recv_msg.name and msg.rqst_content == recv_msg.rqst_content and msg.rqst_content == recv_msg.resp_content
 
+if __name__ == '__main__':
+
+    import nose
+    nose.runmodule()
