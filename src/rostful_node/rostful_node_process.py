@@ -70,7 +70,7 @@ class RostfulNodeProcess(object):
                 rospy.init_node(name, argv=argv, disable_signals=True)
                 rospy.logwarn('rostful node started with args : %r', argv)
 
-                node = self.RostfulNode()
+                node = RostfulNode()
                 node.spin(
                     pipe_conn,
                     check_init,
