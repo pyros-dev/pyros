@@ -7,7 +7,7 @@ import logging
 import time
 
 # python protocol should be usable without ROS.
-from .rostful_prtcl import MsgBuild, Topic, Service
+from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interactions, Namespaces
 from multiprocessing import Pipe
 import threading
 """
@@ -36,10 +36,28 @@ class RostfulMock(object):
         else:
             msg = self._topic_msg.get(name, None)
         return msg
+        
+    def topic_list(self):
+        info = TopicInfo(fullname='mock fullname')
+        resp_content = {'mock': info}
+        return resp_content
 
     # a simple echo service
     def service(self, name, rqst_content=None):
         resp_content = rqst_content
+        return resp_content
+
+    def service_list(self):
+        info = ServiceInfo(fullname='mock_fullname')
+        resp_content = {'mock': info}
+        return resp_content
+
+    def namespaces(self):
+        resp_content = {}
+        return resp_content
+
+    def interactions(self):
+        resp_content = {}
         return resp_content
 
     def _dispatch_msg(self, pipe_conn):
@@ -57,13 +75,28 @@ class RostfulMock(object):
                     name=rqst.name,
                     msg_content=self.topic(rqst.name, rqst.msg_content)
                 )
+            elif isinstance(rqst, TopicList):
+                resp = TopicList(
+                    name_dict=self.topic_list()
+                )
             elif isinstance(rqst, Service):
                 resp = Service(
                     name=rqst.name,
                     rqst_content=rqst.rqst_content,
                     resp_content=self.service(rqst.name, rqst.rqst_content)
                 )
-
+            elif isinstance(rqst, ServiceList):
+                resp = ServiceList(
+                    name_dict=self.service_list()
+                )
+            elif isinstance(rqst, Interactions):
+                resp = Interactions(
+                    interaction_dict=self.interactions()
+                )
+            elif isinstance(rqst, Namespaces):
+                resp = Namespaces(
+                    namespace_dict=self.namespaces()
+                )
         finally:
             # to make sure we always return something, no matter what
             pipe_conn.send(resp)

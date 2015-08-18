@@ -11,7 +11,7 @@ except ImportError, e:
     logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
     _ROCON_AVAILABLE = False
     
-from .rostful_prtcl import MsgBuild, Topic, Service
+from .rostful_prtcl import MsgBuild, Topic, Service, TopicInfo, ServiceInfo
 from .rostful_mock import RostfulMock
 
 from dynamic_reconfigure.server import Server
@@ -329,6 +329,19 @@ class RostfulNode(RostfulMock):
                 msg = msgconv.extract_values(res) if res else res
         return msg
 
+    def topic_list(self):
+        if self.ros_if:
+            # get the dict of topics, and then extract only the relevant
+            # information from the topic objects, putting them into another dict
+            # with a named tuple as the value
+            topic_dict = {}
+            for topic in self.ros_if.topics:
+                topic_dict[topic] = TopicInfo(fullname=self.ros_if.topics[topic].fullname)
+
+            return topic_dict
+                
+        return {}
+
     def service(self, name, rqst_content=None):
         rqst = self.msg_build(name)
         msgconv.populate_instance(rqst_content, rqst)
@@ -339,6 +352,25 @@ class RostfulNode(RostfulMock):
         return resp_content
     ###
 
+    def service_list(self):
+        if self.ros_if:
+            service_dict = {}
+            for service in self.ros_if.services:
+                service_dict[service] = ServiceInfo(fullname=self.ros_if.services[service].fullname)
+
+            return service_dict
+                
+        return {}
+        
+    def interactions(self):
+        if self.rocon_if:
+            return self.rocon_if.interactions
+        return {}
+            
+    def namespaces(self):
+        if self.rocon_if:
+            return self.rocon_if.rapps_namespaces
+        return {}
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):

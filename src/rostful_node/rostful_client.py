@@ -8,7 +8,7 @@ Client to rostful node, Python style.
 Required for multiprocess communication.
 """
 
-from .rostful_prtcl import MsgBuild, Topic, Service
+from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, Interactions
 
 class RostfulClient(object):
     def __init__(self, pipe_conn):
@@ -81,5 +81,44 @@ class RostfulClient(object):
             raise
 
         return res_content.resp_content
+
+    def listtopics(self):
+        try:
+            self._pipe_conn.send(TopicList(name_dict={}))
+            res_content = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+
+        return res_content.name_dict
+        
+    def listsrvs(self):
+        try:
+            self._pipe_conn.send(ServiceList(name_dict={}))
+            res_content = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+            
+        return res_content.name_dict
+
+    def listacts(self):
+        return {}
+
+    def namespaces(self):
+        try:
+            self._pipe_conn.send(Namespaces(namespace_dict={}))
+            res_content = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+
+        return res_content.namespace_dict
+
+    def interactions(self):
+        try:
+            self._pipe_conn.send(Interactions(interaction_dict={}))
+            res_content = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+            
+        return res_content.interaction_dict
 
 # TODO : test client with Rostful Node ( and detect ROS or not to confirm behvior )

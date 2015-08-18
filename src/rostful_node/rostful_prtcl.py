@@ -19,6 +19,16 @@ Topic = namedtuple("Topic", "name msg_content")
 # rqst : msg_content = None
 # resp : msg_content = <msg_asdict>
 
+TopicList = namedtuple("TopicList", "name_dict")
+TopicInfo = namedtuple('TopicInfo', 'fullname')
+
 Service = namedtuple("Service", "name rqst_content resp_content")
 # rqst : rqst_content = <msg_asdict_1>, resp_content = None
 # resp : rqst_content = <msg_asdict_1>, resp_content = <msg_asdict>
+
+ServiceList = namedtuple("ServiceList", "name_dict")
+ServiceInfo = namedtuple('ServiceInfo', 'fullname')
+
+Namespaces = namedtuple("Namespaces", "namespace_dict")
+
+Interactions = namedtuple("Interactions", "interaction_dict")
