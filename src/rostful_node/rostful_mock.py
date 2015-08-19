@@ -7,7 +7,7 @@ import logging
 import time
 
 # python protocol should be usable without ROS.
-from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interactions, Namespaces
+from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
 from multiprocessing import Pipe
 import threading
 """
@@ -53,12 +53,20 @@ class RostfulMock(object):
         return resp_content
 
     def namespaces(self):
+        info = NamespaceInfo()
         resp_content = {}
+        return resp_content
+
+    def interaction(self, name):
+        resp_content = Interaction(interaction=name)
         return resp_content
 
     def interactions(self):
         resp_content = {}
         return resp_content
+
+    def has_rocon(self):
+        return False
 
     def _dispatch_msg(self, pipe_conn):
         rqst = pipe_conn.recv()
@@ -96,6 +104,14 @@ class RostfulMock(object):
             elif isinstance(rqst, Namespaces):
                 resp = Namespaces(
                     namespace_dict=self.namespaces()
+                )
+            elif isinstance(rqst, Rocon):
+                resp = Rocon(
+                    has_rocon=self.has_rocon()
+                )
+            elif isinstance(rqst, Interaction):
+                resp = Interaction(
+                    interaction=self.interaction(rqst.name)
                 )
         finally:
             # to make sure we always return something, no matter what
