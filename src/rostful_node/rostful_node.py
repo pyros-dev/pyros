@@ -11,7 +11,7 @@ except ImportError, e:
     logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
     _ROCON_AVAILABLE = False
     
-from .rostful_prtcl import MsgBuild, Topic, Service, TopicInfo, ServiceInfo, Rocon
+from .rostful_prtcl import MsgBuild, Topic, Service, TopicInfo, ServiceInfo, Rocon, InteractionInfo, NamespaceInfo
 from .rostful_mock import RostfulMock
 
 from dynamic_reconfigure.server import Server
@@ -318,16 +318,19 @@ class RostfulNode(RostfulMock):
 
     # These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
     def topic(self, name, msg_content=None):
-        msg = self.msg_build(name)
-        if self.ros_if and self.ros_if.get_topic(name):
-            if msg_content:
-                msgconv.populate_instance(msg_content, msg)
-                self.ros_if.get_topic(name).publish(msg)
-                msg = None  # consuming the message
-            else:
-                res = self.ros_if.get_topic(name).get(consume=False)
-                msg = msgconv.extract_values(res) if res else res
-        return msg
+        try:
+            msg = self.msg_build(name)
+            if self.ros_if and self.ros_if.get_topic(name):
+                if msg_content:
+                    msgconv.populate_instance(msg_content, msg)
+                    self.ros_if.get_topic(name).publish(msg)
+                    msg = None  # consuming the message
+                else:
+                    res = self.ros_if.get_topic(name).get(consume=False)
+                    msg = msgconv.extract_values(res) if res else res
+            return msg
+        except msgconv.FieldTypeMismatchException, e:
+            rospy.logerr("Rostful Node : field type mismatch %r" % e)
 
     def topic_list(self):
         if self.ros_if:
@@ -338,6 +341,7 @@ class RostfulNode(RostfulMock):
             for topic in self.ros_if.topics:
                 tp = self.ros_if.topics[topic]
                 topic_dict[topic] = TopicInfo(
+                    name=tp.name,
                     fullname=tp.fullname,
                     msgtype=tp.msgtype,
                     allow_sub=tp.allow_sub,
@@ -354,9 +358,13 @@ class RostfulNode(RostfulMock):
         rqst = self.msg_build(name)
         msgconv.populate_instance(rqst_content, rqst)
         resp_content = None
-        if self.ros_if and self.ros_if.get_service(name):
-            resp = self.ros_if.get_service(name).call(rqst)
-            resp_content = msgconv.extract_values(resp)
+        
+        try:
+            if self.ros_if and self.ros_if.get_service(name):
+                resp = self.ros_if.get_service(name).call(rqst)
+                resp_content = msgconv.extract_values(resp)
+        except rospy.ServiceException, e:
+            rospy.logerr("Rostful Node : service exception %r" % e)
         return resp_content
     ###
 
@@ -366,6 +374,7 @@ class RostfulNode(RostfulMock):
             for service in self.ros_if.services:
                 srv = self.ros_if.services[service]
                 service_dict[service] = ServiceInfo(
+                    name=srv.name,
                     fullname=srv.fullname,
                     srvtype=srv.srvtype,
                     rostype_name=srv.rostype_name,

@@ -7,7 +7,7 @@ import logging
 import time
 
 # python protocol should be usable without ROS.
-from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
+from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
 from multiprocessing import Pipe
 import threading
 """
