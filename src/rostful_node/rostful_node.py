@@ -336,7 +336,15 @@ class RostfulNode(RostfulMock):
             # with a named tuple as the value
             topic_dict = {}
             for topic in self.ros_if.topics:
-                topic_dict[topic] = TopicInfo(fullname=self.ros_if.topics[topic].fullname)
+                tp = self.ros_if.topics[topic]
+                topic_dict[topic] = TopicInfo(
+                    fullname=tp.fullname,
+                    msgtype=tp.msgtype,
+                    allow_sub=tp.allow_sub,
+                    allow_pub=tp.allow_pub,
+                    rostype=tp.rostype,
+                    rostype_name=tp.rostype_name
+                )
 
             return topic_dict
                 
@@ -356,7 +364,14 @@ class RostfulNode(RostfulMock):
         if self.ros_if:
             service_dict = {}
             for service in self.ros_if.services:
-                service_dict[service] = ServiceInfo(fullname=self.ros_if.services[service].fullname)
+                srv = self.ros_if.services[service]
+                service_dict[service] = ServiceInfo(
+                    fullname=srv.fullname,
+                    srvtype=srv.srvtype,
+                    rostype_name=srv.rostype_name,
+                    rostype_req=srv.rostype_req,
+                    rostype_resp=srv.rostype_resp
+                )
 
             return service_dict
                 

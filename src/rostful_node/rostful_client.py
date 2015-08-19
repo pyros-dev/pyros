@@ -132,7 +132,7 @@ class RostfulClient(object):
 
     def has_rocon(self):
         try:
-            self._pipe_conn.send(Rocon())
+            self._pipe_conn.send(Rocon(has_rocon=False))
             res_content = self._pipe_conn.recv()
         except Exception, e:
             raise

@@ -38,7 +38,7 @@ class RostfulMock(object):
         return msg
         
     def topic_list(self):
-        info = TopicInfo(fullname='mock fullname')
+        info = TopicInfo(fullname='mock fullname', allow_sub=False)
         resp_content = {'mock': info}
         return resp_content
 
