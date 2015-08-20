@@ -44,7 +44,7 @@ class RostfulClient(object):
             elif kwargs:
                 self._pipe_conn.send(Topic(name=topic_name, msg_content=kwargs))
             else:
-                self._pipe_conn.send(Topic(name=topic_name, msg_content=None))
+                self._pipe_conn.send(Topic(name=topic_name, msg_content={}))
             res = self._pipe_conn.recv()
         except Exception, e:
             raise
@@ -75,7 +75,7 @@ class RostfulClient(object):
             elif kwargs:
                 self._pipe_conn.send(Service(name=service_name, rqst_content=kwargs, resp_content=None))
             else:  # should we always pass {} if no kwargs ?
-                self._pipe_conn.send(Service(name=service_name, rqst_content=None, resp_content=None))
+                self._pipe_conn.send(Service(name=service_name, rqst_content={}, resp_content=None))
             res_content = self._pipe_conn.recv()
         except Exception, e:
             raise
