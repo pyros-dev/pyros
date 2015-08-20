@@ -36,12 +36,12 @@ class RostfulNodeProcess(object):
         def check_init():
             logging.debug("mock entering spin(), pid[%s]", os.getpid())
 
-        def spinner( name, argv, pipe_conn, check_init):
+        def spinner( name, argv, pipe_conn, check_init, stop_event):
             node = RostfulMock()
             node.spin(
                 pipe_conn,
                 check_init,
-                lambda: not self._stop_event.is_set(),  # setting the stop_event will stop the thread
+                lambda: not stop_event.is_set(),  # setting the stop_event will stop the thread
             )
 
         # ROS Node functions
@@ -56,7 +56,7 @@ class RostfulNodeProcess(object):
                 else:
                     raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
 
-            def spinner( name, argv, pipe_conn, check_init):
+            def spinner( name, argv, pipe_conn, check_init, stop_event):
                 """
                 Main subprocess code, spinning around
                 :param name:
@@ -74,10 +74,10 @@ class RostfulNodeProcess(object):
                 node.spin(
                     pipe_conn,
                     check_init,
-                    lambda: not self._stop_event.is_set() and not rospy.core.is_shutdown()
+                    lambda: not stop_event.is_set() and not rospy.core.is_shutdown()
                 )
 
-        self._proc = Process(target=spinner, args=(name, argv, self.pipe_conn, check_init))
+        self._proc = Process(target=spinner, args=(name, argv, self.pipe_conn, check_init, self._stop_event))
         self._proc.start()
         return other_end
 

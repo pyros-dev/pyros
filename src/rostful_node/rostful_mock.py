@@ -74,7 +74,7 @@ class RostfulMock(object):
         Spinning, processing commands arriving in the queue
         :param pipe_conn :
         :param check_init_fn : needs to raise an exception to prevent starting the spin
-        :param check_stop_fn : just returns true to break the spin
+        :param check_spinnable_fn : just returns true to break the spin
         :return:
         """
         try:
