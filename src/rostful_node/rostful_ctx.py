@@ -22,6 +22,3 @@ def rostful_ctx(name='rostful_node', argv=None, anonymous=True, disable_signals=
     yield ctx(client=RostfulClient(client_conn))
 
     subproc.terminate()
-
-
-
