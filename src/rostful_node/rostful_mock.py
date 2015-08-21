@@ -30,7 +30,7 @@ class RostfulMock(object):
     # a simple echo topic
     def topic(self, name, msg_content=None):
         msg = msg_content
-        if msg_content:
+        if msg_content is not None:
             self._topic_msg[name] = msg_content
             msg = None  # consuming the message
         else:

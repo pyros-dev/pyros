@@ -26,7 +26,7 @@ class RostfulClient(object):
 
         return res.msg_content if isinstance(res, MsgBuild) else None
 
-    def topic(self, topic_name, _msg_content=None, **kwargs):
+    def topic_inject(self, topic_name, _msg_content={}, **kwargs):
         """
         Injecting message into topic. is _msg_content, we inject it directly. if not, we use all extra kwargs
         :param topic_name: name of the topic
@@ -39,19 +39,17 @@ class RostfulClient(object):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         try:
-            if _msg_content:
-                self._pipe_conn.send(Topic(name=topic_name, msg_content=_msg_content))
-            elif kwargs:
+            if kwargs:
                 self._pipe_conn.send(Topic(name=topic_name, msg_content=kwargs))
-            else:
-                self._pipe_conn.send(Topic(name=topic_name, msg_content={}))
+            elif _msg_content is not None:
+                self._pipe_conn.send(Topic(name=topic_name, msg_content=_msg_content))
             res = self._pipe_conn.recv()
         except Exception, e:
             raise
 
         return res.msg_content is None  # check if message has been consumed
 
-    def extract(self, topic_name):
+    def topic_extract(self, topic_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
@@ -64,18 +62,17 @@ class RostfulClient(object):
 
         return res.msg_content
 
-    def service(self, service_name, _msg_content=None, **kwargs):
+    def service_call(self, service_name, _msg_content={}, **kwargs):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(service_name, unicode):
             service_name = unicodedata.normalize('NFKD', service_name).encode('ascii', 'ignore')
 
         try:
-            if _msg_content:
-                self._pipe_conn.send(Service(name=service_name, rqst_content=_msg_content, resp_content=None))
-            elif kwargs:
+            if kwargs:
                 self._pipe_conn.send(Service(name=service_name, rqst_content=kwargs, resp_content=None))
-            else:  # should we always pass {} if no kwargs ?
-                self._pipe_conn.send(Service(name=service_name, rqst_content={}, resp_content=None))
+            elif _msg_content is not None:
+                self._pipe_conn.send(Service(name=service_name, rqst_content=_msg_content, resp_content=None))
+
             res_content = self._pipe_conn.recv()
         except Exception, e:
             raise

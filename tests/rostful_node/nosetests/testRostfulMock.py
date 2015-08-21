@@ -65,14 +65,6 @@ class TestRostfulMockProcess(object):
         print "msg received is {0}".format(recv_msg)
         assert recv_msg.name == msg.name and isinstance(recv_msg.msg_content, str)
 
-    def test_echo_topic_default(self):
-        msg = Topic(name='random_topic', msg_content=None)
-        print "msg sent is {0}".format(msg)
-        self.cmd_conn.send(msg)
-        recv_msg = self.cmd_conn.recv()
-        print "msg received is {0}".format(recv_msg)
-        assert recv_msg.name == msg.name and recv_msg.msg_content == msg.msg_content
-
     def test_echo_topic(self):
         msg = Topic(name='random_topic', msg_content='testing')
         print "msg sent is {0}".format(msg)
@@ -102,14 +94,6 @@ class TestRostfulMockProcess(object):
         recv_msg = self.cmd_conn.recv()
         print "msg received is {0}".format(recv_msg)
         assert recv_msg.name == next_msg.name and recv_msg.name != msg.name and recv_msg.msg_content is None  # message not echoed
-
-    def test_echo_service_default(self):
-        msg = Service(name='random_service', rqst_content=None, resp_content=None)
-        print "msg sent is {0}".format(msg)
-        self.cmd_conn.send(msg)
-        recv_msg = self.cmd_conn.recv()
-        print "msg received is {0}".format(recv_msg)
-        assert msg.name == recv_msg.name and msg.rqst_content == recv_msg.rqst_content and msg.rqst_content == recv_msg.resp_content
 
     def test_echo_service(self):
         msg = Service(name='random_service', rqst_content='testing', resp_content=None)
