@@ -17,6 +17,9 @@ class TestRostfulClientOnMock(object):
     def tearDown(self):
         self.mockInstance.terminate()
 
+    def test_inject_None(self):  # injecting None is meaningless and should return false
+        assert not self.client.topic_inject('random_topic', None)  # simply check that it didnt inject
+
     def test_inject_Empty(self):
         assert self.client.topic_inject('random_topic')  # simply check if injected
 
@@ -60,6 +63,11 @@ class TestRostfulClientOnMock(object):
         print "extracted message content {0}".format(recv)
         assert recv == {'first': 'first_string', 'second': 'second_string'}
 
+    def test_call_echo_None(self):
+        print "request content {0}".format({})
+        resp = self.client.service_call('random_service', None)  # calling with None is invalid and should return None
+        print "response content {0}".format(resp)
+        assert resp is None
 
     def test_call_echo_Empty(self):
         print "request content {0}".format({})

@@ -41,9 +41,14 @@ class RostfulClient(object):
         try:
             if kwargs:
                 self._pipe_conn.send(Topic(name=topic_name, msg_content=kwargs))
+                res = self._pipe_conn.recv()
             elif _msg_content is not None:
                 self._pipe_conn.send(Topic(name=topic_name, msg_content=_msg_content))
-            res = self._pipe_conn.recv()
+                res = self._pipe_conn.recv()
+            else:   # if _msg_content is None the request is invalid.
+                    # Don't send anything into the pipe and just return False.
+                res = Topic(name=topic_name, msg_content='NONE IS NOT CONSUMED')
+
         except Exception, e:
             raise
 
@@ -70,14 +75,19 @@ class RostfulClient(object):
         try:
             if kwargs:
                 self._pipe_conn.send(Service(name=service_name, rqst_content=kwargs, resp_content=None))
+                res_content = self._pipe_conn.recv()
             elif _msg_content is not None:
                 self._pipe_conn.send(Service(name=service_name, rqst_content=_msg_content, resp_content=None))
+                res_content = self._pipe_conn.recv()
+            else:   # if _msg_content is None the requeset is invalid.
+                    # Dont send anything into the pipe and just return None.
+                res_content = Service(name=service_name, rqst_content=None, resp_content=None)
 
-            res_content = self._pipe_conn.recv()
         except Exception, e:
             raise
 
-        # A service that doesn't exist on the node will return res_content.resp_content None. It should probably except...
+        # A service that doesn't exist on the node will return res_content.resp_content None.
+        # It should probably except...
         # TODO : improve error handling, maybe by checking the type of res_content ?
 
         return res_content.resp_content
