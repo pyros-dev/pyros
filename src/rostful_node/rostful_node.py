@@ -33,14 +33,13 @@ class RostfulNode(RostfulMock):
     def __init__(self):
         super(RostfulNode, self).__init__()
         enable_rocon = rospy.get_param('~enable_rocon', False)
-        self.enable_rocon = enable_rocon or (
-            (len(ast.literal_eval(rospy.get_param('~rapps_namespaces', "[]"))) > 0)
-            or (len(ast.literal_eval(rospy.get_param('~interactions', "[]"))) > 0)
-        )
+        self.enable_rocon = enable_rocon
 
         self.ros_if = RosInterface()
 
         if _ROCON_AVAILABLE and self.enable_rocon:
+
+            rospy.logerr("ENABLE_ROCON IS TRUE IN INIT!!")
             self.rocon_if = RoconInterface(self.ros_if)
             pass
         else:
@@ -419,12 +418,10 @@ class RostfulNode(RostfulMock):
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
         rospy.logwarn("""Reconfigure Request: \renable_rocon : {enable_rocon}""".format(**config))
-        self.enable_rocon = config["enable_rocon"] or (
-            len(ast.literal_eval(config["rapps_namespaces"])) > 0
-            or len(ast.literal_eval(config["interactions"])) > 0
-        )
+        self.enable_rocon = config["enable_rocon"]
 
         if not self.rocon_if and self.enable_rocon:
+            rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
             self.rocon_if = RoconInterface(self.ros_if)
 
         config = self.ros_if.reconfigure(config, level)

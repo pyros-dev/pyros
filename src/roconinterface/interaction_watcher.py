@@ -56,8 +56,8 @@ class InteractionWatcher(threading.Thread):  #TODO : DO NOT inherit from thread.
             + "/" + rocon_std_msgs.Strings.URI_WILDCARD
             + "|" + rocon_std_msgs.Strings.OS_CHROME
         )
-        self.platform_info = rocon_std_msgs.PlatformInfo(version=rocon_std_msgs.Strings.ROCON_VERSION,
-                                                         uri=str(self.rocon_uri),
+        self.master_info = rocon_std_msgs.MasterInfo(version=rocon_std_msgs.Strings.ROCON_VERSION,
+                                                         rocon_uri=str(self.rocon_uri),
                                                          icon=rocon_std_msgs.Icon()
                                                          )
 
@@ -130,7 +130,7 @@ class InteractionWatcher(threading.Thread):  #TODO : DO NOT inherit from thread.
 
     def get_interactions(self):
         if self.get_interactions_service_proxy :
-            call_result = self.get_interactions_service_proxy([], self.platform_info.uri)
+            call_result = self.get_interactions_service_proxy([], self.master_info.rocon_uri)
             added = []
             removed = []
             for msg in call_result.interactions:
@@ -151,7 +151,7 @@ class InteractionWatcher(threading.Thread):  #TODO : DO NOT inherit from thread.
 
     def get_roles(self):
         if self.get_roles_service_proxy :
-            call_result = self.get_roles_service_proxy(self.platform_info.uri)
+            call_result = self.get_roles_service_proxy(self.master_info.rocon_uri)
             added = []
             removed = []
             for role in call_result.roles:

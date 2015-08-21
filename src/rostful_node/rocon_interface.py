@@ -31,6 +31,7 @@ Interface with ROCON.
 Gather rocon information and store them ( as dict to be serialized to json easily by the rostful server ) TODO
 No inheritance to make sure destructor is called properly.
 """
+# TODO : fix this to work with gopher branch of rocon
 class RoconInterface(object):
 
     def __init__(self, ros_interface):
@@ -53,8 +54,7 @@ class RoconInterface(object):
 
         if _ROCON:
             #TODO : Rapp Watcher shouldnt even get started when we are running on concert. It s useful only on Robot.
-            self.rapp_watcher = RappWatcher( self._namespaces_change_cb, self._available_rapps_list_changed, self._running_rapp_status_changed, silent_timeout=True)
-            self.rapp_watcher.start()
+            self.rapp_watcher = RappWatcher(self._running_rapp_status_changed, silent_timeout=True)
 
             self.expose_rapps(rapps_ns_args)
 
