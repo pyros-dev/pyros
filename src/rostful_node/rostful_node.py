@@ -320,7 +320,7 @@ class RostfulNode(RostfulMock):
         try:
             msg = self.msg_build(name)
             if self.ros_if and self.ros_if.get_topic(name):
-                if msg_content:
+                if msg_content is not None:
                     msgconv.populate_instance(msg_content, msg)
                     self.ros_if.get_topic(name).publish(msg)
                     msg = None  # consuming the message
