@@ -76,6 +76,7 @@ class RostfulNodeProcess(object):
                     check_init,
                     lambda: not stop_event.is_set() and not rospy.core.is_shutdown()
                 )
+                rospy.logwarn('rostful node stopped.')
 
         self._proc = Process(target=spinner, args=(name, argv, self.pipe_conn, check_init, self._stop_event))
         self._proc.start()
