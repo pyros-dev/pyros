@@ -100,7 +100,7 @@ class RosInterface(object):
         # many times the add function has been called for the given key.
         self.services_args = []
         self.params_args = []
-        self.topics_args = {} # dict to keep track of the number of connections
+        self.topics_args = {}  # dict to keep track of the number of connections
         self.actions_args = {}
         #current topics waiting for deletion ( still contain messages )
         self.topics_waiting_del = {}
@@ -108,6 +108,7 @@ class RosInterface(object):
         if run_watcher:
             self.ros_watcher = ROSWatcher(self.topics_change_cb, self.services_change_cb, self.actions_change_cb)
             self.ros_watcher.start()
+        #TODO : Detect param change while running : HOW ? dynamic reconfigure ? master system state via watcher ?
 
     ##
     # Attach beginning of line and end of line characters to the given string.
@@ -153,7 +154,12 @@ class RosInterface(object):
             self.expose_services(new_services)
         except ValueError:
             rospy.logwarn('[ros_interface] Ignored list %s containing malformed service strings. Fix your input!' % str(config["services"]))
-            
+        try:
+            # convert new params to a set and then back to a list to ensure uniqueness
+            new_params = list(set(ast.literal_eval(config["params"])))
+            self.expose_params(new_params)
+        except ValueError:
+            rospy.logwarn('[ros_interface] Ignored list %s containing malformed param strings. Fix your input!' % str(config["params"]))
         try:
             # convert new actions to a set and then back to a list to ensure uniqueness
             new_actions = list(set(ast.literal_eval(config["actions"])))
@@ -192,8 +198,8 @@ class RosInterface(object):
     # @return false if the service did not exist, true if the connection was
     # deleted.
     def del_service(self, service_name, force=False):
-        rospy.loginfo("[ros_interface] Deleting service %s" % service_name)
         if service_name in self.services:
+            rospy.loginfo("[ros_interface] Deleting service %s" % service_name)
             if force:
                 self.services_args.remove(service_name)
                 if service_name in self.services_waiting:
@@ -354,29 +360,22 @@ class RosInterface(object):
         else:
             return None  # topic not exposed
 
-    def add_param(self, param_name, has_param=None):
+    def add_param(self, param_name):
+        rospy.loginfo("[ros_interface] Adding param %s" % param_name)
         resolved_param_name = rospy.resolve_name(param_name)
-        # this initialises regex params
-        if param_name not in self.params_args:
-            self.params_args[param_name] = -2
-        if self.params_args[param_name] >= 0:
-            rospy.loginfo("[ros_interface] Adding param %s" % param_name)
+        if param_name not in self.services_args:
+            self.params_args.append(param_name)
 
-        if not rospy.has_param():
+        if not rospy.has_param(param_name):
             rospy.logwarn('[ros_interface] Cannot Expose unknown param %s (maybe it is a regex or doesn\'t exist yet?)' % param_name)
             self.params_waiting.append(param_name)
             return False
 
-        # if this is a regex match topic, it will not be in the waiting list
-        # just after it is initialised above
+        # only create a new backend for the param when it is in the waiting list
         if param_name in self.params_waiting:
             self.params_waiting.remove(param_name)
-        # if the param didn't exist yet, create a backend
-        if self.params_args[param_name] == -2:
-            self.params[param_name] = ParamBack(param_name)
 
-        self.params_args[param_name] += 1
-
+        self.params[param_name] = ParamBack(param_name)
         return True
 
     ##
@@ -384,30 +383,24 @@ class RosInterface(object):
     # params, waiting list and args.
     # @return false if the param did not exist, true if the param was deleted.
     def del_param(self, param_name, force=False):
-        # can only delete param if we have it in the param list
         if param_name in self.params:
             rospy.loginfo("[ros_interface] Deleting param %s" % param_name)
             if force:
-                self.params_args.pop(param_name)
-                self.params.pop(param_name)
+                self.params_args.remove(param_name)
                 if param_name in self.params_waiting:
                     self.params_waiting.remove(param_name)
-                return True
+            else:
+                self.params_waiting.append(param_name)
 
-            # if there is only one connection left, remove the topic from the
-            # list, add it to the waiting list, and set its number of
-            # connections to zero.
             self.params.pop(param_name, None)
-            self.params_waiting.append(param_name)
-        else:
-            return False
-        return True
+            return True
+        return False
 
     """
-    This exposes a list of topics as REST API. topics not listed here will be removed from the API
+    This exposes a list of params as REST API. params not listed here will be removed from the API
     """
     def expose_params(self, param_names):
-        rospy.loginfo('[ros_interface] Exposing topics : %r', param_names)
+        rospy.loginfo('[ros_interface] Exposing params : %r', param_names)
         if not param_names:
             return
 
@@ -423,17 +416,13 @@ class RosInterface(object):
         # function
         for param_name in self.params_args:
             if not param_name[0] in param_names or not self.is_regex_match(param_name[0], param_names):
-                rospy.loginfo("topic %s not in topic names %r" % (param_name[0], param_names))
+                rospy.loginfo("param %s not in param names %r" % (param_name[0], param_names))
                 ret = self.del_param(param_name[0], force=True)
 
     def get_param(self, param_name):
-        #normalizing names... ( somewhere else ?)
-        if isinstance(param_name, unicode):
-            topic_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
-
         if param_name in self.params.keys():
             param = self.params[param_name]
-            return param_name
+            return param
         else:
             return None  # param not exposed
 
@@ -537,7 +526,7 @@ class RosInterface(object):
                 #TODO : cleaner way by calling self.del_topic ?
 
     def services_change_cb(self, new_services, lost_services):
-        # internal lists store topics without the initial slash, but we receive them with it from outside
+        # internal lists store services without the initial slash, but we receive them with it from outside
         new_services = new_services
         lost_services = lost_services
         # rospy.logwarn('new services : %r, lost services : %r' % (new_services, lost_services))
@@ -557,12 +546,12 @@ class RosInterface(object):
                 self.del_service(svc_name)
 
     def actions_change_cb(self, new_actions, lost_actions):
-        # internal lists store topics without the initial slash, but we receive them with it from outside
+        # internal lists store actions without the initial slash, but we receive them with it from outside
         new_actions = new_actions
         lost_actions = lost_actions
         # rospy.logwarn('new actions : %r, lost actions : %r', new_actions, lost_actions)
         # convert new actions to a set and then back to a list to ensure uniqueness
-        act_list = [a for a in list(set(new_actions)) if a in self.actions_args or self.is_regex_match(a, self.topics_waiting)]
+        act_list = [a for a in list(set(new_actions)) if a in self.actions_args or self.is_regex_match(a, self.actions_waiting)]
         if len(act_list) > 0:
             # rospy.logwarn('exposing new actions : %r', act_list)
             for act_name in act_list:

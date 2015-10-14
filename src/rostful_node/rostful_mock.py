@@ -119,8 +119,8 @@ class RostfulMock(object):
                     value=self.param(rqst.name, rqst.value)
                 )
             elif isinstance(rqst, ParamList):
-                resp = TopicList(
-                    name_dict=self.topic_list()
+                resp = ParamList(
+                    name_dict=self.param_list()
                 )
             elif isinstance(rqst, Interactions):
                 resp = Interactions(

@@ -123,7 +123,7 @@ class RostfulClient(object):
     def param_get(self, param_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(param_name, unicode):
-            topic_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
+            param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
 
         try:
             self._pipe_conn.send(Param(name=param_name, value=None))
