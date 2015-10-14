@@ -11,7 +11,7 @@ except ImportError, e:
     logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
     _ROCON_AVAILABLE = False
     
-from .rostful_prtcl import MsgBuild, Topic, Service, TopicInfo, ServiceInfo, Rocon, InteractionInfo, NamespaceInfo
+from .rostful_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 from .rostful_mock import RostfulMock
 
 from dynamic_reconfigure.server import Server
@@ -383,6 +383,32 @@ class RostfulNode(RostfulMock):
 
             return service_dict
                 
+        return {}
+
+    def param(self, name, value=None):
+        if self.ros_if and self.ros_if.get_param(name):
+            if value is not None:
+                self.ros_if.get_param(name).set(value)
+                value = None  # consuming the message
+            else:
+                value = self.ros_if.get_param(name).get()
+        return value
+
+    def param_list(self):
+        if self.ros_if:
+            # get the dict of params, and then extract only the relevant
+            # information from the topic objects, putting them into another dict
+            # with a named tuple as the value
+            param_dict = {}
+            for param in self.ros_if.params:
+                prm = self.ros_if.params[param]
+                param_dict[param] = ParamInfo(
+                    name=prm.name,
+                    fullname=prm.fullname,
+                )
+
+            return param_dict
+
         return {}
 
     def interaction(self, name):

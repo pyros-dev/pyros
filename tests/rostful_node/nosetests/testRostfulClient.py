@@ -17,6 +17,7 @@ class TestRostfulClientOnMock(object):
     def tearDown(self):
         self.mockInstance.terminate()
 
+    ### TOPICS ###
     def test_inject_None(self):  # injecting None is meaningless and should return false
         assert not self.client.topic_inject('random_topic', None)  # simply check that it didnt inject
 
@@ -63,6 +64,7 @@ class TestRostfulClientOnMock(object):
         print "extracted message content {0}".format(recv)
         assert recv == {'first': 'first_string', 'second': 'second_string'}
 
+    ### SERVICES ###
     def test_call_echo_None(self):
         print "request content {0}".format({})
         resp = self.client.service_call('random_service', None)  # calling with None is invalid and should return None
@@ -101,4 +103,49 @@ class TestRostfulClientOnMock(object):
         print "extracted message content {0}".format(resp)
         assert resp == {'first': 'first_string', 'second': 'second_string'}
 
+    ### PARAMS ###
+    def test_set_None(self):  # injecting None is meaningless and should return false
+        assert not self.client.param_set('random_param', None)  # simply check that it didnt set
 
+    def test_set_Empty(self):
+        assert self.client.param_set('random_param')  # simply check if set
+
+    def test_get_None(self):
+        assert self.client.param_get('random_param') is None  # simply check if nothing got
+
+    def test_set_get_echo_Empty(self):
+        assert self.client.param_set('random_param')  # default should be {}
+        print "set value content {0}".format({})
+        recv = self.client.param_get('random_param')
+        print "got value content {0}".format(recv)
+        assert recv == {}
+
+    def test_set_get_echo_Simple_Arg(self):
+        data = 'data_string'
+        assert self.client.param_set('random_param', data)
+        print "set value content {0}".format(data)
+        recv = self.client.param_get('random_param')
+        print "got value content {0}".format(recv)
+        assert recv == data
+
+    def test_set_get_echo_Complex_Arg(self):
+        data = {'first': 'first_string', 'second': 'second_string'}
+        assert self.client.param_set('random_param', data)
+        print "set value content {0}".format(data)
+        recv = self.client.param_get('random_param')
+        print "got value content {0}".format(recv)
+        assert recv == data
+
+    def test_set_get_echo_Simple_KWArgs(self):
+        assert self.client.param_set('random_param', data='data_string')
+        print "set value content {0}".format("data='data_string'")
+        recv = self.client.param_get('random_param')
+        print "got value content {0}".format(recv)
+        assert recv == {'data':'data_string'}
+
+    def test_set_get_echo_Complex_KWArgs(self):
+        assert self.client.param_set('random_param', first='first_string', second='second_string')
+        print "set value content {0}".format("first='first_string', second='second_string'")
+        recv = self.client.param_get('random_param')
+        print "got value content {0}".format(recv)
+        assert recv == {'first': 'first_string', 'second': 'second_string'}

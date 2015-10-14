@@ -7,7 +7,7 @@ import logging
 import time
 
 # python protocol should be usable without ROS.
-from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
+from .rostful_prtcl import MsgBuild, Topic, Service, Param, ServiceList, ServiceInfo, TopicList, TopicInfo, ParamList, ParamInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
 from multiprocessing import Pipe
 import threading
 """
@@ -18,6 +18,7 @@ class RostfulMock(object):
 
     def __init__(self):
         self._topic_msg = {}  # storage for the echo topic
+        self._param_val = {}  # storage for the test param
         self._stop_event = None  # stop_event to signal the thread for soft shutdown
         self._spinner = None  # thread instance
         pass
@@ -49,6 +50,21 @@ class RostfulMock(object):
 
     def service_list(self):
         info = ServiceInfo(fullname='mock_fullname')
+        resp_content = {'mock': info}
+        return resp_content
+
+    # a simple test param
+    def param(self, name, value=None):
+        val = value
+        if value is not None:
+            self._param_val[name] = value
+            val = None  # consuming the message
+        else:
+            val = self._param_val.get(name, None)
+        return val
+
+    def param_list(self):
+        info = ParamInfo(fullname='mock fullname')
         resp_content = {'mock': info}
         return resp_content
 
@@ -96,6 +112,15 @@ class RostfulMock(object):
             elif isinstance(rqst, ServiceList):
                 resp = ServiceList(
                     name_dict=self.service_list()
+                )
+            elif isinstance(rqst, Param):
+                resp = Param(
+                    name=rqst.name,
+                    value=self.param(rqst.name, rqst.value)
+                )
+            elif isinstance(rqst, ParamList):
+                resp = TopicList(
+                    name_dict=self.topic_list()
                 )
             elif isinstance(rqst, Interactions):
                 resp = Interactions(
