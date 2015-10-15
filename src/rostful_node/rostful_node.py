@@ -11,7 +11,7 @@ except ImportError, e:
     logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
     _ROCON_AVAILABLE = False
     
-from .rostful_prtcl import MsgBuild, Topic, Service, TopicInfo, ServiceInfo, Rocon, InteractionInfo, NamespaceInfo
+from .rostful_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 from .rostful_mock import RostfulMock
 
 from dynamic_reconfigure.server import Server
@@ -54,85 +54,6 @@ class RostfulNode(RostfulMock):
         # Note : It should be working fine for services however
         # TODO : change this to use pure python code to avoid confusion ( for ex. using multiprocessing lib )
         ##############################################################################################
-        def inject_topic(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Topic {topic} Injection: \n{data} """.format(
-                topic=req.topic_name,
-                data=req.data_json
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #topic_name = unicodedata.normalize('NFKD', req.topic_name).encode('ascii', 'ignore')
-            #topic is raw str
-            if req.topic_name[0] == '/':
-                req.topic_name = req.topic_name[1:]
-
-            res = False
-            if self.ros_if and req.topic_name in self.ros_if.topics:
-                topic = self.ros_if.topics[req.topic_name]
-
-                input_msg_type = topic.rostype
-                input_msg = input_msg_type()
-
-                input_data = json.loads(req.data_json)
-                input_data.pop('_format', None)  # to follow REST interface design ( maybe shouldnt be here )
-                msgconv.populate_instance(input_data, input_msg)
-
-                topic.publish(input_msg)
-                res = True
-
-            return srv.InjectTopicResponse(res)
-
-        def extract_topic(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Topic {topic} Extraction: """.format(
-                topic=req.topic_name
-            ))
-            #normalizing names... ( somewhere else ?)
-            #topic_name = unicodedata.normalize('NFKD', req.topic_name).encode('ascii', 'ignore')
-            #topic is raw str
-            if req.topic_name[0] == '/':
-                req.topic_name = req.topic_name[1:]
-
-            res = False
-            output_data = '{}'
-            if self.ros_if and req.topic_name in self.ros_if.topics:
-                topic = self.ros_if.topics[req.topic_name]
-                msg = topic.get()
-
-                output_data = msgconv.extract_values(msg) if msg is not None else None
-                output_data['_format'] = 'ros'  # to follow existing REST behavior
-                output_data = json.dumps(output_data)
-                res = True
-
-            return srv.ExtractTopicResponse(res, output_data)
-
-        def call_service(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Service {service} Call: """.format(
-                service=req.service_name
-            ))
-            #normalizing names... ( somewhere else ?)
-            #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
-            #service is raw str
-            if req.service_name[0] == '/':
-                req.service_name = req.service_name[1:]
-
-            output_data = '{}'
-            if self.ros_if and req.service_name in self.ros_if.services:
-                service = self.ros_if.services[req.service_name]
-                input_msg_type = service.rostype_req
-                input_msg = input_msg_type()
-
-                input_data = json.loads(req.data_json)
-                input_data.pop('_format', None)  # to follow REST interface design ( maybe shouldnt be here )
-                msgconv.populate_instance(input_data, input_msg)
-
-                ret_msg = service.call(input_msg)
-
-                output_data = msgconv.extract_values(ret_msg)
-                output_data['_format'] = 'ros'  # to follow existing REST behavior
-                output_data = json.dumps(output_data)
-
-            return srv.CallServiceResponse(output_data)
-
         def start_action(req):  # Keep this minimal
             rospy.logwarn("""Requesting Action {action} Start: \n{data} """.format(
                 action=req.action_name,
@@ -383,6 +304,32 @@ class RostfulNode(RostfulMock):
 
             return service_dict
                 
+        return {}
+
+    def param(self, name, value=None):
+        if self.ros_if and self.ros_if.get_param(name):
+            if value is not None:
+                self.ros_if.get_param(name).set(value)
+                value = None  # consuming the message
+            else:
+                value = self.ros_if.get_param(name).get()
+        return value
+
+    def param_list(self):
+        if self.ros_if:
+            # get the dict of params, and then extract only the relevant
+            # information from the topic objects, putting them into another dict
+            # with a named tuple as the value
+            param_dict = {}
+            for param in self.ros_if.params:
+                prm = self.ros_if.params[param]
+                param_dict[param] = ParamInfo(
+                    name=prm.name,
+                    fullname=prm.fullname,
+                )
+
+            return param_dict
+
         return {}
 
     def interaction(self, name):

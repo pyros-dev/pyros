@@ -8,7 +8,7 @@ Client to rostful node, Python style.
 Required for multiprocess communication.
 """
 
-from .rostful_prtcl import MsgBuild, Topic, Service, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
+from .rostful_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
 
 class RostfulClient(object):
     def __init__(self, pipe_conn):
@@ -92,6 +92,47 @@ class RostfulClient(object):
 
         return res_content.resp_content
 
+    def param_set(self, param_name, _value={}, **kwargs):
+        """
+        Setting parameter. if _value, we inject it directly. if not, we use all extra kwargs
+        :param topic_name: name of the topic
+        :param _value: optional value
+        :param kwargs: each extra kwarg will be put in the value if structure matches
+        :return:
+        """
+        #changing unicode to string ( testing stability of multiprocess debugging )
+        if isinstance(param_name, unicode):
+            param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
+
+        try:
+            if kwargs:
+                self._pipe_conn.send(Param(name=param_name, value=kwargs))
+                res = self._pipe_conn.recv()
+            elif _value is not None:
+                self._pipe_conn.send(Param(name=param_name, value=_value))
+                res = self._pipe_conn.recv()
+            else:   # if _msg_content is None the request is invalid.
+                    # Don't send anything into the pipe and just return False.
+                res = Param(name=param_name, value='NONE IS NOT CONSUMED')
+
+        except Exception, e:
+            raise
+
+        return res.value is None  # check if message has been consumed
+
+    def param_get(self, param_name):
+        #changing unicode to string ( testing stability of multiprocess debugging )
+        if isinstance(param_name, unicode):
+            param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
+
+        try:
+            self._pipe_conn.send(Param(name=param_name, value=None))
+            res = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+
+        return res.value
+
     def listtopics(self):
         try:
             self._pipe_conn.send(TopicList(name_dict={}))
@@ -108,6 +149,15 @@ class RostfulClient(object):
         except Exception, e:
             raise
             
+        return res_content.name_dict
+
+    def listparams(self):
+        try:
+            self._pipe_conn.send(ParamList(name_dict={}))
+            res_content = self._pipe_conn.recv()
+        except Exception, e:
+            raise
+
         return res_content.name_dict
 
     def listacts(self):

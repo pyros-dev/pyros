@@ -29,6 +29,17 @@ Service = namedtuple('Service', 'name rqst_content resp_content')
 ServiceList = namedtuple('ServiceList', 'name_dict')
 ServiceInfo = namedtuple('ServiceInfo', 'name fullname srvtype rostype_name rostype_req rostype_resp')
 
+Param = namedtuple('Param', 'name value')
+# Set :
+# rqst : value = <value_asdict>
+# resp : value = None
+# Get :
+# rqst : value = None
+# resp : value = <value_asdict>
+
+ParamList = namedtuple('ParamList', 'name_dict')
+ParamInfo = namedtuple('ParamInfo', 'name fullname')
+
 Namespaces = namedtuple('Namespaces', 'namespace_dict')
 NamespaceInfo = namedtuple('NamespaceInfo', 'name')
 
