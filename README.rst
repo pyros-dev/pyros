@@ -1,4 +1,6 @@
 # rostful-node
+.. image:: https://travis-ci.org/asmodehn/rostful-node.svg?branch=indigo-devel
+    :target: https://travis-ci.org/asmodehn/rostful-node
 The node embedded in a ROS system to allow rostful to do its job.
 
 This is not meant to be launched by itself.
