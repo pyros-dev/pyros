@@ -1,6 +1,9 @@
-# rostful-node
 .. image:: https://travis-ci.org/asmodehn/rostful-node.svg?branch=indigo-devel
     :target: https://travis-ci.org/asmodehn/rostful-node
+
+rostful-node
+------------
+
 The node embedded in a ROS system to allow rostful to do its job.
 
 This is not meant to be launched by itself.
@@ -11,8 +14,4 @@ It is intended so that the configuration ( what is exposed or not ) can be diffe
 Be careful however in settings where we have multiple similar clients ( like web server scaling ), only one node is needed here.
 
 This node should be launched with roslaunch and follow ros de facto standards, in order to perform tests on it.
-
-
-
-
 
