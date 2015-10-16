@@ -38,6 +38,7 @@
   <run_depend>python-yaml</run_depend>
   <build_depend>rostest</build_depend>
   <test_depend>rosunit</test_depend>
+  <test_depend>rostopic</test_depend>
 
   <!-- documentation dependencies -->
   <build_depend>python-catkin-pkg</build_depend>
