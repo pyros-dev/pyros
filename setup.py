@@ -8,15 +8,21 @@ try:
 except Exception, e:
     from setuptools import setup
 
-# CAREFUL distutils and setuptools take different argument sand have different behaviors
+# CAREFUL distutils and setuptools take different arguments and have different behaviors
+# ROS PACKAGING
 if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
     # fetch values from package.xml
     setup_args = generate_distutils_setup(
-        packages=['rostful_node', 'rosinterface', 'roconinterface'],
+        packages=[
+            'rostful_node',
+            'rosinterface',
+            'roconinterface',
+            'tblib',
+        ],
         package_dir={'': 'src'},
     )
     setup(**setup_args)
-
+# PYTHON PACKAGING
 else:  # using setuptools : http://pythonhosted.org/setuptools/
 
     setup(name='rostful_node',
@@ -31,6 +37,7 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         # this is better than using package data ( since behavior is a bit different from distutils... )
         include_package_data=True,  # use MANIFEST.in during install.
         install_requires=[
+            'tblib',
         ],
         zip_safe=False,  # TODO testing...
     )
