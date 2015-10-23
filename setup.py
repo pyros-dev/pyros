@@ -20,6 +20,9 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
             'tblib',
         ],
         package_dir={'': 'src'},
+        py_modules=[
+            'six',
+        ],
     )
     setup(**setup_args)
 # PYTHON PACKAGING
@@ -37,7 +40,8 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         # this is better than using package data ( since behavior is a bit different from distutils... )
         include_package_data=True,  # use MANIFEST.in during install.
         install_requires=[
-            'tblib',
+            'tblib',  # this might not always install six (latest version does not)
+            'six',
         ],
         zip_safe=False,  # TODO testing...
     )
