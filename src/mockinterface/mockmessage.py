@@ -1,22 +1,22 @@
 import __builtin__
+import cPickle
 
 # type map specifying conversion
 # basic types should be python builtin types
 # if not in there : assumed to be a custom type, convertible to a dict.
 type_map = {
    "bool":    ["bool"],
-   "int":     ["int"],
+   "int":     ["int", "float"],  # can convert int to float
    "float":   ["float"],
-   "str":     ["str"],
-   "unicode": ["unicode"],  # also convert str to unicode to be ready for python 3 default behavior ?
+   "str":     ["str", "unicode"],  # convert str to unicode to follow python 3 default behavior
+   "unicode": ["unicode"],
    "list":    ["list"],
-   "tuple":   ["tuple"],
+   "tuple":   ["tuple", "list"],  # can convert tuple to list
 }
 
 # Starting with whatever ROS needs, but we could extend this
-primitive_types = [bool, int, long, float]
-string_types = [str, unicode]
-list_types = [list, tuple]
+primitive_types = [bool, int, long, float, str, unicode]
+composed_types = [list, tuple]
 
 
 class NonexistentFieldException(Exception):
@@ -53,43 +53,27 @@ def populate_instance(msg, inst):
 def _to_inst(msg, ptype, roottype, inst=None, stack=[]):
 
     # Check to see whether this is a primitive type
-    if __builtin__.__dict__[ptype] in primitive_types or __builtin__.__dict__[ptype] in string_types:
-        return _to_primitive_inst(msg, ptype, roottype, stack)
+    if __builtin__.__dict__[ptype] in primitive_types or __builtin__.__dict__[ptype] in composed_types:
+        # Typecheck the msg
+        msgtype = type(msg)
 
-    # Check whether we're dealing with a list type
-    if inst is not None and type(inst) in list_types:
-        return _to_list_inst(msg, ptype, roottype, inst, stack)
+        if msgtype in primitive_types and ptype in type_map[msgtype.__name__]:
+            inst = __builtin__.__dict__[ptype](msg)
+            return inst
+        elif msgtype in composed_types and ptype in type_map[msgtype.__name__]:
+            # Call to _to_inst for every element of the list/tuple
+            inst = __builtin__.__dict__[ptype](len(msg))
+            for i, e in enumerate(msg):
+                inst[i] = _to_inst(e, type(e).__name__, roottype, None, stack)
+            return inst
+
+        raise FieldTypeMismatchException(roottype, stack, ptype, msgtype)
 
     # Otherwise, the type has to be a custom type, so msg must be a dict
     if inst is None:
         inst = __builtin__.__dict__[ptype]
 
     return _to_object_inst(msg, ptype, roottype, inst, stack)
-
-
-def _to_primitive_inst(msg, ptype, roottype, stack):
-    # Typecheck the msg
-    msgtype = type(msg)
-
-    if msgtype in primitive_types and ptype in type_map[msgtype.__name__]:
-        return msg
-    elif msgtype in string_types and ptype in type_map[msgtype.__name__]:
-        return msg.encode("ascii", "ignore")
-    raise FieldTypeMismatchException(roottype, stack, ptype, msgtype)
-
-
-def _to_list_inst(msg, ptype, roottype, inst, stack):
-    # Typecheck the msg
-    if type(msg) not in list_types:
-        raise FieldTypeMismatchException(roottype, stack, ptype, type(msg))
-
-    # Can duck out early if the list is empty
-    if len(msg) == 0:
-        return []
-
-    # Call to _to_inst for every element of the list
-    return [_to_inst(x, type(x).__name__, roottype, None, stack) for x in msg]
-
 
 def _to_object_inst(msg, ptype, roottype, inst, stack):
     # Typecheck the msg

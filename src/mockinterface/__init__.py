@@ -7,7 +7,7 @@ from __future__ import absolute_import
 #from .mockservice import MockService
 #from .mockparam import MockParam
 
-from .mockmessage import extract_values as extract_msg, populate_instance as populate_msg
+from .mockmessage import extract_values as extract_msg, populate_instance as populate_msg, FieldTypeMismatchException, NonexistentFieldException
 
 __all__ = [
     'MockTopic',
@@ -15,4 +15,7 @@ __all__ = [
     'MockParam',
     'MockAction',
     'extract_msg',
-    'populate_msg']
+    'populate_msg',
+    'FieldTypeMismatchException',
+    'NonexistentFieldException',
+]
