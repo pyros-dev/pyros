@@ -58,14 +58,14 @@ def _to_inst(msg, ptype, roottype, inst=None, stack=[]):
         msgtype = type(msg)
 
         if msgtype in primitive_types and ptype in type_map[msgtype.__name__]:
-            inst = __builtin__.__dict__[ptype](msg)
-            return inst
+            return __builtin__.__dict__[ptype](msg)
         elif msgtype in composed_types and ptype in type_map[msgtype.__name__]:
             # Call to _to_inst for every element of the list/tuple
-            inst = __builtin__.__dict__[ptype](len(msg))
-            for i, e in enumerate(msg):
-                inst[i] = _to_inst(e, type(e).__name__, roottype, None, stack)
-            return inst
+            def recurse_iter(msg):
+                for e in msg:  # we do this with yield to get an iteratable and build the tuple/list at once
+                    yield _to_inst(e, type(e).__name__, roottype, None, stack)
+
+            return __builtin__.__dict__[ptype](recurse_iter(msg))
 
         raise FieldTypeMismatchException(roottype, stack, ptype, msgtype)
 

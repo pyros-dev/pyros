@@ -40,6 +40,8 @@ Param = namedtuple('Param', 'name value')
 ParamList = namedtuple('ParamList', 'name_dict')
 ParamInfo = namedtuple('ParamInfo', 'name fullname')
 
+Error = namedtuple('Error', 'pid message traceback')
+
 Namespaces = namedtuple('Namespaces', 'namespace_dict')
 NamespaceInfo = namedtuple('NamespaceInfo', 'name')
 

@@ -45,7 +45,7 @@ def test_populate_msg_float():
 
 def test_populate_msg_float_to_int_error():
     with assert_raises(FieldTypeMismatchException):
-        populate_msg(3.1415, float())
+        populate_msg(3.1415, int())
 
 
 def test_populate_msg_str_to_str():

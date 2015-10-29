@@ -275,17 +275,23 @@ class RostfulNode(RostfulMock):
         return {}
 
     def service(self, name, rqst_content=None):
-        rqst = self.msg_build(name)
-        msgconv.populate_instance(rqst_content, rqst)
-        resp_content = None
-        
         try:
+            resp_content = None
+            rqst = self.msg_build(name)
+            msgconv.populate_instance(rqst_content, rqst)
+
             if self.ros_if and self.ros_if.get_service(name):
                 resp = self.ros_if.get_service(name).call(rqst)
                 resp_content = msgconv.extract_values(resp)
+            return resp_content
+
         except rospy.ServiceException, e:
             rospy.logerr("Rostful Node : service exception %r" % e)
-        return resp_content
+        except msgconv.FieldTypeMismatchException, e:
+            rospy.logerr("Rostful Node : field type mismatch %r" % e)
+        except msgconv.NonexistentFieldException, e:
+            rospy.logerr("Rostful Node : non existent field %r" % e)
+
     ###
 
     def service_list(self):

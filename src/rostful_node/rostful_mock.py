@@ -25,6 +25,7 @@ class RostfulMock(object):
 
     # These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
     def msg_build(self, name):
+        # TODO : better mock : this can except if not string.
         msg = str()
         return msg
 
