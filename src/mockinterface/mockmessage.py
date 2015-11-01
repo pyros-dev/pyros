@@ -2,6 +2,8 @@ import __builtin__
 import cPickle
 from collections import namedtuple
 
+# TODO : protobuf
+
 # type map specifying conversion
 # basic types should be python builtin types
 # if not in there : assumed to be a custom type, convertible to a dict.

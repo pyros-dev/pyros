@@ -10,8 +10,8 @@ from __future__ import absolute_import
 #from .mockparam import MockParam
 
 from .mockmessage import (
-    extract_values as extract_msg,
-    populate_instance as populate_msg,
+    extract_values,
+    populate_instance,
     FieldTypeMismatchException,
     NonexistentFieldException,
     StatusMsg,
