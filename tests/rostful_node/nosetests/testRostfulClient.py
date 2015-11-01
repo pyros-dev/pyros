@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from rostful_node.rostful_node_process import RostfulNodeProcess
 from rostful_node.rostful_client import RostfulClient
 
+from nose.tools import assert_equal, assert_raises
 
 class TestRostfulClientOnMock(object):
     def setUp(self):
@@ -23,6 +24,12 @@ class TestRostfulClientOnMock(object):
 
     def test_inject_Empty(self):
         assert self.client.topic_inject('random_topic')  # simply check if injected
+
+    def test_inject_Wrong(self):
+        with assert_raises(Exception) as expt:  # TODO : be more specific
+            data = 42
+            self.client.topic_inject('random_topic', data)  # simply check exception raised
+        # assert_equal(expt, smthg...)
 
     def test_extract_None(self):
         assert self.client.topic_extract('random_topic') is None  # simply check if nothing extracted
@@ -65,6 +72,21 @@ class TestRostfulClientOnMock(object):
         assert recv == {'first': 'first_string', 'second': 'second_string'}
 
     ### SERVICES ###
+
+    def test_call_Wrong(self):
+        with assert_raises(Exception) as expt:  # TODO : be more specific
+            data = 42
+            print "request content {0}".format(data)
+            resp = self.client.service_call('random_service', data)  # simply check exception raised
+        # assert_equal(expt, smthg...)
+
+    def test_call_echo_Simple_Arg(self):
+        data = 'data_string'
+        print "request content {0}".format(data)
+        resp = self.client.service_call('random_service', data)
+        print "response content {0}".format(resp)
+        assert resp == data
+
     def test_call_echo_None(self):
         print "request content {0}".format({})
         resp = self.client.service_call('random_service', None)  # calling with None is invalid and should return None
@@ -76,13 +98,6 @@ class TestRostfulClientOnMock(object):
         resp = self.client.service_call('random_service')
         print "response content {0}".format(resp)
         assert resp == {}
-
-    def test_call_echo_Simple_Arg(self):
-        data = 'data_string'
-        print "request content {0}".format(data)
-        resp = self.client.service_call('random_service', data)
-        print "response content {0}".format(resp)
-        assert resp == data
 
     def test_call_echo_Complex_Arg(self):
         data = {'first': 'first_string', 'second': 'second_string'}

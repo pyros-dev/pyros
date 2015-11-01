@@ -1,5 +1,6 @@
 import __builtin__
 import cPickle
+from collections import namedtuple
 
 # type map specifying conversion
 # basic types should be python builtin types
@@ -18,10 +19,13 @@ type_map = {
 primitive_types = [bool, int, long, float, str, unicode]
 composed_types = [list, tuple]
 
+# defining Mock message types using namedtuple to keep things small
+StatusMsg = namedtuple("StatusMsg", "error code message")
 
+# defining Exceptions
 class NonexistentFieldException(Exception):
-    def __init__(self, basetype, fields):
-        Exception.__init__(self, "Message type %s does not have a field %s" % (basetype, '.'.join(fields)))
+    def __init__(self, oridict, basetype, message):
+        Exception.__init__(self, "Trying to convert %s to Message type %s triggered %s" % (oridict, basetype, message))
 
 
 class FieldTypeMismatchException(Exception):
@@ -53,7 +57,10 @@ def populate_instance(msg, inst):
 def _to_inst(msg, ptype, roottype, inst=None, stack=[]):
 
     # Check to see whether this is a primitive type
-    if __builtin__.__dict__[ptype] in primitive_types or __builtin__.__dict__[ptype] in composed_types:
+    if ptype in __builtin__.__dict__ and (
+        __builtin__.__dict__[ptype] in primitive_types or
+        __builtin__.__dict__[ptype] in composed_types
+    ):
         # Typecheck the msg
         msgtype = type(msg)
 
@@ -70,34 +77,17 @@ def _to_inst(msg, ptype, roottype, inst=None, stack=[]):
         raise FieldTypeMismatchException(roottype, stack, ptype, msgtype)
 
     # Otherwise, the type has to be a custom type, so msg must be a dict
-    if inst is None:
-        inst = __builtin__.__dict__[ptype]
-
-    return _to_object_inst(msg, ptype, roottype, inst, stack)
-
-def _to_object_inst(msg, ptype, roottype, inst, stack):
-    # Typecheck the msg
     if type(msg) is not dict:
         raise FieldTypeMismatchException(roottype, stack, ptype, type(msg))
 
-    inst_fields = dict((name, getattr(inst, name)) for name in dir(inst) if not name.startswith('__'))
-    # Be careful about inheritance though, not sure if it works yet...
-    # TODO : test it
+    # and ptype should be able to build with same fields.
 
-    for field_name in msg:
-        # Add this field to the field stack
-        field_stack = stack + [field_name]
+    # modifying dict with dict comprehension
+    instmsg = dict((k, _to_inst(v, type(v).__name__, roottype, None, stack)) for k, v in msg.items())
 
-        # Raise an exception if the msg contains a bad field
-        if not field_name in inst_fields:
-            raise NonexistentFieldException(roottype, field_stack)
-
-        field_ptype = inst_fields[field_name]
-        field_inst = getattr(inst, field_name)
-
-        field_value = _to_inst(msg[field_name], field_ptype,
-                    roottype, field_inst, field_stack)
-
-        setattr(inst, field_name, field_value)
-
+    # using ** to get dict content as named args for the namedtuple
+    try:
+        inst = globals()[ptype](**instmsg)
+    except TypeError, e:
+        raise NonexistentFieldException(msg, ptype, e.message)
     return inst

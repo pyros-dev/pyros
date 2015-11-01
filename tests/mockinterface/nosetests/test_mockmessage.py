@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from mockinterface import extract_msg, populate_msg, FieldTypeMismatchException
+from mockinterface import extract_msg, populate_msg, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
 from nose.tools import assert_true, assert_false, assert_raises
 
 
@@ -98,3 +98,28 @@ def test_populate_msg_tuple_to_list():
     print "msg is of type {0}".format(type(msg))
     assert_true(isinstance(msg, list))
     assert_true(msg == [False, 42, 3.1415, r'fortytwo', u'forty two'])
+
+
+def test_populate_msg_dict_to_status():
+    msg = populate_msg(
+        {"error": True, "code": 7, "message": "Actual Error"},
+        StatusMsg(error=False, code=42, message="Not an error")
+    )
+    print "msg is of type {0}".format(type(msg))
+    assert_true(isinstance(msg, StatusMsg))
+    assert_true(msg.error)
+    assert_true(msg.code == 7)
+    assert_true(msg.message == "Actual Error")
+
+
+def test_populate_msg_dict_to_status_error():
+
+    with assert_raises(NonexistentFieldException):
+        msg = populate_msg(
+            {"error": True, "code": 7, "message": "Actual Error", "non-existent": "field"},
+            StatusMsg(error=False, code=42, message="Not an error")
+        )
+
+
+    ###### EXTRACT #######
+        # TODO
