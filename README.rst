@@ -5,6 +5,10 @@
      :target: https://requires.io/github/asmodehn/rostful-node/requirements/?branch=mp_exception
      :alt: Requirements Status
 
+.. image:: https://landscape.io/github/asmodehn/rostful-node/indigo-devel/landscape.svg?style=flat
+   :target: https://landscape.io/github/asmodehn/rostful-node/indigo-devel
+   :alt: Code Health
+
 .. image:: https://www.quantifiedcode.com/api/v1/project/9a82d3edf0f04500915b0e6c5d3b8751/badge.svg
   :target: https://www.quantifiedcode.com/app/project/9a82d3edf0f04500915b0e6c5d3b8751
   :alt: Code issues
