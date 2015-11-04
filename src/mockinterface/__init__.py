@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from .mocktopic import MockTopic, statusecho_topic
 #from .mockaction import MockAction
 from .mockservice import MockService, statusecho_service
-#from .mockparam import MockParam
+from .mockparam import MockParam
 
 from .mockmessage import (
     extract_values,
