@@ -1,6 +1,10 @@
 .. image:: https://travis-ci.org/asmodehn/rostful-node.svg?branch=indigo-devel
     :target: https://travis-ci.org/asmodehn/rostful-node
 
+.. image:: https://www.quantifiedcode.com/api/v1/project/9a82d3edf0f04500915b0e6c5d3b8751/badge.svg
+  :target: https://www.quantifiedcode.com/app/project/9a82d3edf0f04500915b0e6c5d3b8751
+  :alt: Code issues
+
 rostful-node
 ------------
 
