@@ -16,6 +16,10 @@ import logging
 
 from multiprocessing import Pipe, Event, Process
 
+interface_list = {
+    'ros': 'rosinterface',
+    'mock': 'mockinterface',
+}
 
 class RostfulNodeProcess(object):
     def __init__(self, mock=False):

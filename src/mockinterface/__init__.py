@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # This python package is handling all MOCK communication for rostful-node.
 # The point of it is to be able to fully tests the multiprocess behavior,
-#     in pure python, in one process, without having to run a ROS system.
+#     in pure python, without having to run a ROS system.
 from __future__ import absolute_import
 
 from .mocktopic import MockTopic, statusecho_topic

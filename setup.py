@@ -15,6 +15,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
     setup_args = generate_distutils_setup(
         packages=[
             'rostful_node',
+            'mockinterface',
             'rosinterface',
             'roconinterface',
             'tblib',
@@ -35,7 +36,12 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         author='AlexV',
         author_email='asmodehn@gmail.com',
         license='BSD',
-        packages=['rostful_node', 'rosinterface', 'roconinterface'],
+        packages=[
+            'rostful_node',
+            'mockinterface',
+            'rosinterface',
+            'roconinterface',
+        ],
         package_dir={'': 'src'},
         # this is better than using package data ( since behavior is a bit different from distutils... )
         include_package_data=True,  # use MANIFEST.in during install.
