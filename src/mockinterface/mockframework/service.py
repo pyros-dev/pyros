@@ -17,22 +17,28 @@ def gen_msg_type(self, name, **kwargs):
 Request = namedtuple("Request", "origin destination payload")
 Response = namedtuple("Response", "origin destination payload")
 
+
+def discover(name):
+    return Service(name, [(n, p) for (s, n, p) in services if s == name])
+
+
 class Service(object):
 
-    def __init__(self, name, callback):
+    def __init__(self, name, providers):
         self.name = name
-        self.callback = callback
+        self.providers = providers
 
     def call(self, req, node=None):
-
-        # find the nodes that have this service
-        prov = [(n, p) for (s, n, p) in services if s == self]
+        """
+        Calls a service on a node with req as arguments. if node is None, a node is chosen.
+        TODO : implement a strategy to choose the node ( round robin, load balance, etc. )
+        """
 
         if node:
-            dests = [(n, p) for (n, p) in prov if n == node]
+            dests = [(n, p) for (n, p) in self.providers if n == node]
             node, pipe = dests[0]
         else:
-            node, pipe = prov[0]  # just pick one (discovery ? random ?)
+            node, pipe = self.providers[0]  # just pick one (discovery ? random ?)
 
         # build message
         fullreq = Request(origin=multiprocessing.current_process().name, destination=node, payload=req)
@@ -42,4 +48,8 @@ class Service(object):
 
         return fullresp.payload
 
+    def expose(self):
+        pass
 
+    def hide(self):
+        pass

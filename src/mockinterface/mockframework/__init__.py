@@ -8,24 +8,25 @@ import multiprocessing
 
 # TODO: locked list class
 
+#https://pymotw.com/2/multiprocessing/communication.html
+#https://docs.python.org/2/library/multiprocessing.html#proxy-objects
+manager = multiprocessing.Manager()
+
 nodes_lock = multiprocessing.Lock()
-nodes = []
+nodes = manager.list()
 
-services_lock = multiprocessing.Lock()
-services = []
+services = manager.list()
 
-topics_lock = multiprocessing.Lock()
-topics = []
+topics = manager.list()
 
-params_lock = multiprocessing.Lock()
-params = []
+params = manager.list()
 
 from .node import Node, current_node
-from .service import Service
+from .service import Service, discover
 
 
 __all__ = [
     'current_node',
     'Node', 'nodes',
-    'Service', 'services',
+    'Service', 'services', 'discover'
 ]

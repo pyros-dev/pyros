@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import multiprocessing
 import time
+from collections import namedtuple
 
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
@@ -68,24 +69,38 @@ current_node = multiprocessing.current_process
 
 
 class Node(multiprocessing.Process):
+    EndPoint = namedtuple("EndPoint", "node_conn, service_callback")
+
     def __init__(self, name='node'):
         # TODO check name unicity
         super(Node, self).__init__(name=name)
+        self.exit = multiprocessing.Event()
         self.listeners = {}
         self._providers_endpoint = {}
-        self.exit = multiprocessing.Event()
+
+    def provides(self, service_name, service_callback):
+        # actually open comm channels
+        node_conn, client_conn = multiprocessing.Pipe()
+
+        # TODO : multiple endpoint for one service ( can help in some speific cases )
+        self._providers_endpoint[service_name] = self.EndPoint(node_conn, service_callback)
+
+        # register the service for discovery
+        services_lock.acquire()
+        services.append((service_name, self.name, client_conn))
+        services_lock.release()
 
     def run(self):
         print 'Starting %s' % self.name
         # loop listening to connection
         while not self.exit.is_set():
-            for (node_conn, callback) in self._providers_endpoint:
+            for svc, ep in self._providers_endpoint.iteritems():
                 try:
                     # TODO : check event based / proactor/ reactor design to optimize and avoid polling...
-                    if node_conn.poll(0.5):
-                        req = node_conn.recv()
-                        resp = callback(req.payload)
-                        node_conn.send(Response(origin=multiprocessing.current_process(), destination=req.origin, payload=resp))
+                    if ep.node_conn.poll(0.5):
+                        req = ep.node_conn.recv()
+                        resp = ep.callback(req.payload)
+                        ep.node_conn.send(Response(origin=multiprocessing.current_process(), destination=req.origin, payload=resp))
                     else:  # no data, no worries.
                         pass
                 except EOFError:  # empty pipe, no worries.
@@ -118,20 +133,4 @@ class Node(multiprocessing.Process):
         #TODO : inverse of listen
         pass
 
-    def provide(self, service):
-
-        # actually open comm channels
-        node_conn, client_conn = multiprocessing.Pipe()
-
-        # FIXME : maybe we can do that only before starting ?
-        self._providers_endpoint[service] = (node_conn, service.callback)
-
-        # register the service globally
-        services_lock.acquire()
-        services.append((service, self.name, client_conn))
-        services_lock.release()
-
-    def unprovide(self, service):
-        #TODO inverse of provide()
-        pass
 
