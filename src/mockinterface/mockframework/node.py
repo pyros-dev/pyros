@@ -4,9 +4,11 @@
 #     in pure python, without having to run a ROS system.
 from __future__ import absolute_import
 
-import multiprocessing
+import multiprocessing, multiprocessing.reduction
 import time
 from collections import namedtuple
+import zmq
+import  pickle  # TODO : json, protobuf
 
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
@@ -62,14 +64,21 @@ from collections import namedtuple
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
 
-from . import services, services_lock
+from . import services
 from .service import Request, Response
 
 current_node = multiprocessing.current_process
 
 
+class UnknownServiceException(Exception):
+    pass
+
+
+class UnknownRequestTypeException(Exception):
+    pass
+
+
 class Node(multiprocessing.Process):
-    EndPoint = namedtuple("EndPoint", "node_conn, service_callback")
 
     def __init__(self, name='node'):
         # TODO check name unicity
@@ -77,45 +86,70 @@ class Node(multiprocessing.Process):
         self.exit = multiprocessing.Event()
         self.listeners = {}
         self._providers_endpoint = {}
+        self._svc_address = "tcp://127.0.0.1:%s" % 4242
 
-    def provides(self, service_name, service_callback):
-        # actually open comm channels
-        node_conn, client_conn = multiprocessing.Pipe()
-
-        # TODO : multiple endpoint for one service ( can help in some speific cases )
-        self._providers_endpoint[service_name] = self.EndPoint(node_conn, service_callback)
-
-        # register the service for discovery
-        services_lock.acquire()
-        services.append((service_name, self.name, client_conn))
-        services_lock.release()
+    def provides(self, svc_name, svc_callback):
+        # TODO : multiple endpoint for one service ( can help in some specific cases )
+        self._providers_endpoint[svc_name] = svc_callback
 
     def run(self):
         print 'Starting %s' % self.name
+
+        zcontext = zmq.Context()  # check creating context in init ( compatilibty with multiple rpocesses )
+        svc_socket = zcontext.socket(zmq.REP)
+        svc_socket.bind(self._svc_address)
+
+        poller = zmq.Poller()
+        poller.register(svc_socket, zmq.POLLIN)
+
+        # advertising services
+        for svc_name, svc_callback in self._providers_endpoint.iteritems():
+            print '-> Providing {0} with {1}'.format(svc_name, svc_callback)
+            globalsvcs = services
+            if svc_name in globalsvcs:
+                globalsvcs[svc_name].append((self.name, self._svc_address))
+            else:
+                globalsvcs[svc_name] = [(self.name, self._svc_address)]
+
+
         # loop listening to connection
         while not self.exit.is_set():
-            for svc, ep in self._providers_endpoint.iteritems():
-                try:
-                    # TODO : check event based / proactor/ reactor design to optimize and avoid polling...
-                    if ep.node_conn.poll(0.5):
-                        req = ep.node_conn.recv()
-                        resp = ep.callback(req.payload)
-                        ep.node_conn.send(Response(origin=multiprocessing.current_process(), destination=req.origin, payload=resp))
-                    else:  # no data, no worries.
-                        pass
-                except EOFError:  # empty pipe, no worries.
-                    pass
-                except Exception, e:
-                    raise e
+            try:
+                socks = dict(poller.poll(timeout=10))  # Note this timeout only determines the shutdown speed. messages are received ASAP.
+                if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
+                    req = pickle.loads(svc_socket.recv())
+                    if isinstance(req, Request):
+                        if req.service in self._providers_endpoint:
+                            resp = self._providers_endpoint[req.service](req.request)
+                            svc_socket.send(pickle.dumps(Response(service=req.service, response=resp)))
+                        else:
+                            raise UnknownServiceException("Unknown Service {0}".format())
+                    else:
+                        raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req)))
+
+            except Exception, e:
+                raise e
             time.sleep(0.1)  # avoid spinning too fast
+
+        # deadvertising services
+        for svc_name, svc_callback in self._providers_endpoint.iteritems():
+             services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
 
         print "You exited!"
 
     def shutdown(self, join=True):
-        print "Shutdown initiated"
-        self.exit.set()
-        if join:
-            self.join()
+        """
+        Clean shutdown of the node.
+        :param join: optionally wait for the process to end (default : True)
+        :return: None
+        """
+        if self._popen is not None:  # check if process started
+            print "Shutdown initiated"
+            self.exit.set()
+            if join:
+                self.join()
+            # TODO : timeout before forcing terminate (SIGTERM)
+        pass
 
     def listen(self, topic, callback):
 

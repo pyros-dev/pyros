@@ -12,13 +12,9 @@ import multiprocessing
 #https://docs.python.org/2/library/multiprocessing.html#proxy-objects
 manager = multiprocessing.Manager()
 
-nodes_lock = multiprocessing.Lock()
 nodes = manager.list()
-
-services = manager.list()
-
+services = manager.dict()
 topics = manager.list()
-
 params = manager.list()
 
 from .node import Node, current_node
