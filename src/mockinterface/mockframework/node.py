@@ -8,7 +8,8 @@ import multiprocessing, multiprocessing.reduction
 import time
 from collections import namedtuple
 import zmq
-import  pickle  # TODO : json, protobuf
+import socket
+import pickle  # TODO : json, protobuf
 
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
@@ -64,7 +65,7 @@ import  pickle  # TODO : json, protobuf
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
 
-from . import services
+from . import services, services_lock
 from .service import Request, Response
 
 current_node = multiprocessing.current_process
@@ -96,21 +97,25 @@ class Node(multiprocessing.Process):
         print 'Starting %s' % self.name
 
         zcontext = zmq.Context()  # check creating context in init ( compatilibty with multiple rpocesses )
+        zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
         svc_socket = zcontext.socket(zmq.REP)
-        svc_socket.bind(self._svc_address)
+        svc_socket.bind(self._svc_address,)
 
         poller = zmq.Poller()
         poller.register(svc_socket, zmq.POLLIN)
 
+        global services, services_lock
         # advertising services
+        services_lock.acquire()  # TODO : check if lock is necessary ? ( shouldnt be... )
+        global_svcs = services
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
             print '-> Providing {0} with {1}'.format(svc_name, svc_callback)
-            globalsvcs = services
-            if svc_name in globalsvcs:
-                globalsvcs[svc_name].append((self.name, self._svc_address))
+            if svc_name in services:
+                services[svc_name].append((self.name, self._svc_address))
             else:
-                globalsvcs[svc_name] = [(self.name, self._svc_address)]
-
+                services[svc_name] = [(self.name, self._svc_address)]
+        services = global_svcs
+        services_lock.release()
 
         # loop listening to connection
         while not self.exit.is_set():
@@ -132,9 +137,13 @@ class Node(multiprocessing.Process):
             time.sleep(0.1)  # avoid spinning too fast
 
         # deadvertising services
+        services_lock.acquire()
+        global_svcs = services  # optimising transfer to manager
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
-             services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
+             global_svcs[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
 
+        services = global_svcs
+        services_lock.release()
         print "You exited!"
 
     def shutdown(self, join=True):

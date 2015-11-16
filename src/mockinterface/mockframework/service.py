@@ -31,7 +31,7 @@ def discover(name, timeout=None):
     endtime = timeout if timeout else 0
 
     while True:
-        if name in services:
+        if name in services and services[name]:
             svc = services[name]
             return Service(name, svc)
         elif time.clock() - start > endtime:  # check for timeout

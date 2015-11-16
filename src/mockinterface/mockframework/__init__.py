@@ -13,7 +13,14 @@ import multiprocessing
 manager = multiprocessing.Manager()
 
 nodes = manager.list()
+
+# Not clear if Lock is implemented or not :
+# https://docs.python.org/2.7/library/multiprocessing.html#sharing-state-between-processes
+# https://bugs.python.org/issue19864
+# So we do it anyway to be safe
+services_lock = manager.Lock()
 services = manager.dict()
+
 topics = manager.list()
 params = manager.list()
 
@@ -24,5 +31,5 @@ from .service import Service, discover
 __all__ = [
     'current_node',
     'Node', 'nodes',
-    'Service', 'services', 'discover'
+    'Service', 'services', 'services_lock', 'discover'
 ]
