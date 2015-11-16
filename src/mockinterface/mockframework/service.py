@@ -20,23 +20,25 @@ Request = namedtuple("Request", "service request")
 Response = namedtuple("Response", "service response")
 
 
-def discover(name, timeout=None):
+def discover(name, timeout=None, minimum_providers=1):
     """
     discovers a service. optionally wait for at least one service instance to be available.
     :param name:
-    :param timeout:
-    :return:
+    :param timeout: maximum number of seconds the discover can wait for a discovery matching requirements
+    :param minimum_providers the number of provider we need to reach before discover() returns
+    :return: a Service object, containing the list of providers
     """
     start = time.clock()  # using clock instead of time to not be affected by other process running simultaneously
     endtime = timeout if timeout else 0
 
     while True:
-        if name in services and services[name]:
-            svc = services[name]
-            return Service(name, svc)
+        if name in services and services[name] and len(services[name]) >= minimum_providers:
+            providers = services[name]
+            return Service(name, providers)
         elif time.clock() - start > endtime:  # check for timeout
             break
-        # else we keep looping
+        # else we keep looping after a short sleep ( to allow time to refresh services list )
+        time.sleep(0.2)
     return None
 
 
@@ -46,10 +48,11 @@ class Service(object):
         self.name = name
         self.providers = providers
 
-    def call(self, req, node=None, send_timeout = 5, recv_timeout=5, zmq_ctx=None):
+    def call(self, req, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
         """
         Calls a service on a node with req as arguments. if node is None, a node is chosen by zmq.
         if zmq_ctx is passed, it will use the existing context
+        :param node : the node name
         """
 
         context = zmq_ctx or zmq.Context()
@@ -68,12 +71,14 @@ class Service(object):
         poller = zmq.Poller()
         poller.register(socket)  # POLLIN for recv, POLLOUT for send
 
-        evts = poller.poll(send_timeout)
+        evts = dict(poller.poll(send_timeout))
         if socket in evts and evts[socket] == zmq.POLLOUT:
-            socket.send(pickle.dumps(fullreq))
-            evts = poller.poll(recv_timeout)
+            print "POLLOUT"
+            socket.send_pyobj(fullreq)
+            evts = dict(poller.poll(recv_timeout))  # blocking until answer
             if socket in evts and evts[socket] == zmq.POLLIN:
-                fullresp = pickle.loads(socket.recv())
+                print "POLLIN"
+                fullresp = socket.recv_pyobj()
                 return fullresp.response
 
         #TODO : exception on timeout

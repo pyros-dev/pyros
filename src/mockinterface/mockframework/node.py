@@ -3,6 +3,7 @@
 # The point of it is to be able to fully tests the multiprocess behavior,
 #     in pure python, without having to run a ROS system.
 from __future__ import absolute_import
+from __future__ import print_function
 
 import multiprocessing, multiprocessing.reduction
 import time
@@ -81,20 +82,20 @@ class UnknownRequestTypeException(Exception):
 
 class Node(multiprocessing.Process):
 
-    def __init__(self, name='node'):
+    def __init__(self, name='node', host='127.0.0.1', port=4242):
         # TODO check name unicity
         super(Node, self).__init__(name=name)
         self.exit = multiprocessing.Event()
         self.listeners = {}
         self._providers_endpoint = {}
-        self._svc_address = "tcp://127.0.0.1:%s" % 4242
+        self._svc_address = "tcp://{host}:{port}".format(host=host, port=port)
 
     def provides(self, svc_name, svc_callback):
         # TODO : multiple endpoint for one service ( can help in some specific cases )
         self._providers_endpoint[svc_name] = svc_callback
 
     def run(self):
-        print 'Starting %s' % self.name
+        print('Starting {node} => {address}'.format(node=self.name, address=self._svc_address))
 
         zcontext = zmq.Context()  # check creating context in init ( compatilibty with multiple rpocesses )
         zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
@@ -104,23 +105,17 @@ class Node(multiprocessing.Process):
         poller = zmq.Poller()
         poller.register(svc_socket, zmq.POLLIN)
 
-        global services, services_lock
+        global services
         # advertising services
-        services_lock.acquire()  # TODO : check if lock is necessary ? ( shouldnt be... )
-        global_svcs = services
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
-            print '-> Providing {0} with {1}'.format(svc_name, svc_callback)
-            if svc_name in services:
-                services[svc_name].append((self.name, self._svc_address))
-            else:
-                services[svc_name] = [(self.name, self._svc_address)]
-        services = global_svcs
-        services_lock.release()
+            print('-> Providing {0} with {1}'.format(svc_name, svc_callback))
+            # needs reassigning to propagate update to manager
+            services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
 
         # loop listening to connection
         while not self.exit.is_set():
             try:
-                socks = dict(poller.poll(timeout=10))  # Note this timeout only determines the shutdown speed. messages are received ASAP.
+                socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
                 if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
                     req = pickle.loads(svc_socket.recv())
                     if isinstance(req, Request):
@@ -134,17 +129,12 @@ class Node(multiprocessing.Process):
 
             except Exception, e:
                 raise e
-            time.sleep(0.1)  # avoid spinning too fast
 
         # deadvertising services
-        services_lock.acquire()
-        global_svcs = services  # optimising transfer to manager
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
-             global_svcs[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
+             services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
 
-        services = global_svcs
-        services_lock.release()
-        print "You exited!"
+        print("You exited!")
 
     def shutdown(self, join=True):
         """
@@ -153,7 +143,7 @@ class Node(multiprocessing.Process):
         :return: None
         """
         if self._popen is not None:  # check if process started
-            print "Shutdown initiated"
+            print("Shutdown initiated")
             self.exit.set()
             if join:
                 self.join()

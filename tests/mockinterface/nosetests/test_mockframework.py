@@ -10,7 +10,7 @@ import multiprocessing
 import mockinterface.mockframework as mockframework
 
 import nose
-from nose.tools import assert_true, assert_false, assert_raises
+from nose.tools import assert_true, assert_false, assert_raises, assert_equal
 
 
 ### TESTING NODE CREATION / TERMINATION ###
@@ -31,18 +31,11 @@ def test_node_creation_termination():
 ### TODO : more testing in case of crash in process, exception, signal, etc.
 
 
-### TESTING PARAMETERS ###
-
-
-### TESTING TOPIC COMMUNICATION ###
-
-
-### TESTING SERVICE COMMUNICATION ###
-def test_service_discover():
-
+### Node as fixture to guarantee cleanup
+class TestMockHWNode(object):
     class HWNode(mockframework.Node):
-        def __init__(self, name):
-            super(HWNode, self).__init__(name)
+        def __init__(self, name, port):
+            super(TestMockHWNode.HWNode, self).__init__(name, port=port)
             # TODO : improvement : autodetect class own methods
             self.provides("HelloWorld", self.hw)
 
@@ -50,96 +43,161 @@ def test_service_discover():
         def hw(msg):
             return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
 
-    testing = True
-    lcb = "data"
-    helloworld = mockframework.discover("HelloWorld")
-    assert_true(helloworld is None)
+    def setUp(self):
+        self.hwnode = TestMockHWNode.HWNode(name="HNode", port=4242)
+        self.hwnodeextra = TestMockHWNode.HWNode(name="HNodeExtra", port=4243)
 
-    n1 = HWNode(name="HNode")
-    assert_false(n1.is_alive())
-
-    helloworld = mockframework.discover("HelloWorld")
-    assert_true(helloworld is None)  # service not provided until node starts
-
-    n1.start()
-    assert_true(n1.is_alive())
-
-    helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to get something
-    assert_false(helloworld is None)
-
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
-    helloworld = mockframework.discover("HelloWorld")
-    assert_true(helloworld is None)
-
-@nose.SkipTest
-def test_service_comm_to_sub():
-
-    class HWNode(mockframework.Node):
-        def __init__(self, name):
-            super(HWNode, self).__init__(name)
-            # TODO : improvement : autodetect class own methods
-            self.provides("HelloWorld", self.hw)
-
-        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
-        def hw(msg):
-            return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
-
-    testing = True
-    lcb = "data"
-
-    n1 = HWNode(name="HNode")
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
-
-    helloworld = mockframework.discover("HelloWorld", 5)
-    assert_true(helloworld is not None)  # to make sure we get a service provided
-    assert_true(helloworld.call("Hello") == "Hello! I am HNode")
-    assert_true(helloworld.call("Hallo") == "...")
-
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
-@nose.SkipTest
-def test_service_comm_to_double_sub():
-
-    class HWNode(mockframework.Node):
-        def __init__(self, name):
-            super(HWNode, self).__init__(name)
-            # TODO : improvement : autodetect class own methods
-            self.provides("HelloWorld", self.hw)
-
-        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
-        def hw(msg):
-            return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
-
-    testing = True
-    lcb = "data"
-
-    n1 = HWNode(name="HNode1")
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
-
-    n2 = HWNode(name="HNode2")
-    assert_false(n2.is_alive())
-    n2.start()
-    assert_true(n2.is_alive())
-
-    helloworld = mockframework.discover("HelloWorld", 5)
-    assert_true(helloworld is not None)  # to make sure we get a service provided
-    assert_true(helloworld.call("Hello") == "Hello! I am HNode1" or helloworld.call("Hello") == "Hello! I am HNode2")
-    assert_true(helloworld.call("Hallo") == "...")
-
-    assert_true(helloworld.call("Hello", n1) == "Hello! I am HNode1")
-    assert_true(helloworld.call("Hello", n2) == "Hello! I am HNode2")
-
-    n1.shutdown()
-    assert_false(n1.is_alive())
+    def tearDown(self):
+        if self.hwnode.is_alive():
+            self.hwnode.shutdown()
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.shutdown()
+        # if it s still alive terminate it.
+        if self.hwnode.is_alive():
+            self.hwnode.terminate()
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.terminate()
 
 
+    ### TESTING PARAMETERS ###
+
+
+    ### TESTING TOPIC COMMUNICATION ###
+
+
+    ### TESTING SERVICE COMMUNICATION ###
+    def test_service_discover(self):
+        assert_false(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld")
+        assert_true(helloworld is None)  # service not provided until node starts
+
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 1)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld")
+        assert_true(helloworld is None)
+
+    def test_service_discover_multiple_stack(self):
+        assert_false(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld")
+        assert_true(helloworld is None)  # service not provided until node starts
+
+        # Start two nodes - stack process
+        self.hwnodeextra.start()
+        assert_true(self.hwnodeextra.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 1)
+
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5, 2)  # we wait until we get 2 providers ( or timeout )
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 2)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld")  # we should have right away 1 provider only
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 1)
+
+        self.hwnodeextra.shutdown()
+        assert_false(self.hwnodeextra.is_alive())
+
+    def test_service_discover_multiple_queue(self):
+        assert_false(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld")
+        assert_true(helloworld is None)  # service not provided until node starts
+
+        # Start two nodes queue process
+        self.hwnodeextra.start()
+        assert_true(self.hwnodeextra.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 1)
+
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5, 2)   # we wait until we get 2 providers ( or timeout )
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 2)
+
+        self.hwnodeextra.shutdown()
+        assert_false(self.hwnodeextra.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        assert_false(helloworld is None)
+        assert_equal(len(helloworld.providers), 1)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    def test_service_comm_to_sub(self):
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5)
+        assert_true(helloworld is not None)  # to make sure we get a service provided
+        resp = helloworld.call("Hello")
+        print "Hello -> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNode")
+        resp = helloworld.call("Hallo")
+        print "Hallo -> {0}".format(resp)
+        assert_true(resp == "...")
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    def test_service_comm_to_double_sub(self):
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        assert_false(self.hwnodeextra.is_alive())
+        self.hwnodeextra.start()
+        assert_true(self.hwnodeextra.is_alive())
+
+        helloworld = mockframework.discover("HelloWorld", 5, 2)  # make sure we get both providers. we need them.
+        assert_true(helloworld is not None)  # to make sure we get a service provided
+        assert_equal(len(helloworld.providers), 2)
+        resp = helloworld.call("Hello")
+        print "Hello -> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNode" or resp == "Hello! I am HNodeExtra")
+        resp = helloworld.call("Hallo")
+        print "Hallo -> {0}".format(resp)
+        assert_true(resp == "...")
+
+        resp = helloworld.call("Hello", self.hwnode.name)
+        print "Hello -HNode-> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNode")
+        resp = helloworld.call("Hello", self.hwnodeextra.name)
+        print "Hello -HNodeExtra-> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNodeExtra")
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+        self.hwnodeextra.shutdown()
+        assert_false(self.hwnodeextra.is_alive())
+
+# TODO
 @nose.SkipTest
 def test_service_double_comm_to_sub():
 
