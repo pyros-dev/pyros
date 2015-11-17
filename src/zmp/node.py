@@ -16,7 +16,7 @@ from tblib.decorators import return_error, Error
 import pickle, sys
 # Serializer for nested classes and Exceptions ( and more ) :
 # https://github.com/uqfoundation/dill
-
+# TODO : evaluate replacing pickle + tblib by dill
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
 ### IMPORTANT : IDENTITY

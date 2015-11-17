@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 import time
 import multiprocessing
-import mockinterface.mockframework as mockframework
+import zmp
 
 import nose
 from nose.tools import assert_true, assert_false, assert_raises, assert_equal
@@ -18,55 +18,10 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal
 # TODO : PYPY
 # http://pypy.org/
 
-### TESTING NODE CREATION / TERMINATION ###
-# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-def test_node_termination():
-    n1 = mockframework.Node()
-    assert_false(n1.is_alive())
-    n1.shutdown()  # shutdown should have no effect here (if not started, same as noop )
-    assert_false(n1.is_alive())
 
-
-# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-def test_node_creation_termination():
-    n1 = mockframework.Node()
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
-
-# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-def test_node_double_creation_termination():
-    n1 = mockframework.Node()
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
-    n1.start()  # this shuts down and restart the node
-    assert_true(n1.is_alive())
-
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
-
-# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-def test_node_creation_double_termination():
-    n1 = mockframework.Node()
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
-    n1.shutdown()
-    assert_false(n1.is_alive())
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
-### TODO : more testing in case of crash in process, exception, signal, etc.
-
-
-### Node as fixture to guarantee cleanup
+# Node as fixture to guarantee cleanup
 class TestMockHWNode(object):
-    class HWNode(mockframework.Node):
+    class HWNode(zmp.Node):
         def __init__(self, name, port):
             super(TestMockHWNode.HWNode, self).__init__(name, port=port)
             # TODO : improvement : autodetect class own methods
@@ -76,7 +31,7 @@ class TestMockHWNode(object):
 
         @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
         def hw(msg):
-            return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
+            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
 
         @staticmethod
         def bw(msg):
@@ -98,27 +53,19 @@ class TestMockHWNode(object):
         if self.hwnodeextra.is_alive():
             self.hwnodeextra.terminate()
 
-
-    ### TESTING PARAMETERS ###
-
-
-    ### TESTING TOPIC COMMUNICATION ###
-
-
-    ### TESTING SERVICE COMMUNICATION ###
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover(self):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")
+        helloworld = zmp.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        helloworld = zmp.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
 
@@ -126,7 +73,7 @@ class TestMockHWNode(object):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")
+        helloworld = zmp.discover("HelloWorld")
         assert_true(helloworld is None)
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
@@ -134,15 +81,15 @@ class TestMockHWNode(object):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")
+        helloworld = zmp.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 1)  # check timeout actually times out
+        helloworld = zmp.discover("HelloWorld", 1)  # check timeout actually times out
         assert_true(helloworld is None)
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 1, 2)
+        helloworld = zmp.discover("HelloWorld", 1, 2)
         assert_true(helloworld is None)
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
@@ -150,7 +97,7 @@ class TestMockHWNode(object):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")
+        helloworld = zmp.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
         # Start two nodes - stack process
@@ -158,7 +105,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnodeextra.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        helloworld = zmp.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
 
@@ -166,7 +113,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5, 2)  # we wait until we get 2 providers ( or timeout )
+        helloworld = zmp.discover("HelloWorld", 5, 2)  # we wait until we get 2 providers ( or timeout )
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 2)
 
@@ -174,7 +121,7 @@ class TestMockHWNode(object):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")  # we should have right away 1 provider only
+        helloworld = zmp.discover("HelloWorld")  # we should have right away 1 provider only
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
 
@@ -186,7 +133,7 @@ class TestMockHWNode(object):
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld")
+        helloworld = zmp.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
         # Start two nodes queue process
@@ -194,7 +141,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnodeextra.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        helloworld = zmp.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
 
@@ -202,7 +149,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5, 2)   # we wait until we get 2 providers ( or timeout )
+        helloworld = zmp.discover("HelloWorld", 5, 2)   # we wait until we get 2 providers ( or timeout )
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 2)
 
@@ -210,7 +157,7 @@ class TestMockHWNode(object):
         assert_false(self.hwnodeextra.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        helloworld = zmp.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
 
@@ -225,7 +172,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)
+        helloworld = zmp.discover("HelloWorld", 5)
         assert_true(helloworld is not None)  # to make sure we get a service provided
         resp = helloworld.call("Hello")
         print "Hello -> {0}".format(resp)
@@ -249,7 +196,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnodeextra.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5, 2)  # make sure we get both providers. we need them.
+        helloworld = zmp.discover("HelloWorld", 5, 2)  # make sure we get both providers. we need them.
         assert_true(helloworld is not None)  # to make sure we get a service provided
         assert_equal(len(helloworld.providers), 2)
         resp = helloworld.call("Hello")
@@ -279,11 +226,11 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)
+        helloworld = zmp.discover("HelloWorld", 5)
         assert_true(helloworld is not None)  # to make sure we get a service provided
 
         def callit():
-            hw = mockframework.discover("HelloWorld", 5)
+            hw = zmp.discover("HelloWorld", 5)
             return hw.call("Hello")
 
         c = multiprocessing.Process(name="Client", target=callit)
@@ -315,7 +262,7 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering BreakWorld Service..."
-        breakworld = mockframework.discover("BreakWorld", 5)
+        breakworld = zmp.discover("BreakWorld", 5)
         assert_true(breakworld is not None)  # to make sure we get a service provided
         with assert_raises(Exception) as cm:
             resp = breakworld.call("Hello")
@@ -331,13 +278,13 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering BreakWorld Service..."
-        breakworld = mockframework.discover("BreakWorld", 5)
+        breakworld = zmp.discover("BreakWorld", 5)
         assert_true(breakworld is not None)  # to make sure we get a service provided
 
         # messing around even if we should not
         breakworld.name = "NOT_EXISTING"
 
-        with assert_raises(mockframework.UnknownServiceException) as cm:
+        with assert_raises(zmp.UnknownServiceException) as cm:
             resp = breakworld.call("Hello")
 
         self.hwnode.shutdown()
@@ -351,13 +298,13 @@ class TestMockHWNode(object):
         assert_true(self.hwnode.is_alive())
 
         print "Discovering BreakWorld Service..."
-        breakworld = mockframework.discover("BreakWorld", 5)
+        breakworld = zmp.discover("BreakWorld", 5)
         assert_true(breakworld is not None)  # to make sure we get a service provided
 
         # messing around even if we shouldnt
         #TODO
 
-        #with assert_raises(mockframework.Node.UnknownRequestTypeException) as cm:
+        #with assert_raises(zmp.Node.UnknownRequestTypeException) as cm:
         #    resp = breakworld.call("Hello")
 
         self.hwnode.shutdown()
