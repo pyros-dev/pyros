@@ -6,7 +6,9 @@ from __future__ import absolute_import
 
 import multiprocessing
 
-
+#https://pymotw.com/2/multiprocessing/communication.html
+#https://docs.python.org/2/library/multiprocessing.html#proxy-objects
+manager = multiprocessing.Manager()
 
 
 """

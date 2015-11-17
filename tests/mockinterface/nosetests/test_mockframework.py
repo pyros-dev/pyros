@@ -11,20 +11,53 @@ import mockinterface.mockframework as mockframework
 
 import nose
 from nose.tools import assert_true, assert_false, assert_raises, assert_equal
+# TODO : PYTEST ?
+# http://pytest.org/latest/contents.html
+# https://github.com/ionelmc/pytest-benchmark
 
+# TODO : PYPY
+# http://pypy.org/
 
 ### TESTING NODE CREATION / TERMINATION ###
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
 def test_node_termination():
     n1 = mockframework.Node()
     assert_false(n1.is_alive())
     n1.shutdown()  # shutdown should have no effect here (if not started, same as noop )
     assert_false(n1.is_alive())
 
+
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
 def test_node_creation_termination():
     n1 = mockframework.Node()
     assert_false(n1.is_alive())
     n1.start()
     assert_true(n1.is_alive())
+    n1.shutdown()
+    assert_false(n1.is_alive())
+
+
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+def test_node_double_creation_termination():
+    n1 = mockframework.Node()
+    assert_false(n1.is_alive())
+    n1.start()
+    assert_true(n1.is_alive())
+    n1.start()  # this shuts down and restart the node
+    assert_true(n1.is_alive())
+
+    n1.shutdown()
+    assert_false(n1.is_alive())
+
+
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+def test_node_creation_double_termination():
+    n1 = mockframework.Node()
+    assert_false(n1.is_alive())
+    n1.start()
+    assert_true(n1.is_alive())
+    n1.shutdown()
+    assert_false(n1.is_alive())
     n1.shutdown()
     assert_false(n1.is_alive())
 
@@ -44,14 +77,15 @@ class TestMockHWNode(object):
             return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
 
     def setUp(self):
+        # services is already setup globally
         self.hwnode = TestMockHWNode.HWNode(name="HNode", port=4242)
         self.hwnodeextra = TestMockHWNode.HWNode(name="HNodeExtra", port=4243)
 
     def tearDown(self):
         if self.hwnode.is_alive():
-            self.hwnode.shutdown()
+            self.hwnode.shutdown(join=True)
         if self.hwnodeextra.is_alive():
-            self.hwnodeextra.shutdown()
+            self.hwnodeextra.shutdown(join=True)
         # if it s still alive terminate it.
         if self.hwnode.is_alive():
             self.hwnode.terminate()
@@ -66,15 +100,18 @@ class TestMockHWNode(object):
 
 
     ### TESTING SERVICE COMMUNICATION ###
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover(self):
         assert_false(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
@@ -82,12 +119,31 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld")
         assert_true(helloworld is None)
 
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_discover_timeout(self):
+        assert_false(self.hwnode.is_alive())
+
+        print "Discovering HelloWorld Service..."
+        helloworld = mockframework.discover("HelloWorld")
+        assert_true(helloworld is None)  # service not provided until node starts
+
+        print "Discovering HelloWorld Service..."
+        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        assert_true(helloworld is None)
+
+        print "Discovering HelloWorld Service..."
+        helloworld = mockframework.discover("HelloWorld", 5, 2)
+        assert_true(helloworld is None)
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover_multiple_stack(self):
         assert_false(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
@@ -95,6 +151,7 @@ class TestMockHWNode(object):
         self.hwnodeextra.start()
         assert_true(self.hwnodeextra.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
@@ -102,6 +159,7 @@ class TestMockHWNode(object):
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5, 2)  # we wait until we get 2 providers ( or timeout )
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 2)
@@ -109,6 +167,7 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld")  # we should have right away 1 provider only
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
@@ -116,9 +175,11 @@ class TestMockHWNode(object):
         self.hwnodeextra.shutdown()
         assert_false(self.hwnodeextra.is_alive())
 
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover_multiple_queue(self):
         assert_false(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld")
         assert_true(helloworld is None)  # service not provided until node starts
 
@@ -126,6 +187,7 @@ class TestMockHWNode(object):
         self.hwnodeextra.start()
         assert_true(self.hwnodeextra.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
@@ -133,6 +195,7 @@ class TestMockHWNode(object):
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5, 2)   # we wait until we get 2 providers ( or timeout )
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 2)
@@ -140,6 +203,7 @@ class TestMockHWNode(object):
         self.hwnodeextra.shutdown()
         assert_false(self.hwnodeextra.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
         assert_false(helloworld is None)
         assert_equal(len(helloworld.providers), 1)
@@ -147,12 +211,14 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_comm_to_sub(self):
 
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5)
         assert_true(helloworld is not None)  # to make sure we get a service provided
         resp = helloworld.call("Hello")
@@ -165,6 +231,7 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_comm_to_double_sub(self):
 
         assert_false(self.hwnode.is_alive())
@@ -175,6 +242,7 @@ class TestMockHWNode(object):
         self.hwnodeextra.start()
         assert_true(self.hwnodeextra.is_alive())
 
+        print "Discovering HelloWorld Service..."
         helloworld = mockframework.discover("HelloWorld", 5, 2)  # make sure we get both providers. we need them.
         assert_true(helloworld is not None)  # to make sure we get a service provided
         assert_equal(len(helloworld.providers), 2)
@@ -197,49 +265,47 @@ class TestMockHWNode(object):
         self.hwnodeextra.shutdown()
         assert_false(self.hwnodeextra.is_alive())
 
-# TODO
-@nose.SkipTest
-def test_service_double_comm_to_sub():
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_double_comm_to_sub(self):
 
-    class HWNode(mockframework.Node):
-        def __init__(self, name):
-            super(HWNode, self).__init__(name)
-            # TODO : improvement : autodetect class own methods
-            self.provides("HelloWorld", self.hw)
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
 
-        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
-        def hw(msg):
-            return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
+        print "Discovering HelloWorld Service..."
+        helloworld = mockframework.discover("HelloWorld", 5)
+        assert_true(helloworld is not None)  # to make sure we get a service provided
 
-    testing = True
-    lcb = "data"
+        def callit():
+            hw = mockframework.discover("HelloWorld", 5)
+            return hw.call("Hello")
 
-    n1 = HWNode(name="HNode1")
-    assert_false(n1.is_alive())
-    n1.start()
-    assert_true(n1.is_alive())
+        c = multiprocessing.Process(name="Client", target=callit)
+        assert_false(c.is_alive())
+        c.start()
+        assert_true(c.is_alive())
 
-    def callit():
-        hw = mockframework.discover("HelloWorld", 5)
-        return hw.call("Hello")
+        resp = helloworld.call("Hello")
+        print "Hallo -> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNode")
+        resp = helloworld.call("Hallo")
+        print "Hallo -> {0}".format(resp)
+        assert_true(resp == "...")
+        resp = helloworld.call("Hello")
+        print "Hello -HNode-> {0}".format(resp)
+        assert_true(resp == "Hello! I am HNode")
 
-    c = multiprocessing.Process(name="Client", target=callit)
-    assert_false(c.is_alive())
-    c.start()
-    assert_true(c.is_alive())
+        c.join()
+        assert_false(c.is_alive())
 
-    helloworld = mockframework.discover("HelloWorld", 5)
-    assert_true(helloworld is not None)  # to make sure we get a service provided
-    assert_true(helloworld.call("Hello") == "Hello! I am HNode1")
-    assert_true(helloworld.call("Hallo") == "...")
-    assert_true(helloworld.call("Hello", n1) == "Hello! I am HNode1")
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
 
-    c.join()
-    assert_false(c.is_alive())
-
-    n1.shutdown()
-    assert_false(n1.is_alive())
-
+    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_stress(self):
+        # Build a list of subtests
+        # run them all !
+        pass
 
 if __name__ == '__main__':
 

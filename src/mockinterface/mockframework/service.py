@@ -3,15 +3,21 @@ from __future__ import absolute_import
 
 import time
 from collections import namedtuple
-import multiprocessing, multiprocessing.reduction
 import zmq
-import pickle  # TODO : json, protobuf
 
+from .master import manager
 """
 Protocol allowing dynamic specification of message format
 """
 
-from . import services
+# Not clear if Lock is implemented or not :
+# https://docs.python.org/2.7/library/multiprocessing.html#sharing-state-between-processes
+# https://bugs.python.org/issue19864
+# So we do it anyway to be safe
+# MAYBE : Lock is needed for multithread but not for multiprocess.
+services_lock = manager.Lock()
+services = manager.dict()
+
 
 def gen_msg_type(self, name, **kwargs):
     return namedtuple(name, **kwargs)
@@ -22,23 +28,29 @@ Response = namedtuple("Response", "service response")
 
 def discover(name, timeout=None, minimum_providers=1):
     """
-    discovers a service. optionally wait for at least one service instance to be available.
-    :param name:
-    :param timeout: maximum number of seconds the discover can wait for a discovery matching requirements
+    discovers a service. wait for at least one service instance to be available.
+    :param name: name of the service
     :param minimum_providers the number of provider we need to reach before discover() returns
-    :return: a Service object, containing the list of providers
+    :param timeout: maximum number of seconds the discover can wait for a discovery matching requirements. if None, doesn't wait.
+    :return: a Service object, containing the list of providers. if the minimum number cannot be reached, still returns what is available.
     """
-    start = time.clock()  # using clock instead of time to not be affected by other process running simultaneously
+    start = time.time()
     endtime = timeout if timeout else 0
 
     while True:
-        if name in services and services[name] and len(services[name]) >= minimum_providers:
-            providers = services[name]
-            return Service(name, providers)
-        elif time.clock() - start > endtime:  # check for timeout
+        timed_out = time.time() - start > endtime
+        if name in services and isinstance(services[name], list):
+            if len(services[name]) >= minimum_providers or timed_out:
+                providers = services[name]
+                if providers:
+                    return Service(name, providers)
+                else:
+                    return None
+
+        if timed_out:
             break
         # else we keep looping after a short sleep ( to allow time to refresh services list )
-        time.sleep(0.2)
+        time.sleep(0.2)  # sleep
     return None
 
 

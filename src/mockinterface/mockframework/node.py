@@ -65,9 +65,7 @@ import pickle  # TODO : json, protobuf
 # -> Expressed in graph :
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
-
-from . import services, services_lock
-from .service import Request, Response
+from .service import services, services_lock, Request, Response
 
 current_node = multiprocessing.current_process
 
@@ -94,8 +92,19 @@ class Node(multiprocessing.Process):
         # TODO : multiple endpoint for one service ( can help in some specific cases )
         self._providers_endpoint[svc_name] = svc_callback
 
+    def start(self):
+        """
+        Start child process
+        """
+        if self._popen is not None:
+            # if already started, we shutdown and join before restarting
+            self.shutdown(join=True)
+            self.start()
+        else:
+            super(Node, self).start()
+
     def run(self):
-        print('Starting {node} => {address}'.format(node=self.name, address=self._svc_address))
+        print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
 
         zcontext = zmq.Context()  # check creating context in init ( compatilibty with multiple rpocesses )
         zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
@@ -105,23 +114,28 @@ class Node(multiprocessing.Process):
         poller = zmq.Poller()
         poller.register(svc_socket, zmq.POLLIN)
 
-        global services
+        global services, services_lock
         # advertising services
+        services_lock.acquire()
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
             print('-> Providing {0} with {1}'.format(svc_name, svc_callback))
             # needs reassigning to propagate update to manager
             services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
+
+            print('-> Provided {0} with {1} !'.format(svc_name, svc_callback))
+        services_lock.release()
 
         # loop listening to connection
         while not self.exit.is_set():
             try:
                 socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
                 if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
-                    req = pickle.loads(svc_socket.recv())
+                    print('-> POLLIN on {0}'.format(svc_socket))
+                    req = svc_socket.recv_pyobj()
                     if isinstance(req, Request):
                         if req.service in self._providers_endpoint:
                             resp = self._providers_endpoint[req.service](req.request)
-                            svc_socket.send(pickle.dumps(Response(service=req.service, response=resp)))
+                            svc_socket.send_pyobj(Response(service=req.service, response=resp))
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format())
                     else:
@@ -131,8 +145,11 @@ class Node(multiprocessing.Process):
                 raise e
 
         # deadvertising services
+        services_lock.acquire()
         for svc_name, svc_callback in self._providers_endpoint.iteritems():
-             services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
+            print('-> Unproviding {0}'.format(svc_name))
+            services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
+        services_lock.release()
 
         print("You exited!")
 
@@ -147,6 +164,8 @@ class Node(multiprocessing.Process):
             self.exit.set()
             if join:
                 self.join()
+                # TODO : after terminate, not before
+                self._popen = None  # this should permit start to run again
             # TODO : timeout before forcing terminate (SIGTERM)
         pass
 
