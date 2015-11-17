@@ -14,7 +14,8 @@ import socket
 # allowing pickling of exceptions to transfer it
 from tblib.decorators import return_error, Error
 import pickle, sys
-# TODO : https://github.com/uqfoundation/dill ( maybe use/merge tblib in it ? )
+# Serializer for nested classes and Exceptions ( and more ) :
+# https://github.com/uqfoundation/dill
 
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
