@@ -70,11 +70,17 @@ class TestMockHWNode(object):
         def __init__(self, name, port):
             super(TestMockHWNode.HWNode, self).__init__(name, port=port)
             # TODO : improvement : autodetect class own methods
+            # TODO : assert static ?
             self.provides("HelloWorld", self.hw)
+            self.provides("BreakWorld", self.bw)
 
         @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
         def hw(msg):
             return "Hello! I am " + mockframework.current_node().name if msg == "Hello" else "..."
+
+        @staticmethod
+        def bw(msg):
+            raise Exception("Excepting Not Exceptionnally")
 
     def setUp(self):
         # services is already setup globally
@@ -132,11 +138,11 @@ class TestMockHWNode(object):
         assert_true(helloworld is None)  # service not provided until node starts
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5)  # we wait a bit to let it time to start
+        helloworld = mockframework.discover("HelloWorld", 1)  # check timeout actually times out
         assert_true(helloworld is None)
 
         print "Discovering HelloWorld Service..."
-        helloworld = mockframework.discover("HelloWorld", 5, 2)
+        helloworld = mockframework.discover("HelloWorld", 1, 2)
         assert_true(helloworld is None)
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
@@ -300,6 +306,64 @@ class TestMockHWNode(object):
 
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_except_from_sub(self):
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering BreakWorld Service..."
+        breakworld = mockframework.discover("BreakWorld", 5)
+        assert_true(breakworld is not None)  # to make sure we get a service provided
+        with assert_raises(Exception) as cm:
+            resp = breakworld.call("Hello")
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_except_from_node_no_service(self):
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering BreakWorld Service..."
+        breakworld = mockframework.discover("BreakWorld", 5)
+        assert_true(breakworld is not None)  # to make sure we get a service provided
+
+        # messing around even if we should not
+        breakworld.name = "NOT_EXISTING"
+
+        with assert_raises(mockframework.UnknownServiceException) as cm:
+            resp = breakworld.call("Hello")
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_except_from_node_wrong_request(self):
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering BreakWorld Service..."
+        breakworld = mockframework.discover("BreakWorld", 5)
+        assert_true(breakworld is not None)  # to make sure we get a service provided
+
+        # messing around even if we shouldnt
+        #TODO
+
+        #with assert_raises(mockframework.Node.UnknownRequestTypeException) as cm:
+        #    resp = breakworld.call("Hello")
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    # TODO : check unknown response type
 
     @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_stress(self):

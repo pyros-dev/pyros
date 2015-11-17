@@ -10,7 +10,11 @@ import time
 from collections import namedtuple
 import zmq
 import socket
-import pickle  # TODO : json, protobuf
+
+# allowing pickling of exceptions to transfer it
+from tblib.decorators import return_error, Error
+import pickle, sys
+# TODO : https://github.com/uqfoundation/dill ( maybe use/merge tblib in it ? )
 
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
@@ -65,17 +69,13 @@ import pickle  # TODO : json, protobuf
 # -> Expressed in graph :
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
-from .service import services, services_lock, Request, Response
+from .exceptions import UnknownServiceException, UnknownRequestTypeException
+from .service import services, services_lock
+from .service import RequestMsg, ResponseMsg, ErrorMsg  # only to access message types
 
 current_node = multiprocessing.current_process
 
 
-class UnknownServiceException(Exception):
-    pass
-
-
-class UnknownRequestTypeException(Exception):
-    pass
 
 
 class Node(multiprocessing.Process):
@@ -121,28 +121,32 @@ class Node(multiprocessing.Process):
             print('-> Providing {0} with {1}'.format(svc_name, svc_callback))
             # needs reassigning to propagate update to manager
             services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
-
-            print('-> Provided {0} with {1} !'.format(svc_name, svc_callback))
         services_lock.release()
 
         # loop listening to connection
         while not self.exit.is_set():
-            try:
-                socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
-                if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
+            socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
+            if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
+                try:
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = svc_socket.recv_pyobj()
-                    if isinstance(req, Request):
+                    if isinstance(req, RequestMsg):  # TODO : and check req.request type
                         if req.service in self._providers_endpoint:
-                            resp = self._providers_endpoint[req.service](req.request)
-                            svc_socket.send_pyobj(Response(service=req.service, response=resp))
+                            # This will grab all exceptions in there and encapsulate as Error type
+                            resp = return_error(self._providers_endpoint[req.service])(req.request)
+                            if isinstance(resp, Error):
+                                svc_socket.send_pyobj(ErrorMsg(service=req.service, error=resp))
+                            else:
+                                svc_socket.send_pyobj(ResponseMsg(service=req.service, response=resp))
                         else:
-                            raise UnknownServiceException("Unknown Service {0}".format())
+                            raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
-                        raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req)))
+                        raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
+                except (UnknownServiceException, UnknownRequestTypeException) as known_except:
+                    # we just transmit node known errors, and keep spinning...
+                    known_error = Error(*sys.exc_info())
+                    svc_socket.send_pyobj(ErrorMsg(service=req.service, error=known_error))
 
-            except Exception, e:
-                raise e
 
         # deadvertising services
         services_lock.acquire()
