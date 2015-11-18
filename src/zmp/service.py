@@ -4,6 +4,9 @@ from __future__ import absolute_import
 import time
 from collections import namedtuple
 import zmq
+#import dill as pickle
+import pickle
+from .message import ServiceRequest, ServiceResponse, ServiceResponse_dictparse
 
 from .master import manager
 from .exceptions import UnknownResponseTypeException
@@ -11,12 +14,6 @@ from .exceptions import UnknownResponseTypeException
 # Lock is definitely needed ( not implemented in proxy objects, unless the object itself already has it, like Queue )
 services_lock = manager.Lock()
 services = manager.dict()
-
-# need to be at the module level to be pickleable
-RequestMsg = namedtuple("RequestMsg", "service request")
-ResponseMsg = namedtuple("ResponseMsg", "service response")
-ErrorMsg = namedtuple("ErrorMsg", "service error")
-
 
 class Service(object):
 
@@ -70,7 +67,7 @@ class Service(object):
             socket.connect(a)
 
         # build message
-        fullreq = RequestMsg(service=self.name, request=req)
+        fullreq = ServiceRequest(service=self.name, request=req)
 
         poller = zmq.Poller()
         poller.register(socket)  # POLLIN for recv, POLLOUT for send
@@ -78,15 +75,14 @@ class Service(object):
         evts = dict(poller.poll(send_timeout))
         if socket in evts and evts[socket] == zmq.POLLOUT:
             print "POLLOUT"
-            socket.send_pyobj(fullreq)
+            socket.send(fullreq.serialize())
             evts = dict(poller.poll(recv_timeout))  # blocking until answer
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"
-                fullresp = socket.recv_pyobj()
-
-                if isinstance(fullresp, ErrorMsg):
-                    fullresp.error.reraise()
-                elif isinstance(fullresp, ResponseMsg):
+                fullresp = ServiceResponse_dictparse(socket.recv())
+                if fullresp.IsInitialized() and fullresp.type == ServiceResponse.ERROR:
+                    fullresp.response.reraise()
+                elif fullresp.IsInitialized() and fullresp.type == ServiceResponse.RESPONSE:
                     return fullresp.response
                 else:
                     raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(req.response)))

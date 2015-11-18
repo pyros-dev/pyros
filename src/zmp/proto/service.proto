@@ -1,0 +1,23 @@
+package zmp;
+
+service ServiceImpl {
+  rpc Service (ServiceRequestImpl) returns (ServiceResponseImpl);
+}
+
+message ServiceRequestImpl {
+  //Using optional in case we want to remove these fields later on
+  optional string service = 1;
+  optional bytes request = 2;
+}
+
+message ServiceResponseImpl {
+  enum Type {
+    RESPONSE = 1;
+    ERROR = 2;
+  }
+
+  //Using optional in case we want to remove these fields later on
+  optional Type type = 1;
+  optional string service = 2;
+  optional bytes response = 3;
+}

@@ -49,6 +49,7 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         install_requires=[
             'tblib',  # this might not always install six (latest version does not)
             'six',
+            'dill',
         ],
         zip_safe=False,  # TODO testing...
     )

@@ -5,15 +5,17 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import sys
 import multiprocessing, multiprocessing.reduction
 import time
 from collections import namedtuple
 import zmq
 import socket
+#import dill as pickle
+import pickle
 
 # allowing pickling of exceptions to transfer it
 from tblib.decorators import return_error, Error
-import pickle, sys
 # Serializer for nested classes and Exceptions ( and more ) :
 # https://github.com/uqfoundation/dill
 # TODO : evaluate replacing pickle + tblib by dill
@@ -71,13 +73,14 @@ import pickle, sys
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
 from .exceptions import UnknownServiceException, UnknownRequestTypeException
+from .message import ServiceRequest, ServiceRequest_dictparse, ServiceResponse
 from .service import services, services_lock
-from .service import RequestMsg, ResponseMsg, ErrorMsg  # only to access message types
+#from .service import RequestMsg, ResponseMsg, ErrorMsg  # only to access message types
 
 current_node = multiprocessing.current_process
 
 
-
+# TODO : Nodelet ( thread, with fast intraprocess zmq comm - entity system design /vs/threadpool ?)
 
 class Node(multiprocessing.Process):
 
@@ -130,15 +133,16 @@ class Node(multiprocessing.Process):
             if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
-                    req = svc_socket.recv_pyobj()
-                    if isinstance(req, RequestMsg):  # TODO : and check req.request type
+                    req = ServiceRequest_dictparse(svc_socket.recv())
+                    if isinstance(req, ServiceRequest):  # TODO : and check req.request type
                         if req.service in self._providers_endpoint:
                             # This will grab all exceptions in there and encapsulate as Error type
                             resp = return_error(self._providers_endpoint[req.service])(req.request)
-                            if isinstance(resp, Error):
-                                svc_socket.send_pyobj(ErrorMsg(service=req.service, error=resp))
-                            else:
-                                svc_socket.send_pyobj(ResponseMsg(service=req.service, response=resp))
+                            svc_socket.send(ServiceResponse(
+                                type=ServiceResponse.ERROR if isinstance(resp, Error) else ServiceResponse.RESPONSE,
+                                service=req.service,
+                                response=resp
+                            ).serialize())
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
@@ -146,8 +150,11 @@ class Node(multiprocessing.Process):
                 except (UnknownServiceException, UnknownRequestTypeException) as known_except:
                     # we just transmit node known errors, and keep spinning...
                     known_error = Error(*sys.exc_info())
-                    svc_socket.send_pyobj(ErrorMsg(service=req.service, error=known_error))
-
+                    svc_socket.send(ServiceResponse(
+                                type=ServiceResponse.ERROR,
+                                service=req.service,
+                                response=known_error
+                    ).serialize())
 
         # deadvertising services
         services_lock.acquire()

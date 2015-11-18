@@ -17,9 +17,6 @@ from .node import Node, current_node
 from .service import Service, services, discover
 
 
-# TODO: locked list class
-
-
 
 nodes = manager.list()
 
@@ -30,6 +27,6 @@ params = manager.list()
 
 __all__ = [
     'UnknownServiceException', 'UnknownRequestTypeException', 'UnknownResponseTypeException',
-    'Node', 'nodes', 'current_node'
-    'Service', 'services', 'discover'
+    'Node', 'nodes', 'current_node',
+    'Service', 'services', 'discover',
 ]
