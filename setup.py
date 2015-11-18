@@ -19,6 +19,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
             'rosinterface',
             'roconinterface',
             'tblib',
+            'dill',
         ],
         package_dir={'': 'src'},
         py_modules=[
