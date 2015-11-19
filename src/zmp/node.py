@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
+import tempfile
 import multiprocessing, multiprocessing.reduction
 import time
 from collections import namedtuple
@@ -13,6 +14,8 @@ import zmq
 import socket
 #import dill as pickle
 import pickle
+
+from funcsigs import signature
 
 # allowing pickling of exceptions to transfer it
 from tblib.decorators import return_error, Error
@@ -84,17 +87,25 @@ current_node = multiprocessing.current_process
 
 class Node(multiprocessing.Process):
 
-    def __init__(self, name='node', host='127.0.0.1', port=4242):
+    def __init__(self, name='node', socket_bind=None):
+        """
+        Initializes a Process
+        :param name: Name of the node
+        :param zmqbind: the string describing how to bind the ZMQ socket ( IPC, TCP, etc. )
+        :return:
+        """
         # TODO check name unicity
         super(Node, self).__init__(name=name)
         self.exit = multiprocessing.Event()
         self.listeners = {}
-        self._providers_endpoint = {}
-        self._svc_address = "tcp://{host}:{port}".format(host=host, port=port)
+        self._providers_endpoint = []  # TODO : automatic detection
+        self.tmpdir = tempfile.mkdtemp(prefix='zmp-' + self.name + '-')
+        # if no socket is specified the services of this node will be available only through IPC
+        self._svc_address = socket_bind if socket_bind else 'ipc://' + self.tmpdir + '/services.pipe'
 
-    def provides(self, svc_name, svc_callback):
+    def provides(self, svc_callback):
         # TODO : multiple endpoint for one service ( can help in some specific cases )
-        self._providers_endpoint[svc_name] = svc_callback
+        self._providers_endpoint.append(svc_callback)
 
     def start(self):
         """
@@ -110,9 +121,9 @@ class Node(multiprocessing.Process):
     def run(self):
         print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
 
-        zcontext = zmq.Context()  # check creating context in init ( compatilibty with multiple rpocesses )
+        zcontext = zmq.Context()  # check creating context in init ( compatibility with multiple processes )
         zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
-        svc_socket = zcontext.socket(zmq.REP)
+        svc_socket = zcontext.socket(zmq.REP)  # Ref : http://api.zeromq.org/2-1:zmq-socket # TODO : ROUTER instead ?
         svc_socket.bind(self._svc_address,)
 
         poller = zmq.Poller()
@@ -121,10 +132,10 @@ class Node(multiprocessing.Process):
         global services, services_lock
         # advertising services
         services_lock.acquire()
-        for svc_name, svc_callback in self._providers_endpoint.iteritems():
-            print('-> Providing {0} with {1}'.format(svc_name, svc_callback))
+        for svc_callback in self._providers_endpoint:
+            print('-> Providing {0} with {1}'.format(svc_callback.func_name, svc_callback))
             # needs reassigning to propagate update to manager
-            services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
+            services[svc_callback.func_name] = (services[svc_callback.func_name] if svc_callback.func_name in services else []) + [(self.name, self._svc_address, pickle.dumps(signature(svc_callback)))]
         services_lock.release()
 
         # loop listening to connection
@@ -158,9 +169,9 @@ class Node(multiprocessing.Process):
 
         # deadvertising services
         services_lock.acquire()
-        for svc_name, svc_callback in self._providers_endpoint.iteritems():
-            print('-> Unproviding {0}'.format(svc_name))
-            services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
+        for svc_callback in self._providers_endpoint:
+            print('-> Unproviding {0}'.format(svc_callback.func_name))
+            services[svc_callback.func_name] = [(n, a) for (n, a) in services[svc_callback.func_name] if n != self.name]
         services_lock.release()
 
         print("You exited!")

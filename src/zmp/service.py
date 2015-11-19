@@ -53,7 +53,9 @@ class Service(object):
         """
         Calls a service on a node with req as arguments. if node is None, a node is chosen by zmq.
         if zmq_ctx is passed, it will use the existing context
+        Uses a REQ socket. Ref : http://api.zeromq.org/2-1:zmq-socket
         :param node : the node name
+
         """
 
         context = zmq_ctx or zmq.Context()

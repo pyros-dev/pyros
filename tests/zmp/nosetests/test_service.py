@@ -8,9 +8,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import time
 import multiprocessing
 import zmp
+import inspect
 
 import nose
-from nose.tools import assert_true, assert_false, assert_raises, assert_equal
+from nose.tools import assert_true, assert_false, assert_raises, assert_equal, nottest, istest
 # TODO : PYTEST ?
 # http://pytest.org/latest/contents.html
 # https://github.com/ionelmc/pytest-benchmark
@@ -18,43 +19,12 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal
 # TODO : PYPY
 # http://pypy.org/
 
-
-# Node as fixture to guarantee cleanup
+@nottest
 class TestMockHWNode(object):
-    class HWNode(zmp.Node):
-        def __init__(self, name, port):
-            super(TestMockHWNode.HWNode, self).__init__(name, port=port)
-            # TODO : improvement : autodetect class own methods
-            # TODO : assert static ?
-            self.provides("HelloWorld", self.hw)
-            self.provides("BreakWorld", self.bw)
-
-        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
-        def hw(msg):
-            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
-
-        @staticmethod
-        def bw(msg):
-            raise Exception("Excepting Not Exceptionnally")
-
-    def setUp(self):
-        # services is already setup globally
-        self.hwnode = TestMockHWNode.HWNode(name="HNode", port=4242)
-        self.hwnodeextra = TestMockHWNode.HWNode(name="HNodeExtra", port=4243)
-
-    def tearDown(self):
-        if self.hwnode.is_alive():
-            self.hwnode.shutdown(join=True)
-        if self.hwnodeextra.is_alive():
-            self.hwnodeextra.shutdown(join=True)
-        # if it s still alive terminate it.
-        if self.hwnode.is_alive():
-            self.hwnode.terminate()
-        if self.hwnodeextra.is_alive():
-            self.hwnodeextra.terminate()
-
+    __test__ = False
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
@@ -78,6 +48,7 @@ class TestMockHWNode(object):
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover_timeout(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
@@ -94,6 +65,7 @@ class TestMockHWNode(object):
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover_multiple_stack(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
@@ -130,6 +102,7 @@ class TestMockHWNode(object):
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover_multiple_queue(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
 
         print "Discovering HelloWorld Service..."
@@ -167,6 +140,7 @@ class TestMockHWNode(object):
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_comm_to_sub(self):
 
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
@@ -186,6 +160,7 @@ class TestMockHWNode(object):
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_comm_to_double_sub(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
 
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
@@ -221,6 +196,7 @@ class TestMockHWNode(object):
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_double_comm_to_sub(self):
 
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
@@ -254,9 +230,10 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
-    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_sub(self):
 
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
@@ -270,9 +247,10 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
-    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_node_no_service(self):
 
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
@@ -293,6 +271,7 @@ class TestMockHWNode(object):
     @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_node_wrong_request(self):
 
+        print("\n" + inspect.currentframe().f_code.co_name)
         assert_false(self.hwnode.is_alive())
         self.hwnode.start()
         assert_true(self.hwnode.is_alive())
@@ -314,9 +293,115 @@ class TestMockHWNode(object):
 
     @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_stress(self):
-        # Build a list of subtests
+        print("\n" + inspect.currentframe().f_code.co_name)
+        # TODO Build a list of subtests
         # run them all !
+        # OR BETTER use pytest_benchmark
         pass
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_params_comm_to_sub(self):
+
+        print("\n" + inspect.currentframe().f_code.co_name)
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering Addthis Service..."
+        addthis = zmp.discover("AddThis", 5)
+        assert_true(addthis is not None)  # to make sure we get a service provided
+
+        resp = addthis.call(17, 25)
+        print " 17 + 25 -> {0}".format(resp)
+        assert_true(resp == 17+25)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+
+# Node as fixture to guarantee cleanup
+# IPC protocol
+@istest
+class TestMockHWNodeIPC(TestMockHWNode):
+    __test__ = True
+
+    class HWNode(zmp.Node):
+        def __init__(self, name):
+            super(TestMockHWNodeIPC.HWNode, self).__init__(name)
+            # TODO : improvement : autodetect class own methods
+            # TODO : assert static ?
+            self.provides(self.helloworld)
+            self.provides(self.breakworld)
+            self.provides(self.add)
+
+        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
+        def helloworld(msg):
+            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
+
+        @staticmethod
+        def breakworld(msg):
+            raise Exception("Excepting Not Exceptionnally")
+
+        @staticmethod
+        def add(a, b):
+            return a+b
+
+    def setUp(self):
+        # services is already setup globally
+        self.hwnode = TestMockHWNodeIPC.HWNode(name="HNode")
+        self.hwnodeextra = TestMockHWNodeIPC.HWNode(name="HNodeExtra")
+
+    def tearDown(self):
+        if self.hwnode.is_alive():
+            self.hwnode.shutdown(join=True)
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.shutdown(join=True)
+        # if it s still alive terminate it.
+        if self.hwnode.is_alive():
+            self.hwnode.terminate()
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.terminate()
+
+
+# Node as fixture to guarantee cleanup
+# TCP protocol
+@istest
+class TestMockHWNodeSocket(TestMockHWNode):
+    __test__ = True
+
+    class HWNode(zmp.Node):
+        def __init__(self, name, socket_bind):
+            super(TestMockHWNodeSocket.HWNode, self).__init__(name, socket_bind)
+            # TODO : improvement : autodetect class own methods
+            # TODO : assert static ?
+            self.provides(self.helloworld)
+            self.provides(self.breakworld)
+
+        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
+        def helloworld(msg):
+            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
+
+        @staticmethod
+        def breakworld(msg):
+            raise Exception("Excepting Not Exceptionnally")
+
+    def setUp(self):
+        # services is already setup globally
+        self.hwnode = TestMockHWNodeSocket.HWNode(name="HNode", socket_bind="tcp://127.0.0.1:4242")
+        self.hwnodeextra = TestMockHWNodeSocket.HWNode(name="HNodeExtra", socket_bind="tcp://127.0.0.1:4243")
+
+    def tearDown(self):
+        if self.hwnode.is_alive():
+            self.hwnode.shutdown(join=True)
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.shutdown(join=True)
+        # if it s still alive terminate it.
+        if self.hwnode.is_alive():
+            self.hwnode.terminate()
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.terminate()
+
+    #TODO : verify all tests are run again with proper fixture
 
 if __name__ == '__main__':
 

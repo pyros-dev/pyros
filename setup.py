@@ -20,6 +20,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
             'roconinterface',
             'tblib',
             'dill',
+            'funcsigs',
         ],
         package_dir={'': 'src'},
         py_modules=[
@@ -50,6 +51,7 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
             'tblib',  # this might not always install six (latest version does not)
             'six',
             'dill',
+            'funcsigs',
         ],
         zip_safe=False,  # TODO testing...
     )
