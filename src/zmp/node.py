@@ -21,7 +21,12 @@ from funcsigs import signature
 from tblib.decorators import return_error, Error
 # Serializer for nested classes and Exceptions ( and more ) :
 # https://github.com/uqfoundation/dill
-# TODO : evaluate replacing pickle + tblib by dill
+# TODO : evaluate replacing pickle + tblib + funcsigs + whatever specific serialization lib by
+# TODO : - https://github.com/uqfoundation/dill
+# TODO : - OR https://github.com/irmen/Serpent
+# TODO : - OR https://github.com/esnme/ultrajson
+# TODO : - OR directly into the protobuf format
+# TODO : - OR something else ?
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
 ### IMPORTANT : IDENTITY
