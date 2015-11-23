@@ -24,6 +24,7 @@ from tblib.decorators import return_error, Error
 # TODO : - https://github.com/uqfoundation/dill
 # TODO : - OR https://github.com/irmen/Serpent
 # TODO : - OR https://github.com/esnme/ultrajson
+# TODO : - OR https://github.com/cloudpipe/cloudpickle
 # TODO : - OR directly into the protobuf format
 # TODO : - OR something else ?
 
