@@ -147,6 +147,7 @@ class Node(multiprocessing.Process):
         while not self.exit.is_set():
             socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
             if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
+                req = None
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = ServiceRequest_dictparse(svc_socket.recv())
@@ -172,12 +173,11 @@ class Node(multiprocessing.Process):
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
                         raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
-                except (UnknownServiceException, UnknownRequestTypeException):
-                    # we just transmit node known errors, and keep spinning...
+                except Exception:  # we transmit back all errors, and keep spinning...
                     known_error = Error(*sys.exc_info())
                     svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR,
-                                service=req.service,
+                                service=req.service if req else "Unknown",
                                 response=dill.dumps(known_error)
                     ).serialize())
 
