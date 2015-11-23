@@ -7,7 +7,8 @@ service ServiceImpl {
 message ServiceRequestImpl {
   //Using optional in case we want to remove these fields later on
   optional string service = 1;
-  optional bytes request = 2;
+  optional bytes args = 2;
+  optional bytes kwargs = 3;
 }
 
 message ServiceResponseImpl {

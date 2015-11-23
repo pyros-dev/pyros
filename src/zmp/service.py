@@ -4,8 +4,8 @@ from __future__ import absolute_import
 import time
 from collections import namedtuple
 import zmq
-#import dill as pickle
-import pickle
+import dill
+import inspect
 from .message import ServiceRequest, ServiceResponse, ServiceResponse_dictparse
 
 from .master import manager
@@ -18,6 +18,7 @@ services = manager.dict()
 class Service(object):
 
     @staticmethod
+    #TODO : optionally adds more element from the signature ( num args, etc. )
     def discover(name, timeout=None, minimum_providers=1):
         """
         discovers a service. wait for at least one service instance to be available.
@@ -49,7 +50,7 @@ class Service(object):
         self.name = name
         self.providers = providers
 
-    def call(self, req, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
+    def call(self, args=None, kwargs=None, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
         """
         Calls a service on a node with req as arguments. if node is None, a node is chosen by zmq.
         if zmq_ctx is passed, it will use the existing context
@@ -61,15 +62,31 @@ class Service(object):
         context = zmq_ctx or zmq.Context()
         assert isinstance(context, zmq.Context)
 
-        print "Connecting to server..."
+        args = args or ()
+        assert isinstance(args, tuple)
+        kwargs = kwargs or {}
+        assert isinstance(kwargs, dict)
+
+        print "Connecting to server(s)..."
         socket = context.socket(zmq.REQ)
 
         # connect to all addresses ( optionally matching node name )
-        for a in [a for (n, a) in self.providers if (not node or n == node)]:
+        for n, a, s in [(n, a, s) for (n, a, s) in self.providers if (not node or n == node)]:
+            # detecting which signature matches the call
+            s = dill.loads(s)
+            argnames, argvname, kwargsvname, defaults = inspect.getargspec(s)
+            #skipthis = False
+            #if not kwargsvname:  # if we don't support extra args
+            #    for a in kwargs:  # and if we have extra args
+            #        if not a in argnames:
+            #            skipthis = True
+            # MAYBE NOT NEEDED since we return exception from Node ??
+            # TODO : use same python rule as for matching a local function
+            # if we match, we connect
             socket.connect(a)
 
         # build message
-        fullreq = ServiceRequest(service=self.name, request=req)
+        fullreq = ServiceRequest(service=self.name, args=dill.dumps(args), kwargs=dill.dumps(kwargs))
 
         poller = zmq.Poller()
         poller.register(socket)  # POLLIN for recv, POLLOUT for send
@@ -82,12 +99,13 @@ class Service(object):
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"
                 fullresp = ServiceResponse_dictparse(socket.recv())
+                response = dill.loads(fullresp.response)
                 if fullresp.IsInitialized() and fullresp.type == ServiceResponse.ERROR:
-                    fullresp.response.reraise()
+                    response.reraise()
                 elif fullresp.IsInitialized() and fullresp.type == ServiceResponse.RESPONSE:
-                    return fullresp.response
+                    return response
                 else:
-                    raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(req.response)))
+                    raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(fullresp)))
 
         # TODO : exception on timeout
         return None

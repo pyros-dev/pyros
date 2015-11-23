@@ -13,7 +13,7 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='service.proto',
   package='zmp',
-  serialized_pb='\n\rservice.proto\x12\x03zmp\"6\n\x12ServiceRequestImpl\x12\x0f\n\x07service\x18\x01 \x01(\t\x12\x0f\n\x07request\x18\x02 \x01(\x0c\"\x86\x01\n\x13ServiceResponseImpl\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.zmp.ServiceResponseImpl.Type\x12\x0f\n\x07service\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\"\x1f\n\x04Type\x12\x0c\n\x08RESPONSE\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x32K\n\x0bServiceImpl\x12<\n\x07Service\x12\x17.zmp.ServiceRequestImpl\x1a\x18.zmp.ServiceResponseImpl')
+  serialized_pb='\n\rservice.proto\x12\x03zmp\"C\n\x12ServiceRequestImpl\x12\x0f\n\x07service\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x01(\x0c\x12\x0e\n\x06kwargs\x18\x03 \x01(\x0c\"\x86\x01\n\x13ServiceResponseImpl\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.zmp.ServiceResponseImpl.Type\x12\x0f\n\x07service\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\"\x1f\n\x04Type\x12\x0c\n\x08RESPONSE\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x32K\n\x0bServiceImpl\x12<\n\x07Service\x12\x17.zmp.ServiceRequestImpl\x1a\x18.zmp.ServiceResponseImpl')
 
 
 
@@ -34,8 +34,8 @@ _SERVICERESPONSEIMPL_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=182,
-  serialized_end=213,
+  serialized_start=195,
+  serialized_end=226,
 )
 
 
@@ -54,8 +54,15 @@ _SERVICEREQUESTIMPL = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='request', full_name='zmp.ServiceRequestImpl.request', index=1,
+      name='args', full_name='zmp.ServiceRequestImpl.args', index=1,
       number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='kwargs', full_name='zmp.ServiceRequestImpl.kwargs', index=2,
+      number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -70,7 +77,7 @@ _SERVICEREQUESTIMPL = _descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=22,
-  serialized_end=76,
+  serialized_end=89,
 )
 
 
@@ -112,8 +119,8 @@ _SERVICERESPONSEIMPL = _descriptor.Descriptor(
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=79,
-  serialized_end=213,
+  serialized_start=92,
+  serialized_end=226,
 )
 
 _SERVICERESPONSEIMPL.fields_by_name['type'].enum_type = _SERVICERESPONSEIMPL_TYPE

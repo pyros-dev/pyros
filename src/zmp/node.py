@@ -12,8 +12,7 @@ import time
 from collections import namedtuple
 import zmq
 import socket
-#import dill as pickle
-import pickle
+import dill
 
 from funcsigs import signature
 
@@ -140,7 +139,7 @@ class Node(multiprocessing.Process):
         for svc_callback in self._providers_endpoint:
             print('-> Providing {0} with {1}'.format(svc_callback.func_name, svc_callback))
             # needs reassigning to propagate update to manager
-            services[svc_callback.func_name] = (services[svc_callback.func_name] if svc_callback.func_name in services else []) + [(self.name, self._svc_address, pickle.dumps(signature(svc_callback)))]
+            services[svc_callback.func_name] = (services[svc_callback.func_name] if svc_callback.func_name in services else []) + [(self.name, self._svc_address, dill.dumps(svc_callback))]
         services_lock.release()
 
         # loop listening to connection
@@ -150,33 +149,45 @@ class Node(multiprocessing.Process):
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = ServiceRequest_dictparse(svc_socket.recv())
-                    if isinstance(req, ServiceRequest):  # TODO : and check req.request type
-                        if req.service in self._providers_endpoint:
+                    if isinstance(req, ServiceRequest):  # TODO : check function signature ( not only name )
+                        providers = {srv.func_name: srv for srv in self._providers_endpoint}
+                        if req.service and req.service in providers.keys():
+
+                            args = dill.loads(req.args) if req.args else ()
+                            # add 'self' if this is a bound method.
+                            #if self.__self__ is not None:
+                            #    args = (self.__self__, ) + tuple(args)
+                                #TODO : check this on node methods...
+                            kwargs = dill.loads(req.kwargs) if req.kwargs else {}
+
                             # This will grab all exceptions in there and encapsulate as Error type
-                            resp = return_error(self._providers_endpoint[req.service])(req.request)
+                            try:
+                                resp = (providers[req.service])(*args, **kwargs)
+                            except Exception:
+                                resp = Error(*sys.exc_info())
                             svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR if isinstance(resp, Error) else ServiceResponse.RESPONSE,
                                 service=req.service,
-                                response=resp
+                                response=dill.dumps(resp)
                             ).serialize())
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
                         raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
-                except (UnknownServiceException, UnknownRequestTypeException) as known_except:
+                except (UnknownServiceException, UnknownRequestTypeException):
                     # we just transmit node known errors, and keep spinning...
                     known_error = Error(*sys.exc_info())
                     svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR,
                                 service=req.service,
-                                response=known_error
+                                response=dill.dumps(known_error)
                     ).serialize())
 
         # deadvertising services
         services_lock.acquire()
         for svc_callback in self._providers_endpoint:
             print('-> Unproviding {0}'.format(svc_callback.func_name))
-            services[svc_callback.func_name] = [(n, a) for (n, a) in services[svc_callback.func_name] if n != self.name]
+            services[svc_callback.func_name] = [(n, a, s) for (n, a, s) in services[svc_callback.func_name] if n != self.name]
         services_lock.release()
 
         print("You exited!")
