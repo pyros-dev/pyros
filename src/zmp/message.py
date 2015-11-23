@@ -56,7 +56,7 @@ def force_namedtuple_implementation():
 
     global ServiceRequest, ServiceRequestNTImpl, ServiceRequest_dictparse
     # Fallback implementation. need to be defined at module level to be pickleable ( unless dill is used )
-    ServiceRequestNTImpl = namedtuple("ServiceRequest", "service request")
+    ServiceRequestNTImpl = namedtuple("ServiceRequest", "service args kwargs")
     # Extend named tuple implementation
     ServiceRequest = ServiceRequestNTImpl
     ServiceRequest.initialized = lambda s: True

@@ -5,6 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
+import dill
 import zmp.message
 
 import nose
@@ -22,13 +23,14 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal
 # Generic initialization tests
 def initialize_servicerequest(req):
     assert_equal(req.service, "testservice")
-    assert_equal(req.request, "testrequest")
+    assert_equal(dill.loads(req.args)[0], "testarg")
+    assert_equal(dill.loads(req.kwargs)["testkwarg"], "test")
     assert_true(req.initialized())
 
 
 def initialize_serviceresponse(resp):
     assert_equal(resp.service, "testservice")
-    assert_equal(resp.response, "testresponse")
+    assert_equal(dill.loads(resp.response), "testresponse")
     assert_equal(resp.type, zmp.message.ServiceResponse.RESPONSE)
     assert_true(resp.initialized())
 
@@ -51,7 +53,8 @@ def oneline_symmetric_serialize_parse_servicerequest(req):
     assert_true(isinstance(finalreq, zmp.message.ServiceRequest))
     assert_true(finalreq.initialized())
     assert_equal(finalreq.service, "testservice")
-    assert_equal(finalreq.request, "testrequest")
+    assert_equal(dill.loads(finalreq.args)[0], "testarg")
+    assert_equal(dill.loads(finalreq.kwargs)["testkwarg"], "test")
 
 
 def oneline_symmetric_serialize_parse_serviceresponse(resp):
@@ -62,14 +65,15 @@ def oneline_symmetric_serialize_parse_serviceresponse(resp):
     assert_true(finalresp.initialized())
     assert_equal(finalresp.type, zmp.message.ServiceResponse.RESPONSE)
     assert_equal(finalresp.service, "testservice")
-    assert_equal(finalresp.response, "testresponse")
+    assert_equal(dill.loads(finalresp.response), "testresponse")
 
 #PROTOBUF Implementation test - default
 def test_initialize_servicerequest_protobuf():
     # Test Initialization
     req = zmp.message.ServiceRequest(
         service="testservice",
-        request="testrequest"
+        args=dill.dumps(("testarg",)),
+        kwargs=dill.dumps({'testkwarg': 'test'}),
     )
     # Check we have desired implementation
     assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
@@ -84,7 +88,7 @@ def test_initialize_serviceresponse_protobuf():
     resp = zmp.message.ServiceResponse(
         type=zmp.message.ServiceResponse.RESPONSE,
         service="testservice",
-        response="testresponse"
+        response=dill.dumps("testresponse"),
     )
     # Check we have desired implementation
     assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
@@ -120,7 +124,8 @@ def test_symmetric_serialize_parse_servicerequest_protobuf():
     # Test Initialization
     req = zmp.message.ServiceRequest(
         service="testservice",
-        request="testrequest"
+        args=dill.dumps(("testarg",)),
+        kwargs=dill.dumps({'testkwarg': 'test'}),
     )
     # Check we have desired implementation
     assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
@@ -135,14 +140,16 @@ def test_symmetric_serialize_parse_servicerequest_protobuf():
     assert_true(isinstance(parsedreq, zmp.message.ServiceRequest))
     assert_true(parsedreq.initialized())
     assert_equal(parsedreq.service, "testservice")
-    assert_equal(parsedreq.request, "testrequest")
+    assert_equal(dill.loads(parsedreq.args)[0], "testarg")
+    assert_equal(dill.loads(parsedreq.kwargs)["testkwarg"], "test")
 
     # assert parse returns the modified list
     parsedreq_oneline = zmp.message.ServiceRequest()._parse(req.serialize())
     assert_true(isinstance(parsedreq_oneline, zmp.message.ServiceRequest))
     assert_true(parsedreq_oneline.initialized())
     assert_equal(parsedreq_oneline.service, "testservice")
-    assert_equal(parsedreq_oneline.request, "testrequest")
+    assert_equal(dill.loads(parsedreq_oneline.args)[0], "testarg")
+    assert_equal(dill.loads(parsedreq_oneline.kwargs)["testkwarg"], "test")
 
     # run actual tuple-compatible online test
     oneline_symmetric_serialize_parse_servicerequest(req)
@@ -153,7 +160,7 @@ def test_symmetric_serialize_parse_serviceresponse_protobuf():
     resp = zmp.message.ServiceResponse(
         type=zmp.message.ServiceResponse.RESPONSE,
         service="testservice",
-        response="testresponse"
+        response=dill.dumps("testresponse"),
     )
     # Check we have desired implementation
     assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
@@ -169,7 +176,7 @@ def test_symmetric_serialize_parse_serviceresponse_protobuf():
     assert_true(parsedresp.initialized())
     assert_equal(parsedresp.type, zmp.message.ServiceResponse.RESPONSE)
     assert_equal(parsedresp.service, "testservice")
-    assert_equal(parsedresp.response, "testresponse")
+    assert_equal(dill.loads(parsedresp.response), "testresponse")
 
     # assert parse returns the modified list
     parsedresp_oneline = zmp.message.ServiceResponse()._parse(resp.serialize())
@@ -177,7 +184,7 @@ def test_symmetric_serialize_parse_serviceresponse_protobuf():
     assert_true(parsedresp_oneline.initialized())
     assert_equal(parsedresp_oneline.type, zmp.message.ServiceResponse.RESPONSE)
     assert_equal(parsedresp_oneline.service, "testservice")
-    assert_equal(parsedresp_oneline.response, "testresponse")
+    assert_equal(dill.loads(parsedresp_oneline.response), "testresponse")
 
     # run actual tuple-compatible online test
     oneline_symmetric_serialize_parse_serviceresponse(resp)

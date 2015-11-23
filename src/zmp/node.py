@@ -139,6 +139,7 @@ class Node(multiprocessing.Process):
         for svc_callback in self._providers_endpoint:
             print('-> Providing {0} with {1}'.format(svc_callback.func_name, svc_callback))
             # needs reassigning to propagate update to manager
+            # TODO : send funcsigs only, not everything
             services[svc_callback.func_name] = (services[svc_callback.func_name] if svc_callback.func_name in services else []) + [(self.name, self._svc_address, dill.dumps(svc_callback))]
         services_lock.release()
 
@@ -161,10 +162,7 @@ class Node(multiprocessing.Process):
                             kwargs = dill.loads(req.kwargs) if req.kwargs else {}
 
                             # This will grab all exceptions in there and encapsulate as Error type
-                            try:
-                                resp = (providers[req.service])(*args, **kwargs)
-                            except Exception:
-                                resp = Error(*sys.exc_info())
+                            resp = return_error(providers[req.service])(*args, **kwargs)
                             svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR if isinstance(resp, Error) else ServiceResponse.RESPONSE,
                                 service=req.service,

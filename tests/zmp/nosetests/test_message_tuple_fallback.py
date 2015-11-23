@@ -5,6 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
+import dill
 import zmp.message
 # Forcing tuple implementation
 zmp.message.force_namedtuple_implementation()
@@ -35,7 +36,8 @@ def test_initialize_servicerequest_namedtuple():
     #Test Initialization
     req = zmp.message.ServiceRequest(
         service="testservice",
-        request="testrequest"
+        args=dill.dumps(("testarg",)),
+        kwargs=dill.dumps({'testkwarg': 'test'}),
     )
     # Check we have desired implementation
     assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
@@ -50,7 +52,7 @@ def test_initialize_serviceresponse_namedtuple():
     resp = zmp.message.ServiceResponse(
         type=zmp.message.ServiceResponse.RESPONSE,
         service="testservice",
-        response="testresponse"
+        response=dill.dumps("testresponse")
     )
     # Check we have desired implementation
     assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
@@ -65,7 +67,7 @@ def test_default_initialize_servicerequest_namedtuple():
     with assert_raises(TypeError) as cm:
         req = zmp.message.ServiceRequest()
 
-    req = zmp.message.ServiceRequest(service=None, request=None)
+    req = zmp.message.ServiceRequest(service=None, args=None, kwargs=None)
     # Check we have desired implementation
     assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
     # Check it is an instance of Dynamic Functional Facade
@@ -92,7 +94,8 @@ def test_symmetric_serialize_parse_servicerequest_namedtuple():
     # Test Initialization
     req = zmp.message.ServiceRequest(
         service="testservice",
-        request="testrequest"
+        args=dill.dumps(("testarg",)),
+        kwargs=dill.dumps({'testkwarg': 'test'}),
     )
     # Check we have desired implementation
     assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
@@ -110,7 +113,7 @@ def test_symmetric_serialize_parse_serviceresponse_namedtuple():
     resp = zmp.message.ServiceResponse(
         type=zmp.message.ServiceResponse.RESPONSE,
         service="testservice",
-        response="testresponse"
+        response=dill.dumps("testresponse")
     )
     # Check we have desired implementation
     assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
