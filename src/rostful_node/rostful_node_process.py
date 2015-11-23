@@ -13,6 +13,7 @@ except ImportError, e:
 
 import os
 import logging
+import unicodedata
 
 from multiprocessing import Pipe, Event, Process
 
@@ -36,12 +37,12 @@ class RostfulNodeProcess(object):
         def check_init():
             logging.debug("mock entering spin(), pid[%s]", os.getpid())
 
-        def spinner( name, argv, pipe_conn, check_init, stop_event):
+        def spinner(node_name, node_argv, node_pipe_conn, node_check_init, node_stop_event):
             node = RostfulMock()
             node.spin(
-                pipe_conn,
-                check_init,
-                lambda: not stop_event.is_set(),  # setting the stop_event will stop the thread
+                node_pipe_conn,
+                node_check_init,
+                lambda: not node_stop_event.is_set(),  # setting the stop_event will stop the thread
             )
 
         # ROS Node functions
@@ -56,25 +57,30 @@ class RostfulNodeProcess(object):
                 else:
                     raise rospy.exceptions.ROSInitException("client code must call rospy.init_node() first")
 
-            def spinner( name, argv, pipe_conn, check_init, stop_event):
+            def spinner(node_name, node_argv, node_pipe_conn, node_check_init, node_stop_event):
                 """
                 Main subprocess code, spinning around
-                :param name:
-                :param argv:
-                :param pipe_conn:
-                :param check_init:
+                :param node_name:
+                :param node_argv:
+                :param node_pipe_conn:
+                :param node_check_init:
+                :param node_stop_event:
                 :return:
                 """
+
+                # protecting rospy from unicode
+                node_str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in node_argv]
+
                 # we initialize the node here, in subprocess, passing ros parameters.
                 # disabling signal to avoid overriding callers behavior
-                rospy.init_node(name, argv=argv, disable_signals=True)
+                rospy.init_node(node_name, argv=node_str_argv, disable_signals=True)
                 rospy.logwarn('rostful node started with args : %r', argv)
 
                 node = RostfulNode()
                 node.spin(
-                    pipe_conn,
-                    check_init,
-                    lambda: not stop_event.is_set() and not rospy.core.is_shutdown()
+                    node_pipe_conn,
+                    node_check_init,
+                    lambda: not node_stop_event.is_set() and not rospy.core.is_shutdown()
                 )
                 rospy.logwarn('rostful node stopped.')
 
