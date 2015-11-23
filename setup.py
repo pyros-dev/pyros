@@ -12,8 +12,16 @@ except Exception, e:
 if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
     # fetch values from package.xml
     setup_args = generate_distutils_setup(
-        packages=['rostful_node', 'rosinterface', 'roconinterface'],
-        package_dir={'': 'src'},
+        packages=[
+            'rostful_node',
+            'rosinterface',
+            'roconinterface'
+        ],
+        package_dir={
+            'rostful_node': 'src/rostful_node',
+            'rosinterface': 'src/rosinterface',
+            'roconinterface': 'src/roconinterface',
+        },
     )
     setup(**setup_args)
 
