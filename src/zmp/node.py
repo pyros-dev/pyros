@@ -8,19 +8,14 @@ from __future__ import print_function
 import sys
 import tempfile
 import multiprocessing, multiprocessing.reduction
-import time
-from collections import namedtuple
 import zmq
 import socket
-import dill
-from functools import wraps
-from funcsigs import signature
+import pickle
+#import dill as pickle
 
 # allowing pickling of exceptions to transfer it
 from tblib.decorators import return_error, Error
-# Serializer for nested classes and Exceptions ( and more ) :
-# https://github.com/uqfoundation/dill
-# TODO : evaluate replacing pickle + tblib + funcsigs + whatever specific serialization lib by
+# TODO : evaluate replacing pickle + tblib + whatever specific serialization lib by
 # TODO : - https://github.com/uqfoundation/dill
 # TODO : - OR https://github.com/irmen/Serpent
 # TODO : - OR https://github.com/esnme/ultrajson
@@ -108,7 +103,6 @@ class Node(multiprocessing.Process):
         # if no socket is specified the services of this node will be available only through IPC
         self._svc_address = socket_bind if socket_bind else 'ipc://' + self.tmpdir + '/services.pipe'
 
-
     def provides(self, svc_callback):
         # TODO : multiple endpoint for one service ( can help in some specific cases )
         self._providers_endpoint.append(svc_callback)
@@ -152,23 +146,23 @@ class Node(multiprocessing.Process):
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = ServiceRequest_dictparse(svc_socket.recv())
-                    if isinstance(req, ServiceRequest):  # TODO : check function signature ( not only name )
+                    if isinstance(req, ServiceRequest):
                         providers = {srv.__name__: srv for srv in self._providers_endpoint}
                         if req.service and req.service in providers.keys():
 
-                            args = dill.loads(req.args) if req.args else ()
+                            args = pickle.loads(req.args) if req.args else ()
                             # add 'self' if this is a bound method.
                             #if self.__self__ is not None:
                             #    args = (self.__self__, ) + tuple(args)
                                 #TODO : check this on node methods...
-                            kwargs = dill.loads(req.kwargs) if req.kwargs else {}
+                            kwargs = pickle.loads(req.kwargs) if req.kwargs else {}
 
                             # This will grab all exceptions in there and encapsulate as Error type
                             resp = return_error(providers[req.service])(*args, **kwargs)
                             svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR if isinstance(resp, Error) else ServiceResponse.RESPONSE,
                                 service=req.service,
-                                response=dill.dumps(resp)
+                                response=pickle.dumps(resp)
                             ).serialize())
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
@@ -179,7 +173,7 @@ class Node(multiprocessing.Process):
                     svc_socket.send(ServiceResponse(
                                 type=ServiceResponse.ERROR,
                                 service=req.service if req else "Unknown",
-                                response=dill.dumps(known_error)
+                                response=pickle.dumps(known_error)
                     ).serialize())
 
         # deadvertising services

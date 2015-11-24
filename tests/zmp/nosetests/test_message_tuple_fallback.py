@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-import dill
+import pickle
 import zmp.message
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
@@ -43,8 +43,8 @@ class TestMessageTupleFallback(object):
         #Test Initialization
         req = zmp.message.ServiceRequest(
             service="testservice",
-            args=dill.dumps(("testarg",)),
-            kwargs=dill.dumps({'testkwarg': 'test'}),
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
         )
         # Check we have desired implementation
         assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
@@ -59,7 +59,7 @@ class TestMessageTupleFallback(object):
         resp = zmp.message.ServiceResponse(
             type=zmp.message.ServiceResponse.RESPONSE,
             service="testservice",
-            response=dill.dumps("testresponse")
+            response=pickle.dumps("testresponse")
         )
         # Check we have desired implementation
         assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
@@ -101,8 +101,8 @@ class TestMessageTupleFallback(object):
         # Test Initialization
         req = zmp.message.ServiceRequest(
             service="testservice",
-            args=dill.dumps(("testarg",)),
-            kwargs=dill.dumps({'testkwarg': 'test'}),
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
         )
         # Check we have desired implementation
         assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
@@ -120,7 +120,7 @@ class TestMessageTupleFallback(object):
         resp = zmp.message.ServiceResponse(
             type=zmp.message.ServiceResponse.RESPONSE,
             service="testservice",
-            response=dill.dumps("testresponse")
+            response=pickle.dumps("testresponse")
         )
         # Check we have desired implementation
         assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))

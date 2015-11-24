@@ -4,7 +4,8 @@ from __future__ import absolute_import
 import time
 from collections import namedtuple
 import zmq
-import dill
+import pickle
+#import dill as pickle
 import inspect
 from .message import ServiceRequest, ServiceResponse, ServiceResponse_dictparse
 
@@ -75,7 +76,7 @@ class Service(object):
             socket.connect(a)
 
         # build message
-        fullreq = ServiceRequest(service=self.name, args=dill.dumps(args), kwargs=dill.dumps(kwargs))
+        fullreq = ServiceRequest(service=self.name, args=pickle.dumps(args), kwargs=pickle.dumps(kwargs))
 
         poller = zmq.Poller()
         poller.register(socket)  # POLLIN for recv, POLLOUT for send
@@ -88,7 +89,7 @@ class Service(object):
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"
                 fullresp = ServiceResponse_dictparse(socket.recv())
-                response = dill.loads(fullresp.response)
+                response = pickle.loads(fullresp.response)
                 if fullresp.IsInitialized() and fullresp.type == ServiceResponse.ERROR:
                     response.reraise()
                 elif fullresp.IsInitialized() and fullresp.type == ServiceResponse.RESPONSE:

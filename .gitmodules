@@ -4,9 +4,3 @@
 [submodule "deps/six"]
 	path = deps/six
 	url = https://github.com/kelp404/six
-[submodule "deps/dill"]
-	path = deps/dill
-	url = https://github.com/uqfoundation/dill.git
-[submodule "deps/funcsigs"]
-	path = deps/funcsigs
-	url = https://github.com/aliles/funcsigs
