@@ -71,18 +71,7 @@ class Service(object):
         socket = context.socket(zmq.REQ)
 
         # connect to all addresses ( optionally matching node name )
-        for n, a, s in [(n, a, s) for (n, a, s) in self.providers if (not node or n == node)]:
-            # detecting which signature matches the call
-            s = dill.loads(s)
-            argnames, argvname, kwargsvname, defaults = inspect.getargspec(s)
-            #skipthis = False
-            #if not kwargsvname:  # if we don't support extra args
-            #    for a in kwargs:  # and if we have extra args
-            #        if not a in argnames:
-            #            skipthis = True
-            # MAYBE NOT NEEDED since we return exception from Node ??
-            # TODO : use same python rule as for matching a local function
-            # if we match, we connect
+        for n, a in [(n, a) for (n, a) in self.providers if (not node or n == node)]:
             socket.connect(a)
 
         # build message

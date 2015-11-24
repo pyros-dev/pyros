@@ -13,7 +13,7 @@ from collections import namedtuple
 import zmq
 import socket
 import dill
-
+from functools import wraps
 from funcsigs import signature
 
 # allowing pickling of exceptions to transfer it
@@ -108,6 +108,7 @@ class Node(multiprocessing.Process):
         # if no socket is specified the services of this node will be available only through IPC
         self._svc_address = socket_bind if socket_bind else 'ipc://' + self.tmpdir + '/services.pipe'
 
+
     def provides(self, svc_callback):
         # TODO : multiple endpoint for one service ( can help in some specific cases )
         self._providers_endpoint.append(svc_callback)
@@ -138,10 +139,9 @@ class Node(multiprocessing.Process):
         # advertising services
         services_lock.acquire()
         for svc_callback in self._providers_endpoint:
-            print('-> Providing {0} with {1}'.format(svc_callback.func_name, svc_callback))
+            print('-> Providing {0} with {1}'.format(svc_callback.__name__, svc_callback))
             # needs reassigning to propagate update to manager
-            # TODO : send funcsigs only, not everything
-            services[svc_callback.func_name] = (services[svc_callback.func_name] if svc_callback.func_name in services else []) + [(self.name, self._svc_address, dill.dumps(svc_callback))]
+            services[svc_callback.__name__] = (services[svc_callback.__name__] if svc_callback.__name__ in services else []) + [(self.name, self._svc_address)]
         services_lock.release()
 
         # loop listening to connection
@@ -153,7 +153,7 @@ class Node(multiprocessing.Process):
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = ServiceRequest_dictparse(svc_socket.recv())
                     if isinstance(req, ServiceRequest):  # TODO : check function signature ( not only name )
-                        providers = {srv.func_name: srv for srv in self._providers_endpoint}
+                        providers = {srv.__name__: srv for srv in self._providers_endpoint}
                         if req.service and req.service in providers.keys():
 
                             args = dill.loads(req.args) if req.args else ()
@@ -185,8 +185,8 @@ class Node(multiprocessing.Process):
         # deadvertising services
         services_lock.acquire()
         for svc_callback in self._providers_endpoint:
-            print('-> Unproviding {0}'.format(svc_callback.func_name))
-            services[svc_callback.func_name] = [(n, a, s) for (n, a, s) in services[svc_callback.func_name] if n != self.name]
+            print('-> Unproviding {0}'.format(svc_callback.__name__))
+            services[svc_callback.__name__] = [(n, a) for (n, a) in services[svc_callback.__name__] if n != self.name]
         services_lock.release()
 
         print("You exited!")
