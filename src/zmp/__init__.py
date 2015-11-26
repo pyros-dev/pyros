@@ -18,8 +18,6 @@ from .service import Service, services, discover
 
 
 
-nodes = manager.list()
-
 
 topics = manager.list()
 params = manager.list()

@@ -8,40 +8,13 @@ import multiprocessing
 
 #https://pymotw.com/2/multiprocessing/communication.html
 #https://docs.python.org/2/library/multiprocessing.html#proxy-objects
-manager = multiprocessing.Manager()
+
 
 
 """
 Keeps a list of topics, services, params, nodes available on the system
 Very very simple implementation for now, as it is not our main focus to build yet another full fledged distributed multiprocessing framework
 """
-class Master:  # TODO : masterless if possible simply
-
-    jobs = []
-    params = {}
-
-    def __init__(self):
-        pass
-
-    def launch(self, name, target, args):
-        p = multiprocessing.Process(name=name, target=target, args=args)
-        self.jobs.append(p)
-        p.start()
-
-    def terminate(self, name):
-        # killing processes
-        for j in [x for x in self.jobs if x.name == name]:
-            j.terminate()
-            j.join()
-            print '%s.exitcode = %s' % (j.name, j.exitcode)
-        # removing them from job list
-        self.jobs[:] = [x for x in self.jobs if x.name == name]
-
-    def set_param(self, name, value):
-        self.params[name] = value
-
-    def get_param(self, name):
-        return self.params[name]
-
+manager = multiprocessing.Manager()
 
 

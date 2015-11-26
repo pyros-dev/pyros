@@ -8,12 +8,14 @@ from __future__ import print_function
 import sys
 import tempfile
 import multiprocessing, multiprocessing.reduction
+import types
 import zmq
 import socket
 import pickle
 #import dill as pickle
 
 # allowing pickling of exceptions to transfer it
+from collections import namedtuple
 from tblib.decorators import return_error, Error
 # TODO : evaluate replacing pickle + tblib + whatever specific serialization lib by
 # TODO : - https://github.com/uqfoundation/dill
@@ -75,6 +77,7 @@ from tblib.decorators import return_error, Error
 # -> Expressed in graph :
 # node3 <--topic_cb-- node2 <--topic_cb-- node1
 
+from .master import manager
 from .exceptions import UnknownServiceException, UnknownRequestTypeException
 from .message import ServiceRequest, ServiceRequest_dictparse, ServiceResponse
 from .service import services, services_lock
@@ -82,10 +85,16 @@ from .service import services, services_lock
 
 current_node = multiprocessing.current_process
 
+# Lock is definitely needed ( not implemented in proxy objects, unless the object itself already has it, like Queue )
+nodes_lock = manager.Lock()
+nodes = manager.dict()
+
 
 # TODO : Nodelet ( thread, with fast intraprocess zmq comm - entity system design /vs/threadpool ?)
 
 class Node(multiprocessing.Process):
+
+    EndPoint = namedtuple("EndPoint", "self func")
 
     def __init__(self, name='node', socket_bind=None):
         """
@@ -98,14 +107,23 @@ class Node(multiprocessing.Process):
         super(Node, self).__init__(name=name)
         self.exit = multiprocessing.Event()
         self.listeners = {}
-        self._providers_endpoint = []  # TODO : automatic detection
+        self._providers = {}
         self.tmpdir = tempfile.mkdtemp(prefix='zmp-' + self.name + '-')
         # if no socket is specified the services of this node will be available only through IPC
         self._svc_address = socket_bind if socket_bind else 'ipc://' + self.tmpdir + '/services.pipe'
 
-    def provides(self, svc_callback):
-        # TODO : multiple endpoint for one service ( can help in some specific cases )
-        self._providers_endpoint.append(svc_callback)
+    def provides(self, svc_callback, service_name=None):
+        service_name = service_name or svc_callback.__name__
+        # we store an endpoint ( bound method or unbound function )
+        self._providers[service_name] = Node.EndPoint(
+                self=getattr(svc_callback, '__self__', None),
+                func=getattr(svc_callback, '__func__', svc_callback),
+        )
+
+    def withholds(self, service_name):
+        service_name = getattr(service_name, '__name__', service_name)
+        # we store an endpoint ( bound method or unbound function )
+        self._providers.pop(service_name)
 
     def start(self):
         """
@@ -132,38 +150,50 @@ class Node(multiprocessing.Process):
         global services, services_lock
         # advertising services
         services_lock.acquire()
-        for svc_callback in self._providers_endpoint:
-            print('-> Providing {0} with {1}'.format(svc_callback.__name__, svc_callback))
+        for svc_name, svc_endpoint in self._providers.iteritems():
+            print('-> Providing {0} with {1}'.format(svc_name, svc_endpoint))
             # needs reassigning to propagate update to manager
-            services[svc_callback.__name__] = (services[svc_callback.__name__] if svc_callback.__name__ in services else []) + [(self.name, self._svc_address)]
+            services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
         services_lock.release()
+
+        # advertise itself
+        nodes_lock.acquire()
+        nodes[self.name] = {'service_conn': self._svc_address}
+        nodes_lock.release()
 
         # loop listening to connection
         while not self.exit.is_set():
-            socks = dict(poller.poll(timeout=100))  # blocking. messages are received ASAP. timeout only determine shutdown speed.
+            # blocking. messages are received ASAP. timeout only determine shutdown speed.
+            socks = dict(poller.poll(timeout=100))
             if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
                 req = None
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
                     req = ServiceRequest_dictparse(svc_socket.recv())
                     if isinstance(req, ServiceRequest):
-                        providers = {srv.__name__: srv for srv in self._providers_endpoint}
-                        if req.service and req.service in providers.keys():
+                        if req.service and req.service in self._providers.keys():
 
                             args = pickle.loads(req.args) if req.args else ()
-                            # add 'self' if this is a bound method.
-                            #if self.__self__ is not None:
-                            #    args = (self.__self__, ) + tuple(args)
-                                #TODO : check this on node methods...
+                            # add 'self' if providers[req.service] is a bound method.
+                            if self._providers[req.service].self:
+                                args = (self, ) + args
                             kwargs = pickle.loads(req.kwargs) if req.kwargs else {}
 
                             # This will grab all exceptions in there and encapsulate as Error type
-                            resp = return_error(providers[req.service])(*args, **kwargs)
-                            svc_socket.send(ServiceResponse(
-                                type=ServiceResponse.ERROR if isinstance(resp, Error) else ServiceResponse.RESPONSE,
-                                service=req.service,
-                                response=pickle.dumps(resp)
-                            ).serialize())
+                            try:
+                                resp = self._providers[req.service].func(*args, **kwargs)
+                                svc_socket.send(ServiceResponse(
+                                    type=ServiceResponse.RESPONSE,
+                                    service=req.service,
+                                    response=pickle.dumps(resp)
+                                ).serialize())
+                            except Exception:
+                                svc_socket.send(ServiceResponse(
+                                    type=ServiceResponse.ERROR,
+                                    service=req.service,
+                                    response=pickle.dumps(Error(*sys.exc_info()))
+                                ).serialize())
+
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
@@ -176,12 +206,17 @@ class Node(multiprocessing.Process):
                                 response=pickle.dumps(known_error)
                     ).serialize())
 
-        # deadvertising services
+        # concealing services
         services_lock.acquire()
-        for svc_callback in self._providers_endpoint:
-            print('-> Unproviding {0}'.format(svc_callback.__name__))
-            services[svc_callback.__name__] = [(n, a) for (n, a) in services[svc_callback.__name__] if n != self.name]
+        for svc_name, svc_endpoint in self._providers.iteritems():
+            print('-> Unproviding {0}'.format(svc_name))
+            services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
         services_lock.release()
+
+        # concealing itself
+        nodes_lock.acquire()
+        nodes[self.name] = {}
+        nodes_lock.release()
 
         print("You exited!")
 

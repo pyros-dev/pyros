@@ -220,7 +220,7 @@ class TestMockHWNode(object):
         resp = helloworld.call(args=("Hallo",))
         print "Hallo -> {0}".format(resp)
         assert_true(resp == "...")
-        resp = helloworld.call(args=("Hello",))
+        resp = helloworld.call(args=("Hello",), node=self.hwnode.name)
         print "Hello -HNode-> {0}".format(resp)
         assert_true(resp == "Hello! I am HNode")
 
@@ -229,6 +229,96 @@ class TestMockHWNode(object):
 
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_comm_to_sub_self(self):
+
+        print("\n" + inspect.currentframe().f_code.co_name)
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.magic_number = 42
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering getlucky Service..."
+        getlucky = zmp.discover("getlucky", 5)
+        assert_true(getlucky is not None)  # to make sure we get a service provided
+        resp = getlucky.call()
+        print "42 ? -> {0}".format(resp)
+        assert_true(resp == 42)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_comm_to_double_sub_self(self):
+        print("\n" + inspect.currentframe().f_code.co_name)
+
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.magic_number = 42
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        assert_false(self.hwnodeextra.is_alive())
+        self.hwnodeextra.magic_number = 79
+        self.hwnodeextra.start()
+        assert_true(self.hwnodeextra.is_alive())
+
+        print "Discovering getlucky Service..."
+        getlucky = zmp.discover("getlucky", 5, 2)  # make sure we get both providers. we need them.
+        assert_true(getlucky is not None)  # to make sure we get a service provided
+        assert_equal(len(getlucky.providers), 2)
+        resp = getlucky.call()
+        print "42 || 79 ? -> {0}".format(resp)
+        assert_true(resp == 42 or resp == 79)
+
+        resp = getlucky.call(node=self.hwnode.name)
+        print "42 ? -HNode-> {0}".format(resp)
+        assert_true(resp == 42)
+        resp = getlucky.call(node=self.hwnodeextra.name)
+        print "79 ? -HNodeExtra-> {0}".format(resp)
+        assert_true(resp == 79)
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+        self.hwnodeextra.shutdown()
+        assert_false(self.hwnodeextra.is_alive())
+
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    def test_service_double_comm_to_sub_self(self):
+
+        print("\n" + inspect.currentframe().f_code.co_name)
+        assert_false(self.hwnode.is_alive())
+        self.hwnode.magic_number = 42
+        self.hwnode.start()
+        assert_true(self.hwnode.is_alive())
+
+        print "Discovering getlucky Service..."
+        getlucky = zmp.discover("getlucky", 5)
+        assert_true(getlucky is not None)  # to make sure we get a service provided
+
+        def callit():
+            getlucky = zmp.discover("getlucky", 5)
+            return getlucky.call()
+
+        c = multiprocessing.Process(name="Client", target=callit)
+        assert_false(c.is_alive())
+        c.start()
+        assert_true(c.is_alive())
+
+        resp = getlucky.call()
+        print "42 ? -> {0}".format(resp)
+        assert_true(resp == 42)
+        resp = getlucky.call(node=self.hwnode.name)
+        print "42 ? -HNode-> {0}".format(resp)
+        assert_true(resp == 42)
+
+        c.join()
+        assert_false(c.is_alive())
+
+        self.hwnode.shutdown()
+        assert_false(self.hwnode.is_alive())
+
+
 
     @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_sub(self):
@@ -291,14 +381,6 @@ class TestMockHWNode(object):
 
     # TODO : check unknown response type
 
-    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-    def test_service_stress(self):
-        print("\n" + inspect.currentframe().f_code.co_name)
-        # TODO Build a list of subtests
-        # run them all !
-        # OR BETTER use pytest_benchmark
-        pass
-
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_params_comm_to_sub(self):
 
@@ -328,11 +410,13 @@ class TestMockHWNodeIPC(TestMockHWNode):
     class HWNode(zmp.Node):
         def __init__(self, name):
             super(TestMockHWNodeIPC.HWNode, self).__init__(name)
+            self.magic_number = 666
             # TODO : improvement : autodetect class own methods
             # TODO : assert static ?
             self.provides(self.helloworld)
             self.provides(self.breakworld)
             self.provides(self.add)
+            self.provides(self.getlucky)
 
         @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
         def helloworld(msg):
@@ -345,6 +429,9 @@ class TestMockHWNodeIPC(TestMockHWNode):
         @staticmethod
         def add(a, b):
             return a+b
+
+        def getlucky(self):
+            return self.magic_number
 
     def setUp(self):
         # services is already setup globally
@@ -372,11 +459,13 @@ class TestMockHWNodeSocket(TestMockHWNode):
     class HWNode(zmp.Node):
         def __init__(self, name, socket_bind):
             super(TestMockHWNodeSocket.HWNode, self).__init__(name, socket_bind)
+            self.magic_number = 999
             # TODO : improvement : autodetect class own methods
             # TODO : assert static ?
             self.provides(self.helloworld)
             self.provides(self.breakworld)
             self.provides(self.add)
+            self.provides(self.getlucky)
 
         @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
         def helloworld(msg):
@@ -389,6 +478,9 @@ class TestMockHWNodeSocket(TestMockHWNode):
         @staticmethod
         def add(a, b):
             return a+b
+
+        def getlucky(self):
+            return self.magic_number
 
     def setUp(self):
         # services is already setup globally
