@@ -23,10 +23,10 @@ import os
 import urlparse
 import ast
 
-from rosinterface import ActionBack
-from rosinterface import ServiceBack
-from rosinterface import TopicBack
-from rosinterface import ParamBack
+from .action import ActionBack
+from .service import ServiceBack
+from .topic import TopicBack
+from .param import ParamBack
 
 from .ros_watcher import ROSWatcher
 

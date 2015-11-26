@@ -14,6 +14,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
     # fetch values from package.xml
     setup_args = generate_distutils_setup(
         packages=[
+            'zmp',
             'rostful_node',
             'mockinterface',
             'rosinterface',

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
-from .rostful_client import RostfulClient
-from .rostful_node_process import RostfulNodeProcess
+from .pyros_client import PyrosClient
+from .pyros_node import PyrosNode
 
 import logging
 
@@ -14,11 +14,11 @@ from contextlib import contextmanager
 # So stable interprocess communication can happen via the pipe
 @contextmanager
 #TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
-def rostful_ctx(name='rostful_node', argv=None, anonymous=True, disable_signals=True, mock=False):
-    subproc = RostfulNodeProcess(mock)
+def pyros_ctx(name='rostful_node', argv=None, anonymous=True, disable_signals=True, mock=False):
+    subproc = PyrosNode(mock)
     client_conn = subproc.launch(name, argv)
 
-    ctx = namedtuple("rostful_context", "client")
-    yield ctx(client=RostfulClient(client_conn))
+    ctx = namedtuple("pyros_context", "client")
+    yield ctx(client=PyrosClient(client_conn))
 
-    subproc.terminate()
+    subproc.shutdown()

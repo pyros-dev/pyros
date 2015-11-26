@@ -4,13 +4,13 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from rostful_node.rostful_ctx import rostful_ctx
-from rostful_node.rostful_mock import RostfulMock
-from rostful_node.rostful_client import RostfulClient
+from rostful_node.pyros_ctx import pyros_ctx
+from rostful_node.mockinterface import PyrosMock
+from rostful_node.pyros_client import PyrosClient
 
-def testRostfulCtx():
-    with rostful_ctx(mock=True) as ctx:
-        assert isinstance(ctx.client, RostfulClient)
+def testPyrosCtx():
+    with pyros_ctx(mock=True) as ctx:
+        assert isinstance(ctx.client, PyrosClient)
 
     # TODO : assert the context manager does his job ( HOW ? )
 

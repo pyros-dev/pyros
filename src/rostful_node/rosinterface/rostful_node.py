@@ -4,15 +4,15 @@ import rospy
 
 from .ros_interface import RosInterface
 try:
-    from .rocon_interface import RoconInterface
+    from .roconinterface.rocon_interface import RoconInterface
     _ROCON_AVAILABLE = True
 except ImportError, e:
     import logging
     logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
     _ROCON_AVAILABLE = False
-    
-from .rostful_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
-from .rostful_mock import RostfulMock
+
+import zmp
+from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 
 from dynamic_reconfigure.server import Server
 from rostful_node.cfg import RostfulNodeConfig
@@ -25,13 +25,14 @@ from rosinterface import message_conversion as msgconv
 from rosinterface.action import ActionBack
 
 from multiprocessing import Pipe, Process, Event
-"""
-Interface with ROS.
-"""
 
-class RostfulNode(RostfulMock):
-    def __init__(self):
-        super(RostfulNode, self).__init__()
+class PyrosROS(zmp.Node):
+    """
+    Interface with ROS.
+    """
+    def __init__(self, name, argv):
+        super(PyrosROS, self).__init__(name='pyros-ROS')
+        self.argv = argv
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon
 
@@ -223,6 +224,18 @@ class RostfulNode(RostfulMock):
         self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
         self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
 
+        self.provides(self.msg_build)
+        self.provides(self.topic)
+        self.provides(self.topic_list)
+        self.provides(self.service)
+        self.provides(self.service_list)
+        self.provides(self.param)
+        self.provides(self.param_list)
+        self.provides(self.interactions)
+        self.provides(self.namespaces)
+        self.provides(self.interaction)
+        self.provides(self.has_rocon)
+
         ####
 
     def msg_build(self, connec_name):
@@ -367,6 +380,23 @@ class RostfulNode(RostfulMock):
 
     def has_rocon(self):
         return True if self.rocon_if else False
+
+    def run(self):
+        """
+        Running in a zmp.Node process, providing zmp.services
+        """
+        # we initialize the node here, in subprocess, passing ros parameters.
+        # disabling signal to avoid overriding callers behavior
+        rospy.init_node(self.name, argv=self.argv, disable_signals=True)
+        rospy.logwarn('rostful node started with args : %r', self.argv)
+
+        #TODO : install shutdown hook to shutdown if detected
+
+        logging.debug("zmp[{name}] running, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+
+        super(PyrosROS, self).run()
+
+        logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):

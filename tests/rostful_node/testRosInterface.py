@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 import roslaunch
 
-from rostful_node.ros_interface import RosInterface
+from rostful_node.rosinterface.ros_interface import RosInterface
 
 class TestRosInterface(unittest.TestCase):
     def setUp(self):

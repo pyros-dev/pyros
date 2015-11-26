@@ -17,6 +17,8 @@ from .mockmessage import (
     StatusMsg,
 )
 
+from .rostful_mock import PyrosMock
+
 __all__ = [
     'MockTopic',
     'MockService',
@@ -29,4 +31,5 @@ __all__ = [
     'StatusMsg',
     'statusecho_topic',
     'statusecho_service',
+    'PyrosMock',
 ]

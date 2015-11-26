@@ -20,9 +20,9 @@ try:
 except Exception, e:
     rospy.logwarn('Missing rocon codebase. Rocon features disabled')
 
-from roconinterface import InteractionWatcher
-from rosinterface import ServiceBack
-from rosinterface import message_conversion as msgconv
+from . import InteractionWatcher
+from .. import ServiceBack
+from .. import message_conversion as msgconv
 import rosservice, rostopic
 import ast
 

@@ -51,6 +51,7 @@ class Service(object):
         self.name = name
         self.providers = providers
 
+    #TODO : implement async_call ( and return future )
     def call(self, args=None, kwargs=None, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
         """
         Calls a service on a node with req as arguments. if node is None, a node is chosen by zmq.
