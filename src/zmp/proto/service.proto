@@ -12,16 +12,19 @@ message ServiceRequestImpl {
 }
 
 message ServiceResponseImpl {
-  enum Type {
-    RESPONSE = 1;
-    ERROR = 2;
-  }
-
   //Using optional in case we want to remove these fields later on
-  optional Type type = 1;
-  optional string service = 2;
-  optional bytes response = 3;
+  optional string service = 1;
+
+  //One of the following will be filled in
+  optional bytes response = 2;
+  optional ServiceExceptionImpl exception = 3;
 }
 
-//TODO : some kind of polymorphism to make is clear that we can get an error :
-//Ref : http://www.indelible.org/ink/protobuf-polymorphism/
+message ServiceExceptionImpl
+{
+  //Using optional in case we want to remove these fields later on
+  optional string exc_type = 1;
+  optional bytes exc_value = 2;
+  optional bytes traceback = 3;
+}
+

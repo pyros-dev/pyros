@@ -16,14 +16,19 @@ import pickle
 
 # allowing pickling of exceptions to transfer it
 from collections import namedtuple
-from tblib.decorators import return_error, Error
-# TODO : evaluate replacing pickle + tblib + whatever specific serialization lib by
-# TODO : - https://github.com/uqfoundation/dill
-# TODO : - OR https://github.com/irmen/Serpent
-# TODO : - OR https://github.com/esnme/ultrajson
-# TODO : - OR https://github.com/cloudpipe/cloudpickle
-# TODO : - OR directly into the protobuf format
-# TODO : - OR something else ?
+try:
+    from tblib.decorators import return_error, Error, Traceback
+    # TODO : evaluate replacing pickle + tblib + whatever specific serialization lib by
+    # TODO : - https://github.com/uqfoundation/dill
+    # TODO : - OR https://github.com/irmen/Serpent
+    # TODO : - OR https://github.com/esnme/ultrajson
+    # TODO : - OR https://github.com/cloudpipe/cloudpickle
+    # TODO : - OR directly into the protobuf format
+    # TODO : - OR something else ?
+except ImportError:
+    return_error = None
+    Error = None
+    Traceback = None
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
 ### IMPORTANT : IDENTITY

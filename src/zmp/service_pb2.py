@@ -13,30 +13,9 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='service.proto',
   package='zmp',
-  serialized_pb='\n\rservice.proto\x12\x03zmp\"C\n\x12ServiceRequestImpl\x12\x0f\n\x07service\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x01(\x0c\x12\x0e\n\x06kwargs\x18\x03 \x01(\x0c\"\x86\x01\n\x13ServiceResponseImpl\x12+\n\x04type\x18\x01 \x01(\x0e\x32\x1d.zmp.ServiceResponseImpl.Type\x12\x0f\n\x07service\x18\x02 \x01(\t\x12\x10\n\x08response\x18\x03 \x01(\x0c\"\x1f\n\x04Type\x12\x0c\n\x08RESPONSE\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x32K\n\x0bServiceImpl\x12<\n\x07Service\x12\x17.zmp.ServiceRequestImpl\x1a\x18.zmp.ServiceResponseImpl')
+  serialized_pb='\n\rservice.proto\x12\x03zmp\"C\n\x12ServiceRequestImpl\x12\x0f\n\x07service\x18\x01 \x01(\t\x12\x0c\n\x04\x61rgs\x18\x02 \x01(\x0c\x12\x0e\n\x06kwargs\x18\x03 \x01(\x0c\"f\n\x13ServiceResponseImpl\x12\x0f\n\x07service\x18\x01 \x01(\t\x12\x10\n\x08response\x18\x02 \x01(\x0c\x12,\n\texception\x18\x03 \x01(\x0b\x32\x19.zmp.ServiceExceptionImpl\"N\n\x14ServiceExceptionImpl\x12\x10\n\x08\x65xc_type\x18\x01 \x01(\t\x12\x11\n\texc_value\x18\x02 \x01(\x0c\x12\x11\n\ttraceback\x18\x03 \x01(\x0c\x32K\n\x0bServiceImpl\x12<\n\x07Service\x12\x17.zmp.ServiceRequestImpl\x1a\x18.zmp.ServiceResponseImpl')
 
 
-
-_SERVICERESPONSEIMPL_TYPE = _descriptor.EnumDescriptor(
-  name='Type',
-  full_name='zmp.ServiceResponseImpl.Type',
-  filename=None,
-  file=DESCRIPTOR,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='RESPONSE', index=0, number=1,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='ERROR', index=1, number=2,
-      options=None,
-      type=None),
-  ],
-  containing_type=None,
-  options=None,
-  serialized_start=195,
-  serialized_end=226,
-)
 
 
 _SERVICEREQUESTIMPL = _descriptor.Descriptor(
@@ -89,21 +68,63 @@ _SERVICERESPONSEIMPL = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='type', full_name='zmp.ServiceResponseImpl.type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=1,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='service', full_name='zmp.ServiceResponseImpl.service', index=1,
-      number=2, type=9, cpp_type=9, label=1,
+      name='service', full_name='zmp.ServiceResponseImpl.service', index=0,
+      number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=unicode("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='response', full_name='zmp.ServiceResponseImpl.response', index=2,
+      name='response', full_name='zmp.ServiceResponseImpl.response', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='exception', full_name='zmp.ServiceResponseImpl.exception', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  extension_ranges=[],
+  serialized_start=91,
+  serialized_end=193,
+)
+
+
+_SERVICEEXCEPTIONIMPL = _descriptor.Descriptor(
+  name='ServiceExceptionImpl',
+  full_name='zmp.ServiceExceptionImpl',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='exc_type', full_name='zmp.ServiceExceptionImpl.exc_type', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=unicode("", "utf-8"),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='exc_value', full_name='zmp.ServiceExceptionImpl.exc_value', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value="",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='traceback', full_name='zmp.ServiceExceptionImpl.traceback', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value="",
       message_type=None, enum_type=None, containing_type=None,
@@ -114,19 +135,18 @@ _SERVICERESPONSEIMPL = _descriptor.Descriptor(
   ],
   nested_types=[],
   enum_types=[
-    _SERVICERESPONSEIMPL_TYPE,
   ],
   options=None,
   is_extendable=False,
   extension_ranges=[],
-  serialized_start=92,
-  serialized_end=226,
+  serialized_start=195,
+  serialized_end=273,
 )
 
-_SERVICERESPONSEIMPL.fields_by_name['type'].enum_type = _SERVICERESPONSEIMPL_TYPE
-_SERVICERESPONSEIMPL_TYPE.containing_type = _SERVICERESPONSEIMPL;
+_SERVICERESPONSEIMPL.fields_by_name['exception'].message_type = _SERVICEEXCEPTIONIMPL
 DESCRIPTOR.message_types_by_name['ServiceRequestImpl'] = _SERVICEREQUESTIMPL
 DESCRIPTOR.message_types_by_name['ServiceResponseImpl'] = _SERVICERESPONSEIMPL
+DESCRIPTOR.message_types_by_name['ServiceExceptionImpl'] = _SERVICEEXCEPTIONIMPL
 
 class ServiceRequestImpl(_message.Message):
   __metaclass__ = _reflection.GeneratedProtocolMessageType
@@ -139,6 +159,12 @@ class ServiceResponseImpl(_message.Message):
   DESCRIPTOR = _SERVICERESPONSEIMPL
 
   # @@protoc_insertion_point(class_scope:zmp.ServiceResponseImpl)
+
+class ServiceExceptionImpl(_message.Message):
+  __metaclass__ = _reflection.GeneratedProtocolMessageType
+  DESCRIPTOR = _SERVICEEXCEPTIONIMPL
+
+  # @@protoc_insertion_point(class_scope:zmp.ServiceExceptionImpl)
 
 
 # @@protoc_insertion_point(module_scope)
