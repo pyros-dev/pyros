@@ -17,17 +17,14 @@ import pickle
 # allowing pickling of exceptions to transfer it
 from collections import namedtuple
 try:
-    from tblib.decorators import return_error, Error, Traceback
-    # TODO : evaluate replacing pickle + tblib + whatever specific serialization lib by
+    from tblib.decorators import Traceback
+    # TODO : potential candidates for pickle + tblib replacement for easier serialization
     # TODO : - https://github.com/uqfoundation/dill
-    # TODO : - OR https://github.com/irmen/Serpent
-    # TODO : - OR https://github.com/esnme/ultrajson
     # TODO : - OR https://github.com/cloudpipe/cloudpickle
-    # TODO : - OR directly into the protobuf format
+    # TODO : - OR https://github.com/irmen/Serpent ?
+    # TODO : - OR https://github.com/esnme/ultrajson ?
     # TODO : - OR something else ?
 except ImportError:
-    return_error = None
-    Error = None
     Traceback = None
 
 ### IMPORTANT : COMPOSITION -> A SET OF NODE SHOULD ALSO 'BE' A NODE ###
@@ -84,7 +81,7 @@ except ImportError:
 
 from .master import manager
 from .exceptions import UnknownServiceException, UnknownRequestTypeException
-from .message import ServiceRequest, ServiceRequest_dictparse, ServiceResponse
+from .message import ServiceRequest, ServiceRequest_dictparse, ServiceResponse, ServiceException
 from .service import services, services_lock
 #from .service import RequestMsg, ResponseMsg, ErrorMsg  # only to access message types
 
@@ -184,32 +181,32 @@ class Node(multiprocessing.Process):
                                 args = (self, ) + args
                             kwargs = pickle.loads(req.kwargs) if req.kwargs else {}
 
-                            # This will grab all exceptions in there and encapsulate as Error type
-                            try:
-                                resp = self._providers[req.service].func(*args, **kwargs)
-                                svc_socket.send(ServiceResponse(
-                                    type=ServiceResponse.RESPONSE,
-                                    service=req.service,
-                                    response=pickle.dumps(resp)
-                                ).serialize())
-                            except Exception:
-                                svc_socket.send(ServiceResponse(
-                                    type=ServiceResponse.ERROR,
-                                    service=req.service,
-                                    response=pickle.dumps(Error(*sys.exc_info()))
-                                ).serialize())
+                            resp = self._providers[req.service].func(*args, **kwargs)
+                            svc_socket.send(ServiceResponse(
+                                service=req.service,
+                                response=pickle.dumps(resp)
+                            ).serialize())
 
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
                     else:
                         raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
                 except Exception:  # we transmit back all errors, and keep spinning...
-                    known_error = Error(*sys.exc_info())
-                    svc_socket.send(ServiceResponse(
-                                type=ServiceResponse.ERROR,
-                                service=req.service if req else "Unknown",
-                                response=pickle.dumps(known_error)
-                    ).serialize())
+                    exctype, excvalue, tb = sys.exc_info()
+                    if Traceback is not None:
+                        svc_socket.send(ServiceException(
+                            service=req.service if req else "Unknown",
+                            exc_type=pickle.dumps(exctype),
+                            exc_value=pickle.dumps(excvalue),
+                            traceback=pickle.dumps(Traceback(tb)),
+                        ).serialize())
+                    else:
+                        svc_socket.send(ServiceException(
+                            service=req.service if req else "Unknown",
+                            exc_type=pickle.dumps(exctype),
+                            exc_value=pickle.dumps(excvalue),
+                            traceback=pickle.dumps("Traceback Unavailable. python-tblib needs to be installed."),
+                        ).serialize())
 
         # concealing services
         services_lock.acquire()

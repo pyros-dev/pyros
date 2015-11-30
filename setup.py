@@ -16,14 +16,13 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
         packages=[
             'zmp',
             'rostful_node',
-            'mockinterface',
-            'rosinterface',
-            'roconinterface',
             'tblib',
-            'dill',
-            'funcsigs',
         ],
-        package_dir={'': 'src'},
+        package_dir={
+            'zmp': 'src/zmp',
+            'rostful_node': 'src/rostful_node',
+            'tblib': 'deps/python-tblib/src/tblib',
+        },
         py_modules=[
             'six',
         ],

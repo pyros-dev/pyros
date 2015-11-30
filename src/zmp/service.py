@@ -7,7 +7,18 @@ import zmq
 import pickle
 #import dill as pickle
 import inspect
-from .message import ServiceRequest, ServiceResponse, ServiceResponse_dictparse
+
+try:
+    from six import reraise
+except ImportError:  # if six is not present we will not reraise the remote exception
+    reraise = None
+
+try:
+    from tblib import Traceback
+except ImportError:  # if tblib is not present, we will not be able to forward the traceback
+    Traceback = None
+
+from .message import ServiceRequest, ServiceResponse, ServiceResponse_dictparse, ServiceException, ServiceException_dictparse
 
 from .master import manager
 from .exceptions import UnknownResponseTypeException
@@ -90,11 +101,16 @@ class Service(object):
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"
                 fullresp = ServiceResponse_dictparse(socket.recv())
-                response = pickle.loads(fullresp.response)
-                if fullresp.IsInitialized() and fullresp.type == ServiceResponse.ERROR:
-                    response.reraise()
-                elif fullresp.IsInitialized() and fullresp.type == ServiceResponse.RESPONSE:
-                    return response
+
+                if fullresp.has_field('response'):
+                    return pickle.loads(fullresp.response)
+                elif fullresp.has_field('exception'):
+                    svcexc = ServiceException_dictparse(socket.recv())
+                    tb = pickle.loads(svcexc.traceback)
+                    if Traceback and isinstance(tb, Traceback):
+                        reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb.as_traceback())
+                    else:  # assuming traceback is directly usable in reraise
+                        reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb)
                 else:
                     raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(fullresp)))
 
