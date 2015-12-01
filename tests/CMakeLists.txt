@@ -17,7 +17,7 @@
 find_package(catkin REQUIRED COMPONENTS rostest)
 
 # Absolute naming test
-add_rostest(rosinterface/testStringTopic.test)
+add_rostest(rostful_node/rosinterface/testStringTopic.test)
 
 # Relative naming test
 

@@ -23,6 +23,10 @@ def test_echo_status():
     assert_true(resp.code == 7)
     assert_true(resp.message == 'A bad Error happened')
 
+# TODO : make sure we handle errors when the service is exposed, but not existing any longer
 
+if __name__ == '__main__':
 
+    import nose
+    nose.runmodule()
 

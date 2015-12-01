@@ -9,7 +9,7 @@ from rostful_node.mockinterface import MockParam
 from nose.tools import assert_true, assert_false, assert_raises
 
 
-def test_echo_status():
+def test_echo_fortytwo():
     param = MockParam('random_param')
     assert_true(param.set(42))
     recv = param.get()
@@ -18,3 +18,7 @@ def test_echo_status():
 
 
 
+if __name__ == '__main__':
+
+    import nose
+    nose.runmodule()

@@ -210,3 +210,8 @@ def test_extract_msg_dict_to_status():
     assert_true(data.error)
     assert_true(data.code == 7)
     assert_true(data.message == "Actual Error")
+
+if __name__ == '__main__':
+
+    import nose
+    nose.runmodule()

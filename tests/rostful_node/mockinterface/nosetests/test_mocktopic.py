@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
 
 from rostful_node.mockinterface import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
 from rostful_node.mockinterface import statusecho_topic, MockTopic
@@ -26,3 +26,7 @@ def test_echo_status():
 
 
 
+if __name__ == '__main__':
+
+    import nose
+    nose.runmodule()

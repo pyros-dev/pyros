@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from zmp import Node
-from .mockinterface.rostful_mock import PyrosMock
+from .mockinterface.mocknode import PyrosMock
 
 try:
     import rospy

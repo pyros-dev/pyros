@@ -127,6 +127,8 @@ class Node(multiprocessing.Process):
         # we store an endpoint ( bound method or unbound function )
         self._providers.pop(service_name)
 
+    # TODO : shortcut to discover/build only services provided by this node ?
+
     def start(self):
         """
         Start child process
@@ -165,7 +167,10 @@ class Node(multiprocessing.Process):
 
         # loop listening to connection
         while not self.exit.is_set():
-            # blocking. messages are received ASAP. timeout only determine shutdown speed.
+            #TODO : variable timeframe updates ( usual gameloop technics )
+            self.update()
+
+            # blocking. messages are received ASAP. timeout only determine update/shutdown speed.
             socks = dict(poller.poll(timeout=100))
             if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
                 req = None
@@ -221,6 +226,15 @@ class Node(multiprocessing.Process):
         nodes_lock.release()
 
         print("You exited!")
+
+    def update(self):
+        """
+        Runs at every update cycle in the node process/thread.
+        Usually you want to override this method to extend the behavior of the node in your implementation
+        :return:
+        """
+        pass
+
 
     def shutdown(self, join=True):
         """
