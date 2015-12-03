@@ -3,12 +3,12 @@
   <arg name="test_message" default="testing"/>
   <arg name="echo_prefix" default="echo "/>
 
-  <node name="pub_node" pkg="rostful_node" type="string_pub_node.py" output="screen">
+  <node name="pub_node" pkg="pyros" type="string_pub_node.py" output="screen">
     <param name="topic_name" value="$(arg topic_name)" type="str"/>
     <param name="test_message" value="$(arg test_message)" type="str"/>
   </node>
 
-  <node name="echo_node" pkg="rostful_node" type="string_echo_node.py" output="screen">
+  <node name="echo_node" pkg="pyros" type="string_echo_node.py" output="screen">
     <param name="topic_name" value="$(arg topic_name)" type="str"/>
     <param name="echo_prefix" value="$(arg echo_prefix)" type="str"/>
   </node>
@@ -17,5 +17,5 @@
   <param name="/stringTopicTest/topic_name" value="$(arg topic_name)" type="str"/>
   <param name="/stringTopicTest/test_message" value="$(arg test_message)" type="str"/>
   <param name="/stringTopicTest/echo_prefix" value="$(arg echo_prefix)" type="str"/>
-  <test test-name="StringTopic" pkg="rostful_node" type="testStringTopic.py" name="stringTopicTest"/>
+  <test test-name="StringTopic" pkg="pyros" type="testStringTopic.py" name="stringTopicTest"/>
 </launch>

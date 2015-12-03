@@ -15,14 +15,16 @@ import zmp
 from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 
 from dynamic_reconfigure.server import Server
-from rostful_node.cfg import RostfulNodeConfig
+from pyros.cfg import RostfulNodeConfig
 import ast
 import json
 import os
 
-import rostful_node.srv as srv
-from rosinterface import message_conversion as msgconv
-from rosinterface.action import ActionBack
+# TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
+
+import pyros.srv as srv
+from . import message_conversion as msgconv
+from .action import ActionBack
 
 from multiprocessing import Pipe, Process, Event
 

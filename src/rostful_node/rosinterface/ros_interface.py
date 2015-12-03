@@ -15,9 +15,9 @@ import sys
 import re
 from StringIO import StringIO
 
-from rosinterface import message_conversion as msgconv
-from rosinterface import definitions, util
-from rosinterface.util import ROS_MSG_MIMETYPE, request_wants_ros, get_query_bool
+from . import message_conversion as msgconv
+from . import definitions, util
+from .util import ROS_MSG_MIMETYPE, request_wants_ros, get_query_bool
 
 import os
 import urlparse

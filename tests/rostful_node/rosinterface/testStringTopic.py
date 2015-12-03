@@ -1,18 +1,59 @@
 #!/usr/bin/env python
 
-""" Testing the rosinterface.TopicBack function """
-
+from __future__ import absolute_import
+import logging
 import unittest
-import inspect
 import sys
+import os
+import inspect
 
-import rospy
-import rostopic
-import rostest
+# trying hard to find our ros code ( different possible run environments )
+# We need to support rostest, as well as python run, as well as nose test, as well as pycharm UI test runs (easy debug)
 
-import rosinterface
+try:
+    import rospy
+    import rostopic
+    import rostest
+    from std_msgs.msg import String, Empty
+    from rostful_node.rosinterface import TopicBack
+
+except ImportError, ie:
+    logging.warn("{exc}".format(exc=ie))
+
+    # SAME order as setup.bash set the pythonpath
+    install_pythonpath = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'install', 'lib', 'python2.7', 'dist-packages')
+    if os.path.exists(install_pythonpath):
+        logging.warn("Appending install space to python path")
+        sys.path.append(install_pythonpath)
+
+    devel_pythonpath = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'devel', 'lib', 'python2.7', 'dist-packages')
+    if os.path.exists(devel_pythonpath):
+        logging.warn("Appending devel space to python path")
+        sys.path.append(devel_pythonpath)
+
+    indigo_pythonpath = '/opt/ros/indigo/lib/python2.7/dist-packages'
+    if os.path.exists(indigo_pythonpath):
+        logging.warn("Appending indigo to python path")
+        sys.path.append(indigo_pythonpath)
+
+    src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+    if os.path.exists(src_path):
+        logging.warn("Appending src to python path")
+        sys.path.append(src_path)
+
+    import rospy
+    import rostopic
+    import rostest
+    from std_msgs.msg import String, Empty
+    from rostful_node.rosinterface import TopicBack
+
+
+
+
+
 
 class TestStringTopic(unittest.TestCase):
+    """ Testing the TopicBack class with String message """
     # misc method
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
@@ -91,9 +132,9 @@ class TestStringTopic(unittest.TestCase):
                 self.fail("Topic {0} not found ! Failing.".format(resolved_topic_name))
 
             # exposing the topic for testing here
-            self.topic_sub = rosinterface.TopicBack(self.topic_name, topic_type, allow_pub=False, allow_sub=True)
-            self.topic_pub = rosinterface.TopicBack(self.topic_name, topic_type, allow_pub=True, allow_sub=False)
-            self.topic = rosinterface.TopicBack(self.topic_name, topic_type, allow_pub=True, allow_sub=True)
+            self.topic_sub = TopicBack(self.topic_name, topic_type, allow_pub=False, allow_sub=True)
+            self.topic_pub = TopicBack(self.topic_name, topic_type, allow_pub=True, allow_sub=False)
+            self.topic = TopicBack(self.topic_name, topic_type, allow_pub=True, allow_sub=True)
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")
 

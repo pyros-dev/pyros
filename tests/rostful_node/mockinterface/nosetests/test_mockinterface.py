@@ -75,6 +75,7 @@ def test_mockinterface_update_services_c2():
     assert_true(svc is not None)  # service is still exposed even though it s gone from the system we interface to
     # WARNING : Using the service in this state will trigger errors.
     # These should be handled by the service class.
+    # TODO : assert this
 
     diffupdate = mockif.update_services(add_names=[], remove_names=[svc_name])
     assert_false(diffupdate.added)
@@ -119,6 +120,7 @@ def test_mockinterface_expose_update_services_fullname():
 
     # WARNING : Using the service in this state will trigger errors.
     # These should be handled by the service class.
+    # TODO : assert this
 
     diffupdate = mockif.services_change_detect()
     assert_false(diffupdate.added)
@@ -186,6 +188,7 @@ def test_mockinterface_update_expose_services_fullname():
 
     # WARNING : Using the service in this state will trigger errors.
     # These should be handled by the service class.
+    # TODO : assert this
 
     diffupdate = mockif.expose_services([])
     assert_false(diffupdate.added)

@@ -13,6 +13,8 @@ _PROTOBUF = False
 import pickle
 from collections import namedtuple
 
+# TODO : this should probably in pyros, not in zmp...
+
 try:
     from .service_pb2 import ServiceRequestImpl, ServiceResponseImpl, ServiceExceptionImpl
     _PROTOBUF = True

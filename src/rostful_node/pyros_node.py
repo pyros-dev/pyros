@@ -5,11 +5,13 @@ from .mockinterface.mocknode import PyrosMock
 
 try:
     import rospy
-    from .rosinterface.rostful_node import PyrosROS
 except ImportError, e:
     import logging
     logging.warn("Error: Could not find rospy. %s" % e)
     rospy = None
+
+if rospy:
+    from .rosinterface.rostful_node import PyrosROS
 
 import os
 import logging
