@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
 )
 catkin_python_setup()
-generate_dynamic_reconfigure_options(cfg/RostfulNode.cfg)
+generate_dynamic_reconfigure_options(cfg/Pyros.cfg)
 #include_directories(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 
 add_service_files(DIRECTORY srv
@@ -26,10 +26,10 @@ add_service_files(DIRECTORY srv
 )
 generate_messages(DEPENDENCIES std_msgs)
 
-#add_custom_target(rostful_node)  # dummy target
+#add_custom_target(pyros)  # dummy target
 # make sure configure headers are built before any node using them
-#add_dependencies(rostful_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
-#add_dependencies(rostful_node ${PROJECT_NAME}_gencfg)
+#add_dependencies(pyros ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#add_dependencies(pyros ${PROJECT_NAME}_gencfg)
 
 catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
 

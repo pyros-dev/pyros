@@ -5,8 +5,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
 
-from rostful_node.mockinterface.mockinterface import MockInterface
-from rostful_node.mockinterface.mockservice import statusecho_service, MockService
+from pyros.mockinterface.mockinterface import MockInterface
+from pyros.mockinterface.mockservice import statusecho_service, MockService
 
 import nose
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises

@@ -11,7 +11,7 @@ except ImportError, e:
     rospy = None
 
 if rospy:
-    from .rosinterface.rostful_node import PyrosROS
+    from .rosinterface.pyros import PyrosROS
 
 import os
 import logging
@@ -33,7 +33,7 @@ class PyrosNode(object):
     def getNodeName(self):
         return self._proc.name
 
-    def launch(self, name='rostful_node', argv=[]):
+    def launch(self, name='pyros', argv=[]):
         """
         Starts spinning in another process and returns the pipe connection to send commands to
         :param: name : the name of the node

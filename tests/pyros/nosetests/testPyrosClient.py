@@ -4,8 +4,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from rostful_node.pyros_node import PyrosNode
-from rostful_node.pyros_client import PyrosClient
+from pyros.pyros_node import PyrosNode
+from pyros.pyros_client import PyrosClient
 
 import nose
 from nose.tools import assert_equal, assert_raises

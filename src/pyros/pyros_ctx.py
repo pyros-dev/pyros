@@ -14,7 +14,7 @@ from contextlib import contextmanager
 # So stable interprocess communication can happen via the pipe
 @contextmanager
 #TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
-def pyros_ctx(name='rostful_node', argv=None, anonymous=True, disable_signals=True, mock=False):
+def pyros_ctx(name='pyros', argv=None, anonymous=True, disable_signals=True, mock=False):
     subproc = PyrosNode(mock)
     client_conn = subproc.launch(name, argv)
 

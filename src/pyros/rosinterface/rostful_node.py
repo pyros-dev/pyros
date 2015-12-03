@@ -15,7 +15,7 @@ import zmp
 from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 
 from dynamic_reconfigure.server import Server
-from pyros.cfg import RostfulNodeConfig
+from pyros.cfg import PyrosConfig
 import ast
 import json
 import os
@@ -49,7 +49,7 @@ class PyrosROS(zmp.Node):
             self.rocon_if = None
 
         # Create a dynamic reconfigure server.
-        self.server = Server(RostfulNodeConfig, self.reconfigure)
+        self.server = Server(PyrosConfig, self.reconfigure)
 
         ##############################################################################################
         #### Helpers in case we need to listen to someone talking from a different process

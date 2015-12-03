@@ -15,12 +15,12 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
     setup_args = generate_distutils_setup(
         packages=[
             'zmp',
-            'rostful_node',
+            'pyros',
             'tblib',
         ],
         package_dir={
             'zmp': 'src/zmp',
-            'rostful_node': 'src/rostful_node',
+            'pyros': 'src/pyros',
             'tblib': 'deps/python-tblib/src/tblib',
         },
         py_modules=[
@@ -31,7 +31,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
 # PYTHON PACKAGING
 else:  # using setuptools : http://pythonhosted.org/setuptools/
 
-    setup(name='rostful_node',
+    setup(name='pyros',
         version='0.0.6',
         description='ROS Node to provide ROS introspection for non-ROS users.',
         url='http://github.com/asmodehn/rostful-node',
@@ -39,7 +39,7 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         author_email='asmodehn@gmail.com',
         license='BSD',
         packages=[
-            'rostful_node',
+            'pyros',
             'mockinterface',
             'rosinterface',
             'roconinterface',

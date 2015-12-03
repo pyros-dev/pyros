@@ -15,7 +15,7 @@ try:
     import rostopic
     import rostest
     from std_msgs.msg import String, Empty
-    from rostful_node.rosinterface import TopicBack
+    from pyros.rosinterface import TopicBack
 
 except ImportError, ie:
     logging.warn("{exc}".format(exc=ie))
@@ -45,7 +45,7 @@ except ImportError, ie:
     import rostopic
     import rostest
     from std_msgs.msg import String, Empty
-    from rostful_node.rosinterface import TopicBack
+    from pyros.rosinterface import TopicBack
 
 
 

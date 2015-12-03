@@ -8,14 +8,14 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'src')))
 
 # To simulate ROS env setup
-from rostful_node import rostest_nose
+from pyros import rostest_nose
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
 import roslaunch
 from std_msgs.msg import String, Empty
 
 # Unit test import
-from rostful_node.rosinterface import RosInterface
+from pyros.rosinterface import RosInterface
 
 import unittest
 

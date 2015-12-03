@@ -6,9 +6,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 import zmp
 
-from rostful_node.mockinterface import PyrosMock
-from rostful_node.pyros_node import PyrosNode
-from rostful_node.pyros_prtcl import MsgBuild, Topic, Service
+from pyros.mockinterface import PyrosMock
+from pyros.pyros_node import PyrosNode
+from pyros.pyros_prtcl import MsgBuild, Topic, Service
 
 
 def test_msg_build():

@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
 import zmp
-from rostful_node.mockinterface import PyrosMock
+from pyros.mockinterface import PyrosMock
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
 
 

@@ -4,8 +4,8 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
 
-from rostful_node.mockinterface import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
-from rostful_node.mockinterface import statusecho_topic, MockTopic
+from pyros.mockinterface import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
+from pyros.mockinterface import statusecho_topic, MockTopic
 from nose.tools import assert_true, assert_false, assert_raises
 
 

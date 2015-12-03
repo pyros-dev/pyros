@@ -15,12 +15,12 @@ from .rostful_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceIn
 from .rostful_mock import RostfulMock
 
 from dynamic_reconfigure.server import Server
-from rostful_node.cfg import RostfulNodeConfig
+from pyros.cfg import PyrosConfig
 import ast
 import json
 import os
 
-import rostful_node.srv as srv
+import pyros.srv as srv
 from rosinterface import message_conversion as msgconv
 from rosinterface.action import ActionBack
 
@@ -46,7 +46,7 @@ class RostfulNode(RostfulMock):
             self.rocon_if = None
 
         # Create a dynamic reconfigure server.
-        self.server = Server(RostfulNodeConfig, self.reconfigure)
+        self.server = Server(PyrosConfig, self.reconfigure)
 
         ##############################################################################################
         #### Helpers in case we need to listen to someone talking from a different process

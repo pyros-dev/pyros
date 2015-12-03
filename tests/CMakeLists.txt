@@ -17,9 +17,9 @@
 find_package(catkin REQUIRED COMPONENTS rostest)
 
 # Absolute naming test
-add_rostest(rostful_node/rosinterface/testStringTopic.test)
+add_rostest(pyros/rosinterface/testStringTopic.test)
 
 # Relative naming test
 
-# Testing rosinterface class integration in rostulf_node
-add_rostest(rostful_node/testRosInterface.test)
+# Testing rosinterface class integration in pyros
+add_rostest(pyros/testRosInterface.test)
