@@ -7,6 +7,8 @@ import rospy
 import std_msgs
 import common
 
+# TODO : implement service to check if pub
+
 if __name__ == '__main__':
     try:
         rospy.init_node('string_pub_node')

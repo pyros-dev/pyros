@@ -34,6 +34,7 @@ except ImportError, ie:
 
     # setting up all python paths
     # CAREFUL : SAME order as setup.bash set the pythonpath
+    # TODO : better way : use CMAKE_PREFIX_PATH and get_workspace() to get that dynamically ?
     pythonpath_roscode = collections.OrderedDict({
         'install': os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'install', 'lib', 'python2.7', 'dist-packages')),
         'devel': os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'devel', 'lib', 'python2.7', 'dist-packages')),
@@ -46,10 +47,10 @@ except ImportError, ie:
             sys.path.append(p)
             # setting python path needed only to find ros shell commands (rosmaster)
             if p not in os.environ.get("PYTHONPATH", []):
-                os.environ["PYTHONPATH"] = p + ':' + os.environ.get("PYTHONPATH",'')
+                os.environ["PYTHONPATH"] = p + ':' + os.environ.get("PYTHONPATH", '')
 
     # This is enough to fix the import.
-    # However all ROS environment should be set before importing rospy due to some static behaviors
+    # However all ROS environment should be set before importing rospy due to https://github.com/ros/catkin/issues/767
     # So we do the extra setup here
 
     # Setting env var like ROS if needed
@@ -148,7 +149,7 @@ def is_rostest_enabled():
     return rostest_enabled
 
 
-def rostest_or_nose_main(package, test_name, test):
+def rostest_or_nose_main(package, test_name, test, sysargv):
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
 
     # Ros arguments will tell us if we started from ros, or from straight python
@@ -157,7 +158,6 @@ def rostest_or_nose_main(package, test_name, test):
     if len(rosargs) > 0:
         global rostest_enabled
         rostest_enabled = True
-        rostest.rosrun(package, test_name, test)
-    else :
-        #import nose
+        rostest.rosrun(package, test_name, test, sysargv)
+    else:
         nose.runmodule()

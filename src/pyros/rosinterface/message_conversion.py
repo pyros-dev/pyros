@@ -33,6 +33,7 @@
 
 import roslib
 import rospy
+# TODO : if possible use rospy internals
 
 import re
 import string
@@ -78,6 +79,8 @@ class FieldTypeMismatchException(Exception):
         else:
             Exception.__init__(self, "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type))
 
+
+### This is a JSON -> ROS conversion module
 
 def extract_values(inst):
     rostype = getattr(inst, "_type", None)

@@ -11,7 +11,7 @@ except ImportError, e:
     rospy = None
 
 if rospy:
-    from .rosinterface.pyros import PyrosROS
+    from .rosinterface.pyros_ros import PyrosROS
 
 import os
 import logging

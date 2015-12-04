@@ -57,6 +57,11 @@ except ImportError:
 
 ###### higher level for execution graph to be represented by a category ######
 
+# TODO : CAREFUL topic is probably not a complete concept in itself
+# => often we need to get back to pub / sub connections rather than dealing with "topics"
+# We need the reverse flow of "service call" which is a distributed generalisation of function call
+# We need the distributed generalisation of the callback function ( async calls and futures )
+
 ### Service is a first class citizen. node is abstracted in that perspective : implementation requires some discovery mechanism.
 # object : service
 # arrow : call

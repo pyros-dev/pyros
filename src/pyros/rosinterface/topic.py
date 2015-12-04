@@ -47,6 +47,9 @@ class TopicBack:
         self.pub = None
         if self.allow_pub:
             self.pub = rospy.Publisher(self.name, self.rostype, queue_size=1)
+            # CAREFUL ROS publisher doesnt guarantee messages to be delivered
+            # stream-like design spec -> loss is acceptable.
+            # TODO : maybe combine with "get_num_connections" to determine if publisher ready to publish or not yet ?
 
         self.sub = None
         if self.allow_sub:
@@ -55,15 +58,19 @@ class TopicBack:
         self.empty_cb = None
 
     def publish(self, msg):
-        self.pub.publish(msg)
-        return
+        # enforcing correct type to make send / receive symmetric and API less magical
+        # Doing message conversion visibly in code before sending into the black magic tunnel sounds like a good idea
+        if isinstance(msg, self.rostype):
+            self.pub.publish(msg)  # This should return False if publisher not fully setup yet
+            return True  # because the return spec of rospy's publish is not consistent
+        return False
 
     def get(self, num=0, consume=False):
         if not self.msg:
             return None
 
         res = None
-        #TODO : implement returning multiple messages
+        #TODO : implement returning multiple messages ( paging/offset like for long REST requests )
         if consume:
             res = self.msg.popleft()
             if 0 == len(self.msg) and self.empty_cb:

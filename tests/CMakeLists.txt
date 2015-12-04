@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS rostest)
 
 # Absolute naming test
 add_rostest(pyros/rosinterface/testStringTopic.test)
+# broken for now
 
 # Relative naming test
 
