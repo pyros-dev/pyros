@@ -5,10 +5,11 @@ from __future__ import absolute_import
 import sys
 import os
 # to be able to run from source
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-# To simulate ROS env setup
-from pyros import rostest_nose
+# Unit test import
+from pyros.rosinterface import message_conversion as msgconv
+from pyros.rosinterface import TopicBack
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
@@ -16,10 +17,9 @@ import roslaunch
 import rostopic
 from std_msgs.msg import String, Empty
 
-# Unit test import
-from pyros.rosinterface import message_conversion as msgconv
-from pyros.rosinterface import TopicBack
+import pyros
 
+from pyros.rosinterface.tests import rostest_nose
 import logging
 import inspect
 import unittest
@@ -197,16 +197,6 @@ class TestStringTopic(unittest.TestCase):
 
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")
-
-    @unittest.expectedFailure
-    def test_topic_sub(self):
-        print("topic sub")
-        self.assertTrue(False)
-
-    @unittest.expectedFailure
-    def test_topic_pub(self):
-        print("topic pub")
-        self.assertTrue(False)
 
 
 if __name__ == '__main__':

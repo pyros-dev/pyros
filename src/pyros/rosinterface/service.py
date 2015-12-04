@@ -23,7 +23,7 @@ import os
 import urlparse
 
 """
-ServiceBack is the class handling conversion from REST API to ROS Service
+ServiceBack is the class handling conversion from Python API to ROS Service
 """
 class ServiceBack:
     def __init__(self, service_name, service_type):

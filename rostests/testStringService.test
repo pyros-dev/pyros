@@ -1,0 +1,11 @@
+<launch>
+  <arg name="service_name" default="test_service"/>
+
+  <node name="echo_node" pkg="pyros" type="string_echo_node.py" output="screen">
+    <param name="echo_service_name" value="$(arg service_name)" type="str"/>
+  </node>
+
+  <!-- params for tests are always absolute -->
+  <param name="/stringServiceTest/echo_service_name" value="$(arg service_name)" type="str"/>
+  <test test-name="StringService" pkg="pyros" type="testStringService.py" name="stringServiceTest"/>
+</launch>

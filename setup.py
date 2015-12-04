@@ -16,6 +16,13 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
         packages=[
             'zmp',
             'pyros',
+            'pyros.tests',
+            'pyros.mockinterface',
+            'pyros.mockinterface.tests',
+            'pyros.rosinterface',
+            'pyros.rosinterface.tests',
+            'pyros.zmpinterface',
+            'pyros.zmpinterface.tests',
             'tblib',
         ],
         package_dir={

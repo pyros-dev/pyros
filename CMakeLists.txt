@@ -23,6 +23,7 @@ add_service_files(DIRECTORY srv
     ResultAction.srv
     StartRapp.srv
     StopRapp.srv
+    StringEchoService.srv
 )
 generate_messages(DEPENDENCIES std_msgs)
 
@@ -38,7 +39,54 @@ file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
      RELATIVE ${PROJECT_SOURCE_DIR} src/*.py)
 roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
+
+# Trick to get catkin generated classes imported by nose and other usual python tools
+
+set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/srv")
+set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/srv")
+
+if(NOT EXISTS "${link}" AND EXISTS "${path}")
+    execute_process(
+      # Note : return code is broken in 2.8 (trusty version) https://cmake.org/Bug/view.php?id=14928
+      COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${path}" "${link}"
+    )
+endif()
+
+set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/cfg")
+set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/cfg")
+
+if(NOT EXISTS "${link}" AND EXISTS "${path}")
+    execute_process(
+      # Note : return code is broken in 2.8 (trusty version) https://cmake.org/Bug/view.php?id=14928
+      COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${path}" "${link}"
+    )
+endif()
+
 ## Unit tests
 if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
+
+
+    ##############################################################################
+    # Nose Tests
+    ##############################################################################
+
+    # catkin_add_nosetests(nosetests)
+
+    ##############################################################################
+    # Ros Tests
+    ##############################################################################
+
+    find_package(catkin REQUIRED COMPONENTS rostest)
+
+    # Absolute naming test
+    add_rostest(rostests/testStringTopic.test)
+    add_rostest(rostests/testStringService.test)
+
+
+    # Relative naming test
+
+    # Testing rosinterface class integration in pyros
+    add_rostest(rostests/testRosInterface.test)
+
+
 endif()

@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 from pyros.mockinterface.mockinterface import MockInterface
 from pyros.mockinterface.mockservice import statusecho_service, MockService

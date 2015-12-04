@@ -2,18 +2,17 @@ from __future__ import absolute_import
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
-
-# To simulate ROS env setup
-from pyros import rostest_nose
-# ROS imports should now work from ROS or from python (without ROS env setup)
-import rospy
-
-import nose
-from nose.tools import assert_equal, assert_true, assert_false
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 # Unit test import
 from pyros.rosinterface import message_conversion as msgconv
+# ROS imports should now work from ROS or from python ( even without ROS env setup)
+import rospy
+
+# useful test tools
+from pyros.rosinterface.tests import rostest_nose
+import nose
+from nose.tools import assert_equal, assert_true, assert_false
 
 # Test all standard message
 import std_msgs.msg as std_msgs

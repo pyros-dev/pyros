@@ -6,7 +6,7 @@ import os
 import logging
 import time
 
-import zmp
+import zmp  # TODO : This shouldnt be needed here. get rid of it !
 # python protocol should be usable without ROS.
 from ..pyros_prtcl import MsgBuild, Topic, Service, Param, ServiceList, ServiceInfo, TopicList, TopicInfo, ParamList, ParamInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
 from .mockinterface import MockInterface
