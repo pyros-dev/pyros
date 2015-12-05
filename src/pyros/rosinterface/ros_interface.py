@@ -113,6 +113,8 @@ class RosInterface(BaseInterface):
     def update(self):
         """
         Redefining update method in child class to gather all information in one master call per update.
+        :return Return the difference tuple of services/topics/params exposed/withhold (NOT the detected changes we should not care about).
+                Note that the name must match a regex previously set by the expose call
         """
         # TODO : improve this by using another node that caches master state
         try:

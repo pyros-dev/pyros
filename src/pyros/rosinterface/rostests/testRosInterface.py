@@ -72,7 +72,7 @@ class TestRosInterface(unittest.TestCase):
     def setUp(self):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
-        
+
         self.interface = RosInterface()
 
     def tearDown(self):
@@ -92,7 +92,9 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics_args)
         # topic backend has not been created since the update didn't run yet
         self.assertTrue(topicname not in self.interface.topics.keys())
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname in dt.added)  # has been detected
+
         # every exposed topic should remain in the list of args ( in case regex match another topic )
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend has been created
@@ -112,7 +114,9 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
@@ -121,7 +125,9 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added (not exposed)
+        self.assertEqual(dt.removed, [])  # nothing removed
         # TODO : do we need a test with subscriber ?
 
         # every added topic should be in the list of args
@@ -150,7 +156,8 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname not in dt.added)  # not detected
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
@@ -161,7 +168,8 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics_args)
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname not in dt.added)  # not detected
         # make sure the topic is STILL in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend has STILL not been created
@@ -170,7 +178,8 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try updating again, simulating
         # it coming online after expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname in dt.added)  # detected
         # TODO : do we need a test with subscriber ?
 
         # every exposed topic should remain in the list of args ( in case regex match another topic )
@@ -180,7 +189,7 @@ class TestRosInterface(unittest.TestCase):
 
         nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
-
+    @unittest.expectedFailure  # because unregister doesnt work...
     def test_topic_withhold_update_disappear(self):
         """
         Test topic exposing functionality for a topic which already exists in
@@ -189,25 +198,33 @@ class TestRosInterface(unittest.TestCase):
         :return:
         """
         topicname = '/test/string'
-        self.interface.expose_topics([topicname])
+        dt = self.interface.expose_topics([topicname])
+        self.assertEqual(dt.added, [])  # topicname not detected yet -> not added
+        self.assertEqual(dt.removed, [])  # not changed
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
         # topic backend has NOT been created yet
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname in dt.added)  # topicname detected and added
+        self.assertEqual(dt.removed, [])  # nothing added
         # every withhold topic should STILL be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
         # topic backend has been created
         self.assertTrue(topicname in self.interface.topics.keys())
 
-        self.interface.expose_topics([])
+        dt = self.interface.expose_topics([])
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertTrue(topicname in dt.removed)  # topic name removed
         # every withhold topic should NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every withhold topic should STILL NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
@@ -215,7 +232,9 @@ class TestRosInterface(unittest.TestCase):
 
         #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertTrue(topicname in dt.removed)  # detected lost
         # every withhold topic should STILL NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
@@ -238,7 +257,8 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname not in dt.added)  # not detected
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
@@ -253,7 +273,8 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname in dt.added)  # detected
         # TODO : do we need a test with subscriber ?
 
         # every added topic should be in the list of args
@@ -273,7 +294,8 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics.keys())
         # Note the Topic implementation should take care of possible errors in this case
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname in dt.removed)  # detected
         # every exposed topic should remain in the list of args ( in case regex match another topic )
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend should NOT be there any longer
@@ -287,7 +309,8 @@ class TestRosInterface(unittest.TestCase):
         # topic backend has not been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(topicname not in dt.added)  # not detected
         # every withhold topic should NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # make sure the topic backend has been created
@@ -308,13 +331,17 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.expose_topics([topicname])
+        dt = self.interface.expose_topics([topicname])
+        self.assertEqual(dt.added, [])  # nothing added yet ( not existing )
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
         # topic backend has not been created
@@ -323,7 +350,9 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertTrue(nonexistent_pub.resolved_name in dt.added)  # added now because it just appeared
+        self.assertEqual(dt.removed, [])  # nothing removed
         # TODO : do we need a test with subscriber ?
 
         # every added topic should be in the list of args
@@ -393,7 +422,9 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(servicename not in self.interface.services.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added service should be in the list of args
         self.assertTrue(servicename not in self.interface.services_args)
         # the backend should not have been created
@@ -403,7 +434,9 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            self.interface.update()
+            dt = self.interface.update()
+            self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
+            self.assertEqual(dt.removed, [])  # nothing removed
 
             # every added service should be in the list of args
             self.assertTrue(servicename not in self.interface.services_args)
@@ -431,7 +464,9 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(servicename not in self.interface.services.keys())
         # First update should not change state
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added service should be in the list of args
         self.assertTrue(servicename not in self.interface.services_args)
         # the backend should not have been created
@@ -442,7 +477,9 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename in self.interface.services_args)
         # the backend should not have been created
         self.assertTrue(servicename not in self.interface.services.keys())
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # make sure the service is STILL in the list of args
         self.assertTrue(servicename in self.interface.services_args)
         # make sure the service backend has STILL not been created
@@ -452,8 +489,9 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            self.interface.update()
-
+            dt = self.interface.update()
+            self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
+            self.assertEqual(dt.removed, [])  # nothing removed
             # every exposed service should remain in the list of args ( in case regex match another service )
             self.assertTrue(servicename in self.interface.services_args)
             # make sure the service backend has been created
@@ -484,20 +522,26 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            self.interface.update()
+            dt = self.interface.update()
+            self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
+            self.assertEqual(dt.removed, [])  # nothing removed
 
             # every withhold service should STILL be in the list of args
             self.assertTrue(servicename in self.interface.services_args)
             # service backend has been created
             self.assertTrue(servicename in self.interface.services.keys())
 
-            self.interface.expose_services([])
+            dt = self.interface.expose_services([])
+            self.assertEqual(dt.added, [])  # nothing added
+            self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
             # every withhold service should NOT be in the list of args
             self.assertTrue(servicename not in self.interface.services_args)
             # service backend should be GONE
             self.assertTrue(servicename not in self.interface.services.keys())
 
-            self.interface.update()
+            dt = self.interface.update()
+            self.assertEqual(dt.added, [])  # nothing added
+            self.assertEqual(dt.removed, [])  # nothing removed
             # every withhold service should STILL NOT be in the list of args
             self.assertTrue(servicename not in self.interface.services_args)
             # service backend should be GONE
@@ -505,7 +549,9 @@ class TestRosInterface(unittest.TestCase):
         finally:
             nonexistent_srv.shutdown('testing disappearing service')
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nonexistent_srv already removed
         # every withhold service should STILL NOT be in the list of args
         self.assertTrue(servicename not in self.interface.services_args)
         # service backend should be GONE
@@ -534,7 +580,9 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            self.interface.update()
+            dt = self.interface.update()
+            self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent added
+            self.assertEqual(dt.removed, [])  # nothing removed
 
             # service should be in the list of args
             self.assertTrue(servicename in self.interface.services_args)
@@ -552,7 +600,9 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename in self.interface.services.keys())
         # Note the service implementation should take care of possible errors in this case
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
         # every exposed service should remain in the list of args ( in case regex match another service )
         self.assertTrue(servicename in self.interface.services_args)
         # make sure the service backend should NOT be there any longer
@@ -566,7 +616,9 @@ class TestRosInterface(unittest.TestCase):
         # service backend has not been created
         self.assertTrue(servicename not in self.interface.services.keys())
 
-        self.interface.update()
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every withhold service should NOT be in the list of args
         self.assertTrue(servicename not in self.interface.services_args)
         # make sure the service backend has been created
@@ -596,7 +648,9 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            self.interface.update()
+            dt = self.interface.update()
+            self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
+            self.assertEqual(dt.removed, [])  # nothing removed
 
             # every added service should be in the list of args
             self.assertTrue(servicename in self.interface.services_args)

@@ -357,7 +357,7 @@ class BaseInterface(object):
 
     def update(self):
         """
-        :return: the difference between the transients previously detected and recently detected
+        :return: the difference between the transients recently added/removed
         """
         sdt = self.services_change_detect()
         tdt = self.topics_change_detect()
