@@ -11,23 +11,97 @@ Required for multiprocess communication.
 import zmp
 from .pyros_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
 
+# TODO : Requirement : Check TOTAL send/receive SYMMETRY.
+# If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.
+
+class PyrosServiceNotFound(Exception):
+    pass
 
 class PyrosClient(object):
-    def __init__(self, node_name = None):
-        # Discover all Services. Block if one not there
-        # TODO : timeout exception ?
-        self.msg_build_svc = zmp.Service.discover('msg_build', node_name)
-        self.topic_svc = zmp.Service.discover('topic', node_name)
-        self.service_svc = zmp.Service.discover('service', node_name)
-        self.param_svc = zmp.Service.discover('param', node_name)
-        self.topic_list_svc = zmp.Service.discover('topic_list', node_name)
-        self.service_list_svc = zmp.Service.discover('service_list', node_name)
-        self.param_list_svc = zmp.Service.discover('param_list', node_name)
+    def __init__(self, node_name=None):
+        # Link to only one Server
+        self.node_name = node_name
 
-        self.namespaces_svc = zmp.Service.discover('namespaces', node_name)
-        self.interactions_svc = zmp.Service.discover('interactions', node_name)
-        self.interaction_svc = zmp.Service.discover('interaction', node_name)
-        self.has_rocon_svc = zmp.Service.discover('has_rocon', node_name)
+        # Discover all Services. Wait for at least one, and make sure it s provided by our expected Server
+        self.msg_build_svc = zmp.Service.discover('msg_build', 5)
+        if self.msg_build_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.msg_build_svc.providers
+        ):
+            raise PyrosServiceNotFound('msg_build')
+
+        self.topic_svc = zmp.Service.discover('topic', 5)
+        if self.topic_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.topic_svc.providers
+        ):
+            raise PyrosServiceNotFound('topic')
+
+        self.service_svc = zmp.Service.discover('service', node_name, 5)
+        if self.service_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.service_svc.providers
+        ):
+            raise PyrosServiceNotFound('service')
+
+        self.param_svc = zmp.Service.discover('param', node_name, 5)
+        if self.param_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.param_svc.providers
+        ):
+            raise PyrosServiceNotFound('param')
+
+        self.topic_list_svc = zmp.Service.discover('topic_list', 5)
+        if self.topic_list_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.topic_list_svc.providers
+        ):
+            raise PyrosServiceNotFound('topic_list')
+
+        self.service_list_svc = zmp.Service.discover('service_list', 5)
+        if self.service_list_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.service_list_svc.providers
+        ):
+            raise PyrosServiceNotFound('service_list')
+
+        self.param_list_svc = zmp.Service.discover('param_list', 5)
+        if self.param_list_svc is None or (
+            self.node_name is not None and
+            self.node_name not in self.param_list_svc.providers
+        ):
+            raise PyrosServiceNotFound('param_list')
+
+        # ROCON stuff
+        # self.namespaces_svc = zmp.Service.discover('namespaces', 5)
+        # if self.namespaces_svc is None or (
+        #     self.node_name is not None and
+        #     self.node_name not in self.namespaces_svc.providers
+        # ):
+        #     raise PyrosServiceNotFound('namespaces')
+
+        # self.interactions_svc = zmp.Service.discover('interactions', 5)
+        # if self.interactions_svc is None or (
+        #     self.node_name is not None and
+        #     self.node_name not in self.interactions_svc.providers
+        # ):
+        #     raise PyrosServiceNotFound('interactions')
+
+        # self.interaction_svc = zmp.Service.discover('interaction', 5)
+        # if self.interaction_svc is None or (
+        #     self.node_name is not None and
+        #     self.node_name not in self.interaction_svc.providers
+        # ):
+        #     raise PyrosServiceNotFound('interaction')
+
+        # self.has_rocon_svc = zmp.Service.discover('has_rocon', 5)
+        # if self.has_rocon_svc is None or (
+        #     self.node_name is not None and
+        #     self.node_name not in self.has_rocon_svc.providers
+        # ):
+        #     raise PyrosServiceNotFound('has_rocon')
+
+
 
     def buildMsg(self, connection_name, suffix=None):
         #changing unicode to string ( testing stability of multiprocess debugging )
@@ -36,9 +110,9 @@ class PyrosClient(object):
         res = self.msg_build_svc.call(args=(connection_name,))
         return res
 
-    def topic_inject(self, topic_name, _msg_content={}, **kwargs):
+    def topic_inject(self, topic_name, _msg_content=None, **kwargs):
         """
-        Injecting message into topic. is _msg_content, we inject it directly. if not, we use all extra kwargs
+        Injecting message into topic. if _msg_content, we inject it directly. if not, we use all extra kwargs
         :param topic_name: name of the topic
         :param _msg_content: optional message content
         :param kwargs: each extra kwarg will be put int he message is structure matches
@@ -48,13 +122,10 @@ class PyrosClient(object):
         if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
-        if kwargs:
-            res = self.topic_svc.call(args=(topic_name, kwargs,))
-        elif _msg_content is not None:
+        if _msg_content is not None:
             res = self.topic_svc.call(args=(topic_name, _msg_content,))
-        else:   # if _msg_content is None the request is invalid.
-                # just return something to mean False.
-            res = 'WRONG INJECT'
+        else:  # default kwargs is {}
+            res = self.topic_svc.call(args=(topic_name, kwargs,))
 
         return res is None  # check if message has been consumed
 
@@ -67,19 +138,15 @@ class PyrosClient(object):
 
         return res
 
-    def service_call(self, service_name, _msg_content={}, **kwargs):
+    def service_call(self, service_name, _msg_content=None, **kwargs):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(service_name, unicode):
             service_name = unicodedata.normalize('NFKD', service_name).encode('ascii', 'ignore')
 
-        if kwargs:
-            res = self.service_svc.call(args=(service_name, kwargs,))
-        elif _msg_content is not None:
+        if _msg_content is not None:
             res = self.service_svc.call(args=(service_name, _msg_content,))
-        else:   # if _msg_content is None the request is invalid.
-                # just return None.
-            res = None
-
+        else:  # default kwargs is {}
+            res = self.service_svc.call(args=(service_name, kwargs,))
 
         # A service that doesn't exist on the node will return res_content.resp_content None.
         # It should probably except...

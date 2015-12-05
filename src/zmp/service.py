@@ -30,13 +30,15 @@ services = manager.dict()
 class Service(object):
 
     @staticmethod
-    #TODO : optionally adds more element from the signature ( num args, etc. )
+    # TODO : optionally adds more element from the signature ( num args, etc. )
     def discover(name, timeout=None, minimum_providers=1):
         """
-        discovers a service. wait for at least one service instance to be available.
+        discovers a service. If timeout is specified, waits for at least minimum_providers service instance to be available.
+        Note : we do not want to make the discovery block undefinitely since we never know for sure if a service is running or not
+        TODO : improve with future...
         :param name: name of the service
-        :param minimum_providers the number of provider we need to reach before discover() returns
         :param timeout: maximum number of seconds the discover can wait for a discovery matching requirements. if None, doesn't wait.
+        :param minimum_providers the number of provider we need to reach before discover() returns if timeout enabled
         :return: a Service object, containing the list of providers. if the minimum number cannot be reached, still returns what is available.
         """
         start = time.time()

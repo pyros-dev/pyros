@@ -28,6 +28,7 @@ try:
     import rostest
     import roslaunch
 
+#TODO : make this less magic and more explicit ( to do it for tests but not for normal use )
 except ImportError, ie:
     logging.warn("{exc}".format(exc=ie))
     logging.warn("ROS environment not detected. Emulating setup now...")

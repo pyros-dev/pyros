@@ -22,6 +22,7 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal, n
 @nottest
 class TestMockHWNode(object):
     __test__ = False
+
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover(self):
         print("\n" + inspect.currentframe().f_code.co_name)

@@ -7,8 +7,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 import zmp
 
 from pyros.mockinterface import PyrosMock
-from pyros.pyros_node import PyrosNode
-from pyros.pyros_prtcl import MsgBuild, Topic, Service
 
 
 def test_msg_build():
@@ -60,19 +58,19 @@ def test_echo_service():
 
 class TestRostfulMockProcess(object):
     def setUp(self):
-        self.mockInstance = PyrosNode(mock=True)
-        self.mockInstance.launch()
+        self.mockInstance = PyrosMock()
+        self.mockInstance.start()
 
     def tearDown(self):
         self.mockInstance.shutdown()
 
     def test_msg_build(self):
-        msg_build_svc = zmp.Service.discover('msg_build', self.mockInstance.getNodeName())
+        msg_build_svc = zmp.Service.discover('msg_build', self.mockInstance.name)
         resp = msg_build_svc.call(args=('fake_connec_name',))
         assert isinstance(resp, str)
 
     def test_echo_topic(self):
-        topic_svc = zmp.Service.discover('topic', self.mockInstance.getNodeName())
+        topic_svc = zmp.Service.discover('topic', self.mockInstance.name)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
 
@@ -80,7 +78,7 @@ class TestRostfulMockProcess(object):
         assert resp == 'testing'  # message echoed
 
     def test_other_topic(self):
-        topic_svc = zmp.Service.discover('topic', self.mockInstance.getNodeName())
+        topic_svc = zmp.Service.discover('topic', self.mockInstance.name)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
 
@@ -88,7 +86,7 @@ class TestRostfulMockProcess(object):
         assert resp is None  # message not echoed
 
     def test_echo_service(self):
-        service_svc = zmp.Service.discover('service', self.mockInstance.getNodeName())
+        service_svc = zmp.Service.discover('service', self.mockInstance.name)
         resp = service_svc.call(args=('random_service', 'testing'))
         assert resp == 'testing'  # message echoed
 

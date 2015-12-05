@@ -14,10 +14,6 @@ from .service import ServiceBack
 from .topic import TopicBack
 from .param import ParamBack
 
-from .ros_watcher import ROSWatcher
-
-import unicodedata
-
 CONFIG_PATH = '_rosdef'
 SRV_PATH = '_srv'
 MSG_PATH = '_msg'

@@ -4,17 +4,17 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from pyros.pyros_node import PyrosNode
+from pyros.mockinterface.mocknode import PyrosMock
 from pyros.pyros_client import PyrosClient
 
 import nose
 from nose.tools import assert_equal, assert_raises
 
 
-class TestRostfulClientOnMock(object):
+class TestPyrosClientOnMock(object):
     def setUp(self):
-        self.mockInstance = PyrosNode(mock=True)
-        cmd_conn = self.mockInstance.launch()
+        self.mockInstance = PyrosMock()
+        cmd_conn = self.mockInstance.start()
         self.client = PyrosClient(cmd_conn)
 
     def tearDown(self):
@@ -22,7 +22,7 @@ class TestRostfulClientOnMock(object):
 
     ### TOPICS ###
     def test_inject_None(self):  # injecting None is meaningless and should return false
-        assert not self.client.topic_inject('random_topic', None)  # simply check that it didnt inject
+        assert self.client.topic_inject('random_topic', None)  # simply check that it injected (default Empty since we support kwargs)
 
     def test_inject_Empty(self):
         assert self.client.topic_inject('random_topic')  # simply check if injected
@@ -94,9 +94,9 @@ class TestRostfulClientOnMock(object):
 
     def test_call_echo_None(self):
         print "request content {0}".format({})
-        resp = self.client.service_call('random_service', None)  # calling with None is invalid and should return None
+        resp = self.client.service_call('random_service', None)  # calling with None is interpreted as default (Empty) call (since we support kwargs)
         print "response content {0}".format(resp)
-        assert resp is None
+        assert resp == {}
 
     def test_call_echo_Empty(self):
         print "request content {0}".format({})
@@ -113,13 +113,13 @@ class TestRostfulClientOnMock(object):
 
     def test_call_echo_Simple_KWArgs(self):
         print "request content {0}".format("data='data_string'")
-        resp = self.client.service_call('random_topic', data='data_string')
+        resp = self.client.service_call('random_service', data='data_string')
         print "response content {0}".format(resp)
         assert resp == {'data': 'data_string'}
 
     def test_call_echo_Complex_KWArgs(self):
         print "injected message content {0}".format("first='first_string', second='second_string'")
-        resp = self.client.service_call('random_topic', first='first_string', second='second_string')
+        resp = self.client.service_call('random_service', first='first_string', second='second_string')
         print "extracted message content {0}".format(resp)
         assert resp == {'first': 'first_string', 'second': 'second_string'}
 

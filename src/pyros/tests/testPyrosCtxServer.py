@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from pyros.pyros_ctx import pyros_ctx
+from pyros.pyros_ctx_server import pyros_ctx
 from pyros.mockinterface import PyrosMock
 from pyros.pyros_client import PyrosClient
 

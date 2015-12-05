@@ -26,8 +26,6 @@ import pyros.srv as srv
 from . import message_conversion as msgconv
 from .action import ActionBack
 
-from multiprocessing import Pipe, Process, Event
-
 class PyrosROS(zmp.Node):
     """
     Interface with ROS.

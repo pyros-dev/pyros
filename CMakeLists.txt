@@ -70,7 +70,9 @@ if (CATKIN_ENABLE_TESTING)
     # Nose Tests
     ##############################################################################
 
+    catkin_add_nosetests(src/pyros/mockinterface/tests)
     catkin_add_nosetests(src/pyros/rosinterface/tests)
+    catkin_add_nosetests(src/pyros/tests)
 
     ##############################################################################
     # Ros Tests
@@ -78,12 +80,8 @@ if (CATKIN_ENABLE_TESTING)
 
     find_package(catkin REQUIRED COMPONENTS rostest)
 
-    # Absolute naming test
     add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
     add_rostest(src/pyros/rosinterface/rostests/testStringService.test)
-
-
-    # Relative naming test
 
     # Testing rosinterface class integration in pyros
     add_rostest(src/pyros/rosinterface/rostests/testRosInterface.test)
