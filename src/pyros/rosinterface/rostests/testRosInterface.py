@@ -14,6 +14,7 @@ from pyros.rosinterface import RosInterface
 import rospy
 import roslaunch
 from std_msgs.msg import String, Empty
+from std_srvs.srv import Empty as EmptySrv, Trigger
 
 
 # useful test tools
@@ -26,6 +27,8 @@ trigger_srv_process = None
 
 
 # This should have the same effect as the <name>.test file for rostest. Should be used only by nose ( or other python test tool )
+# CAREFUL with comments, copy paste mistake are real...
+# CAREFUL dont use assertFalse -> easy to miss when reviewing code
 def setup_module():
     if not rostest_nose.is_rostest_enabled():
         rostest_nose.rostest_nose_setup_module()
@@ -60,132 +63,568 @@ def teardown_module():
         rostest_nose.rostest_nose_teardown_module()
 
 
+# Very basic echo service implementation for tests
+def srv_cb(req):
+    return req.request
+
+
 class TestRosInterface(unittest.TestCase):
     def setUp(self):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
         
-        self.interface = RosInterface(run_watcher=False)
+        self.interface = RosInterface()
 
     def tearDown(self):
         self.interface = None
 
-    ##
-    # Test basic topic adding functionality for a topic which already exists in
-    # the ros environment.
-    def test_topic_add_basic_existing(self):
+# EXPOSE TOPICS + UPDATE Interface
+    def test_topic_appear_expose_update(self):
+        """
+        Test topic exposing functionality for a topic which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : APPEAR -> EXPOSE -> UPDATE
+        :return:
+        """
         topicname = '/test/string'
-        self.interface.add_topic(topicname)
+        self.interface.expose_topics([topicname])
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
-        # added a single instance of the topic, so the number of the topics
-        # existing should be incremented by one (because we consider the fact
-        # that when the entire system is running, two additional topics will be
-        # created by the subscriber proxy)
-        self.assertEqual(-1, self.interface.topics_args[topicname])
-        # the topic already exists in the environment, so it should not be in
-        # the waiting list
-        self.assertTrue(topicname not in self.interface.topics_waiting)
+        # topic backend has not been created since the update didn't run yet
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        self.interface.update()
+        # every exposed topic should remain in the list of args ( in case regex match another topic )
+        self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend has been created
-        self.assertTrue(topicname in self.interface.topics)
+        self.assertTrue(topicname in self.interface.topics.keys())
 
-    ##
-    # Test basic topic adding functionality for a topic which does not yet exist
-    # in the ros environment
-    def test_topic_add_basic_nonexistent(self):
-        topicname = '/test/nonexistent'
-        self.interface.add_topic(topicname)
+    def test_topic_appear_update_expose(self):
+        """
+        Test topic exposing functionality for a topic which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE?) -> APPEAR -> UPDATE -> EXPOSE (-> UPDATE?)
+        :return:
+        """
+
+        topicname = '/test/nonexistent1'
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        # create the publisher and then try exposing the topic again, simulating
+        # it coming online before expose call.
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        self.interface.update()
+        # TODO : do we need a test with subscriber ?
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        self.interface.expose_topics([topicname])
+        # every exposed topic should remain in the list of args ( in case regex match another topic )
+        self.assertTrue(topicname in self.interface.topics_args)
+        # make sure the topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
+
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+
+    def test_topic_expose_appear_update(self):
+        """
+        Test basic topic adding functionality for a topic which does not yet exist
+        in the ros environment ( + corner cases )
+        Sequence : (UPDATE? ->) -> EXPOSE -> (UPDATE? ->) APPEAR -> UPDATE
+        :return:
+        """
+        topicname = '/test/nonexistent2'
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        self.interface.expose_topics([topicname])
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
-        # we added the topic, but it didn't exist yet, so the count should be -2
-        self.assertEqual(-2, self.interface.topics_args[topicname])
-        # topic does not exist in the environment, so it should be in the waiting list
-        self.assertTrue(topicname in self.interface.topics_waiting)
         # the backend should not have been created
-        self.assertTrue(topicname not in self.interface.topics)
-
-        # create the publisher and then try adding the topic again, simulating
-        # it coming online.
-        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        self.interface.add_topic(topicname)
-
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        self.interface.update()
+        # make sure the topic is STILL in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
-        self.assertEqual(-1, self.interface.topics_args[topicname])
-        self.assertTrue(topicname in self.interface.topics)
-        self.assertTrue(topicname not in self.interface.topics_waiting)
+        # make sure the topic backend has STILL not been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
-    @unittest.expectedFailure
-    def test_topic_del(self):
-        print("topic del")
-        self.assertTrue(False)
+        # create the publisher and then try updating again, simulating
+        # it coming online after expose call.
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        self.interface.update()
+        # TODO : do we need a test with subscriber ?
 
-    @unittest.expectedFailure
-    def test_service_add(self):
-        print("service del")
-        self.assertTrue(False)
+        # every exposed topic should remain in the list of args ( in case regex match another topic )
+        self.assertTrue(topicname in self.interface.topics_args)
+        # make sure the topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
 
-    @unittest.expectedFailure
-    def test_service_del(self):
-        print("service del")
-        self.assertTrue(False)
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
-    ##
-    # Ensure that no crash occurs when the expose topics function is called by a
-    # reconfigure request which requires the deletion of some topics from the
-    # topic arguments that already exist.
-    def test_expose_topics_deletion_crash(self):
-        self.interface.add_topic('/test/string')
-        self.interface.add_topic('/test/empty')
-        
-        self.interface.expose_topics(['/test/string'])
-        # ensure all the lists/dicts no longer contain the deleted topic
-        self.assertTrue('/test/empty' not in self.interface.topics_args)
-        self.assertTrue('/test/empty' not in self.interface.topics)
-        self.assertTrue('/test/empty' not in self.interface.topics_waiting)
-        # ensure all relevant lists have the remaining one
-        self.assertTrue('/test/string' in self.interface.topics_args)
-        self.assertTrue('/test/string' in self.interface.topics)
 
-    ##
-    # Ensure that no crash occurs when the expose services function is called by
-    # a reconfigure request which requires the deletion of some services from the
-    # service arguments that already exist.
-    def test_expose_services_deletion_crash(self):
-        self.interface.add_service('/test/empsrv')
-        self.interface.add_service('/test/trgsrv')
-        self.interface.expose_services(['/test/empsrv'])
-        # ensure all the lists/dicts no longer contain the deleted service
-        self.assertTrue('/test/trgsrv' not in self.interface.services_args)
-        self.assertTrue('/test/trgsrv' not in self.interface.services)
-        self.assertTrue('/test/trgsrv' not in self.interface.services_waiting)
+    def test_topic_withhold_update_disappear(self):
+        """
+        Test topic exposing functionality for a topic which already exists in
+        the ros environment. Normal usecase
+        Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
+        :return:
+        """
+        topicname = '/test/string'
+        self.interface.expose_topics([topicname])
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has NOT been created yet
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
-        # ensure all relevant lists have the remaining one
-        self.assertTrue('/test/empsrv' in self.interface.services_args)
-        self.assertTrue('/test/empsrv' in self.interface.services)
+        self.interface.update()
+        # every withhold topic should STILL be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
 
-    # def test_reconfigure_topic(self):
-    #     config = {'services': [], 'actions': []}
-    #     config['topics'] = "['/test/1', '/test/2', '/test/3', '/testreg/.*', '/.*/regtest']"
-    #     self.interface.reconfigure(config, 1)
-    #     expected_dict = {'/test/1': -2, '/test/2': -2, '/test/3': -2, '/testreg/.*': -2, '/.*/regtest': -2}
-    #     expected_list = ['/test/1', '/test/2', '/test/3', '/testreg/.*', '/.*/regtest']
-    #     self.assertEqual(self.interface.topics_args, expected_dict)
-    #     # don't care about ordering, just contents
-    #     self.assertEqual(sorted(self.interface.topics_waiting), sorted(expected_list))
+        self.interface.expose_topics([])
+        # every withhold topic should NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend should be GONE
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
-    # @unittest.expectedFailure
-    # def test_reconfigure_service(self):
-    #     print("recon service")
+        self.interface.update()
+        # every withhold topic should STILL NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend should be GONE
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
-    # ##
-    # # Ensure that if there are malformed strings in the reconfigure request they are ignored
-    # def test_reconfigure_malformed(self):
-    #     config = {'actions': []}
-    #     config['topics'] = "['/test(/1bad', '/test/)bad', '/test/good']"
-    #     config['services'] = "['/test(/1bad', '/test/)bad', '/test/good']"
-    #     self.interface.reconfigure(config, 1)
-    #     assert self.interface.topics_args == {}
-    #     assert self.interface.services_args == []
+        #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
+
+        self.interface.update()
+        # every withhold topic should STILL NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend should be GONE
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+    @unittest.expectedFailure  # because Topic.unregister() doesnt work
+    def test_topic_disappear_update_withhold(self):
+        """
+        Test topic exposing functionality for a topic which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE? ->) DISAPPEAR -> UPDATE -> WITHHOLD (-> UPDATE ?)
+        :return:
+        """
+
+        #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
+
+        topicname = '/test/nonexistent3'
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        self.interface.expose_topics([topicname])
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has not been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        # create the publisher and then try exposing the topic again, simulating
+        # it coming online before expose call.
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        self.interface.update()
+        # TODO : do we need a test with subscriber ?
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearrence / withholding test
+
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        # TODO : test disappear ( how ? )
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # the backend should STILL be there
+        self.assertTrue(topicname in self.interface.topics.keys())
+        # Note the Topic implementation should take care of possible errors in this case
+
+        self.interface.update()
+        # every exposed topic should remain in the list of args ( in case regex match another topic )
+        self.assertTrue(topicname in self.interface.topics_args)
+        # make sure the topic backend should NOT be there any longer
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        # TODO : test that coming back actually works
+
+        self.interface.expose_topics([])
+        # every withhold topic should NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend has not been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        self.interface.update()
+        # every withhold topic should NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # make sure the topic backend has been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+
+    def test_topic_update_disappear_withhold(self):
+        """
+        Test topic exposing functionality for a topic which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : UPDATE -> DISAPPEAR -> WITHHOLD
+        :return:
+        """
+
+        topicname = '/test/nonexistent4'
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        self.interface.expose_topics([topicname])
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has not been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        # create the publisher and then try exposing the topic again, simulating
+        # it coming online before expose call.
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        self.interface.update()
+        # TODO : do we need a test with subscriber ?
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearrence / withholding test
+
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        # TODO : test disappear ( how ? )
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # the backend should STILL be there
+        self.assertTrue(topicname in self.interface.topics.keys())
+        # Note the Topic implementation should take care of possible errors in this case
+
+        self.interface.expose_topics([])
+        # every withhold topic should NOT be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend should NOT be there any longer
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+
+
+# EXPOSE SERVICES + UPDATE Interface
+
+    def test_service_appear_expose_update(self):
+        """
+        Test service exposing functionality for a service which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : APPEAR -> EXPOSE -> UPDATE
+        :return:
+        """
+
+        servicename = '/test/empsrv'
+        self.interface.expose_services([servicename])
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # service backend has not been created since the update didn't run yet
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # NOTE : We need to wait to make sure the tests nodes are started...
+        from pyros.mockinterface.baseinterface import BaseInterface
+        dt = BaseInterface.DiffTuple([], [])
+        while not dt or servicename not in dt[0]:
+            dt = self.interface.update()
+        # TODO : improve that by providing an easier interface for it.
+
+        # every exposed service should remain in the list of args ( in case regex match another service )
+        self.assertTrue(servicename in self.interface.services_args)
+        # make sure the service backend has been created
+        self.assertTrue(servicename in self.interface.services.keys())
+
+    def test_service_appear_update_expose(self):
+        """
+        Test service exposing functionality for a service which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE?) -> APPEAR -> UPDATE -> EXPOSE (-> UPDATE?)
+        :return:
+        """
+        servicename = '/test/absentsrv1'
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # create the service and then try exposing the service again, simulating
+        # it coming online before expose call.
+        nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
+        try:
+            self.interface.update()
+
+            # every added service should be in the list of args
+            self.assertTrue(servicename not in self.interface.services_args)
+            # the backend should not have been created
+            self.assertTrue(servicename not in self.interface.services.keys())
+
+            self.interface.expose_services([servicename])
+            # every exposed service should remain in the list of args ( in case regex match another service )
+            self.assertTrue(servicename in self.interface.services_args)
+            # make sure the service backend has been created
+            self.assertTrue(servicename in self.interface.services.keys())
+        finally:
+            nonexistent_srv.shutdown('testing complete')
+
+    def test_service_expose_appear_update(self):
+        """
+        Test basic service adding functionality for a service which does not yet exist
+        in the ros environment ( + corner cases )
+        Sequence : (UPDATE? ->) -> EXPOSE -> (UPDATE? ->) APPEAR -> UPDATE
+        :return:
+        """
+        servicename = '/test/absentsrv1'
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+        # First update should not change state
+        self.interface.update()
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        self.interface.expose_services([servicename])
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+        self.interface.update()
+        # make sure the service is STILL in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # make sure the service backend has STILL not been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # create the service and then try updating again, simulating
+        # it coming online after expose call.
+        nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
+        try:
+            self.interface.update()
+
+            # every exposed service should remain in the list of args ( in case regex match another service )
+            self.assertTrue(servicename in self.interface.services_args)
+            # make sure the service backend has been created
+            self.assertTrue(servicename in self.interface.services.keys())
+        finally:
+            nonexistent_srv.shutdown('testing complete')
+
+    def test_service_withhold_update_disappear(self):
+        """
+        Test service exposing functionality for a service which already exists in
+        the ros environment. Normal usecase
+        Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
+        :return:
+        """
+        servicename = '/test/absentsrv1'
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        self.interface.expose_services([servicename])
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # service backend has NOT been created yet
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # create the service and then try updating again, simulating
+        # it coming online after expose call.
+        nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
+        try:
+            self.interface.update()
+
+            # every withhold service should STILL be in the list of args
+            self.assertTrue(servicename in self.interface.services_args)
+            # service backend has been created
+            self.assertTrue(servicename in self.interface.services.keys())
+
+            self.interface.expose_services([])
+            # every withhold service should NOT be in the list of args
+            self.assertTrue(servicename not in self.interface.services_args)
+            # service backend should be GONE
+            self.assertTrue(servicename not in self.interface.services.keys())
+
+            self.interface.update()
+            # every withhold service should STILL NOT be in the list of args
+            self.assertTrue(servicename not in self.interface.services_args)
+            # service backend should be GONE
+            self.assertTrue(servicename not in self.interface.services.keys())
+        finally:
+            nonexistent_srv.shutdown('testing disappearing service')
+
+        self.interface.update()
+        # every withhold service should STILL NOT be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # service backend should be GONE
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+    def test_service_disappear_update_withhold(self):
+        """
+        Test service exposing functionality for a service which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE? ->) DISAPPEAR -> UPDATE -> WITHHOLD (-> UPDATE ?)
+        :return:
+        """
+        servicename = '/test/absentsrv1'
+        # service should not be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        self.interface.expose_services([servicename])
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # service backend has NOT been created yet
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # create the service and then try updating again, simulating
+        # it coming online after expose call.
+        nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
+        try:
+            self.interface.update()
+
+            # service should be in the list of args
+            self.assertTrue(servicename in self.interface.services_args)
+            # the backend should have been created
+            self.assertTrue(servicename in self.interface.services.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearance / withholding test
+        finally:
+            nonexistent_srv.shutdown('testing disappearing service')
+
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # the backend should STILL be there
+        self.assertTrue(servicename in self.interface.services.keys())
+        # Note the service implementation should take care of possible errors in this case
+
+        self.interface.update()
+        # every exposed service should remain in the list of args ( in case regex match another service )
+        self.assertTrue(servicename in self.interface.services_args)
+        # make sure the service backend should NOT be there any longer
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # TODO : test that coming back actually works
+
+        self.interface.expose_services([])
+        # every withhold service should NOT be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # service backend has not been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        self.interface.update()
+        # every withhold service should NOT be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # make sure the service backend has been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+    def test_service_update_disappear_withhold(self):
+        """
+        Test service exposing functionality for a service which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : UPDATE -> DISAPPEAR -> WITHHOLD
+        :return:
+        """
+
+        servicename = '/test/absentsrv1'
+        # every added service should be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # the backend should not have been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        self.interface.expose_services([servicename])
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # service backend has not been created
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+        # create the service and then try updating again, simulating
+        # it coming online after expose call.
+        nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
+        try:
+            self.interface.update()
+
+            # every added service should be in the list of args
+            self.assertTrue(servicename in self.interface.services_args)
+            # service backend has been created
+            self.assertTrue(servicename in self.interface.services.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearance / withholding test
+        finally:
+            nonexistent_srv.shutdown('testing disappearing service')
+
+        # every added service should be in the list of args
+        self.assertTrue(servicename in self.interface.services_args)
+        # the backend should STILL be there
+        self.assertTrue(servicename in self.interface.services.keys())
+        # Note the service implementation should take care of possible errors in this case
+
+        self.interface.expose_services([])
+        # every withhold service should NOT be in the list of args
+        self.assertTrue(servicename not in self.interface.services_args)
+        # service backend should NOT be there any longer
+        self.assertTrue(servicename not in self.interface.services.keys())
+
+
+
+
+
+
         
 if __name__ == '__main__':
 

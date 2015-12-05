@@ -6,6 +6,7 @@ import re
 import abc
 from functools import partial
 
+
 class BaseInterface(object):
     """
     BaseInterface.
@@ -245,6 +246,10 @@ class BaseInterface(object):
                                        type_resolve_func=self.service_type_resolver,
                                        class_build_func=self.ServiceMaker,
                                        )
+        self.update_services.__name__ = "update_services"
+        self.update_services.__doc__ = """
+        Adds / Removes services from the list of Services exposed
+        """
 
         self.expose_services = partial(BaseInterface._expose_transients_regex,
                                        transient_desc="service",
@@ -254,6 +259,8 @@ class BaseInterface(object):
                                        type_resolve_func=self.service_type_resolver,
                                        class_build_func=self.ServiceMaker,
                                        )
+        self.expose_services.__doc__ = """
+        """
 
         self.services_change_detect = partial(BaseInterface._transient_change_detect,
                                               transient_desc="service",
@@ -264,6 +271,8 @@ class BaseInterface(object):
                                               type_resolve_func=self.service_type_resolver,
                                               class_build_func=self.ServiceMaker,
                                               )
+        self.services_change_detect.__doc__ = """
+        """
 
         self.update_topics = partial(BaseInterface._update_transients,
                                      transient_desc="topic",
@@ -271,6 +280,10 @@ class BaseInterface(object):
                                      type_resolve_func=self.topic_type_resolver,
                                      class_build_func=self.TopicMaker,
                                      )
+        self.update_topics.__name__ = "update_topics"
+        self.update_topics.__doc__ = """
+        Adds / Removes topics from the list of Topics exposed
+        """
 
         self.expose_topics = partial(BaseInterface._expose_transients_regex,
                                      transient_desc="topic",
@@ -297,6 +310,10 @@ class BaseInterface(object):
                                      type_resolve_func=self.param_type_resolver,
                                      class_build_func=self.ParamMaker,
                                      )
+        self.update_params.__name__ = "update_params"
+        self.update_params.__doc__ = """
+        Adds / Removes topics from the list of Topics exposed
+        """
 
         self.expose_params = partial(BaseInterface._expose_transients_regex,
                                      transient_desc="param",
@@ -323,6 +340,12 @@ class BaseInterface(object):
         # This should be taken care of in the abstract transient functional interface
 
     def reinit(self, services, topics, params):
+        """
+        :param services:
+        :param topics:
+        :param params:
+        :return: the difference between the transient previously exposed and recently exposed
+        """
         sdt = self.expose_services(services)
         tdt = self.expose_topics(topics)
         pdt = self.expose_params(params)
@@ -333,8 +356,20 @@ class BaseInterface(object):
         )
 
     def update(self):
+        """
+        :return: the difference between the transients previously detected and recently detected
+        """
+        sdt = self.services_change_detect()
+        tdt = self.topics_change_detect()
+        pdt = self.params_change_detect()
 
-        self.services_change_detect()
-        self.topics_change_detect()
-        self.params_change_detect()
+        return BaseInterface.DiffTuple(
+            added=sdt.added+tdt.added+pdt.added,
+            removed=sdt.removed+tdt.removed+pdt.removed
+        )
 
+    # TODO : "wait_for_it" methods that waits for hte detection of a topic/service on the system
+    # TODO : Should return a future so use can decide to wait on it or not
+    # TODO : Maybe similar to a async_detect ( hooked up to the detected transient, not the exposed ones )
+    # TODO : Exposed interface is for direct control flow => async not really needed
+    # TODO : Detect/Update interface is inversed control flow ( from update loop ) => Needed
