@@ -15,6 +15,7 @@ import time
 import rospy
 import rosgraph
 import roslaunch
+import rostest
 
 
 rostest_enabled = False  # default for python or nose runs
@@ -44,19 +45,17 @@ def rostest_nose_teardown_module():
         # finishing all process
         if roscore_process is not None:
             roscore_process.terminate()  # make sure everything is stopped
-        # in case we dont shutdown with roscore stop
-        rospy.signal_shutdown('test complete')
 
 
 def is_rostest_enabled():
     return rostest_enabled
 
 
-def rostest_or_nose_main(package, test_name, test, sysargv):
+def rostest_or_nose_main(package, test_name, test, sysargv=sys.argv):
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
 
     # Ros arguments will tell us if we started from ros, or from straight python
-    rosargs = [arg for arg in sys.argv if arg.startswith("__")]
+    rosargs = [arg for arg in sysargv if arg.startswith("__")]
 
     if len(rosargs) > 0:
         global rostest_enabled

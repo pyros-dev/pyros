@@ -63,6 +63,11 @@ def setup_module():
         # set required parameters - needs to match the content of *.test files for rostest to match
         rospy.set_param('/stringServiceTest/echo_service_name', 'test_service')
 
+        # we still need a node to interact with topics
+        rospy.init_node('TestStringService', anonymous=True, disable_signals=True)
+        # CAREFUL : this should be done only once per PROCESS
+        # Here we enforce TEST MODULE 1<->1 PROCESS. ROStest style
+
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
@@ -71,6 +76,8 @@ def teardown_module():
             pub_process.stop()
         if echo_process is not None:
             echo_process.stop()
+
+        rospy.signal_shutdown('test complete')
 
         rostest_nose.rostest_nose_teardown_module()
 
@@ -98,10 +105,6 @@ class TestStringService(unittest.TestCase):
 
     def setUp(self):
         self.logPoint()
-        """
-        Non roslaunch fixture setup method
-        :return:
-        """
         # Here we hook to the test service in supported ways
         param_name = "/stringServiceTest/echo_service_name"
         self.echo_service_name = rospy.get_param(param_name, "")
@@ -111,9 +114,6 @@ class TestStringService(unittest.TestCase):
 
         # No need of parameter for that, any str should work
         self.test_message = "testing"
-
-        # we still need a node to interact with topics
-        rospy.init_node('TestStringService', anonymous=True, disable_signals=True)
 
         try:
             # actual fixture stuff
@@ -127,10 +127,6 @@ class TestStringService(unittest.TestCase):
 
     def tearDown(self):
         self.logPoint()
-        """
-        Non roslaunch fixture teardown method
-        :return:
-        """
         pass
 
     def test_service(self):

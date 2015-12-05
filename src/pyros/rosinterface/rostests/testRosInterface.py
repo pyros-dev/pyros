@@ -41,6 +41,11 @@ def setup_module():
         empty_srv_process = launch.launch(empty_srv_node)
         trigger_srv_process = launch.launch(trigger_srv_node)
 
+        # we still need a node to interact with topics
+        rospy.init_node('ros_interface_test', anonymous=True, disable_signals=True)
+        # CAREFUL : this should be done only once per PROCESS
+        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
+
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
@@ -50,12 +55,13 @@ def teardown_module():
         if trigger_srv_process is not None:
             trigger_srv_process.stop()
 
+        rospy.signal_shutdown('test complete')
+
         rostest_nose.rostest_nose_teardown_module()
 
 
 class TestRosInterface(unittest.TestCase):
     def setUp(self):
-        rospy.init_node('ros_interface_test')
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
         

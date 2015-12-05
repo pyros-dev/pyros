@@ -58,6 +58,11 @@ def setup_module():
         rospy.set_param('/stringTopicTest/pub_topic_name', 'test_topic')
         rospy.set_param('/stringTopicTest/echo_topic_name', 'echo_test_topic')
 
+        # we still need a node to interact with topics
+        rospy.init_node('TestStringTopic', anonymous=True, disable_signals=True)
+        # CAREFUL : this should be done only once per PROCESS
+        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
+
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
@@ -66,6 +71,8 @@ def teardown_module():
             pub_process.stop()
         if echo_process is not None:
             echo_process.stop()
+
+        rospy.signal_shutdown('test complete')
 
         rostest_nose.rostest_nose_teardown_module()
 
@@ -157,9 +164,6 @@ class TestStringTopic(unittest.TestCase):
         # No need of parameter for that, any str should work
         self.test_message = "testing"
 
-        # we still need a node to interact with topics
-        rospy.init_node('TestStringTopic', anonymous=True, disable_signals=True)
-
         try:
             # actual fixture stuff
             # looking for the topic ( similar code than ros_interface.py )
@@ -174,10 +178,6 @@ class TestStringTopic(unittest.TestCase):
 
     def tearDown(self):
         self.logPoint()
-        """
-        Non roslaunch fixture teardown method
-        :return:
-        """
         pass
 
     def test_topic(self):
