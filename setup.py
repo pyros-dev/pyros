@@ -39,7 +39,7 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
 else:  # using setuptools : http://pythonhosted.org/setuptools/
 
     setup(name='pyros',
-        version='0.0.6',
+        version='0.1.0',
         description='ROS Node to provide ROS introspection for non-ROS users.',
         url='http://github.com/asmodehn/rostful-node',
         author='AlexV',
