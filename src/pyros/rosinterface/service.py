@@ -17,7 +17,7 @@ except ImportError:
 
 
 from importlib import import_module
-from collections import deque
+from collections import OrderedDict
 
 import json
 import sys
@@ -54,6 +54,23 @@ class ServiceBack:
         #rospy.logwarn('srvtype : %r', self.srvtype)
 
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
+
+    def asdict(self):
+        """
+        Here we provide a dictionary suitable for a representation of the Topic instance
+        the main point here is to make it possible to transfer this to remote processes.
+        We are not interested in pickleing the whole class with Subscriber and Publisher
+        :return:
+        """
+
+        return OrderedDict({
+            'name': self.name,
+            'fullname': self.fullname,
+            'srvtype': self.srvtype,
+            'rostype_name': self.rostype_name,
+            'rostype_req': self.rostype_req,
+            'rostype_resp': self.rostype_resp,
+        })
 
     def call(self, rosreq = None):
 #       rosreq = self.rostype_req()

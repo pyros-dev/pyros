@@ -14,11 +14,13 @@ except ImportError, e:
 import zmp
 from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 
+from pyros.baseinterface import PyrosBase
 from dynamic_reconfigure.server import Server
 from pyros.cfg import PyrosConfig
 import ast
 import json
 import os
+import logging
 
 # TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
 
@@ -26,7 +28,8 @@ import pyros.srv as srv
 from . import message_conversion as msgconv
 from .action import ActionBack
 
-class PyrosROS(zmp.Node):
+
+class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
@@ -46,8 +49,6 @@ class PyrosROS(zmp.Node):
         else:
             self.rocon_if = None
 
-        # Create a dynamic reconfigure server.
-        self.server = Server(PyrosConfig, self.reconfigure)
 
         ##############################################################################################
         #### Helpers in case we need to listen to someone talking from a different process
@@ -226,15 +227,15 @@ class PyrosROS(zmp.Node):
 
         self.provides(self.msg_build)
         self.provides(self.topic)
-        self.provides(self.topic_list)
+        self.provides(self.topics)
         self.provides(self.service)
-        self.provides(self.service_list)
+        self.provides(self.services)
         self.provides(self.param)
-        self.provides(self.param_list)
-        self.provides(self.interactions)
-        self.provides(self.namespaces)
-        self.provides(self.interaction)
-        self.provides(self.has_rocon)
+        self.provides(self.params)
+        #self.provides(self.interactions)
+        #self.provides(self.namespaces)
+        #self.provides(self.interaction)
+        #self.provides(self.has_rocon)
 
         ####
 
@@ -265,27 +266,12 @@ class PyrosROS(zmp.Node):
         except msgconv.FieldTypeMismatchException, e:
             rospy.logerr("Rostful Node : field type mismatch %r" % e)
 
-    def topic_list(self):
+    def topics(self):
+        topics_dict = {}
         if self.ros_if:
-            # get the dict of topics, and then extract only the relevant
-            # information from the topic objects, putting them into another dict
-            # with a named tuple as the value
-            topic_dict = {}
-            for topic in self.ros_if.topics:
-                tp = self.ros_if.topics[topic]
-                topic_dict[topic] = TopicInfo(
-                    name=tp.name,
-                    fullname=tp.fullname,
-                    msgtype=tp.msgtype,
-                    allow_sub=tp.allow_sub,
-                    allow_pub=tp.allow_pub,
-                    rostype=tp.rostype,
-                    rostype_name=tp.rostype_name
-                )
-
-            return topic_dict
-                
-        return {}
+            for t, tinst in self.ros_if.topics.iteritems():
+                topics_dict[t] = tinst.asdict()
+        return topics_dict
 
     def service(self, name, rqst_content=None):
         try:
@@ -307,23 +293,12 @@ class PyrosROS(zmp.Node):
 
     ###
 
-    def service_list(self):
+    def services(self):
+        services_dict = {}
         if self.ros_if:
-            service_dict = {}
-            for service in self.ros_if.services:
-                srv = self.ros_if.services[service]
-                service_dict[service] = ServiceInfo(
-                    name=srv.name,
-                    fullname=srv.fullname,
-                    srvtype=srv.srvtype,
-                    rostype_name=srv.rostype_name,
-                    rostype_req=srv.rostype_req,
-                    rostype_resp=srv.rostype_resp
-                )
-
-            return service_dict
-                
-        return {}
+            for s, sinst in self.ros_if.services.iteritems():
+                services_dict[s] = sinst.asdict()
+        return services_dict
 
     def param(self, name, value=None):
         if self.ros_if and self.ros_if.get_param(name):
@@ -334,22 +309,12 @@ class PyrosROS(zmp.Node):
                 value = self.ros_if.get_param(name).get()
         return value
 
-    def param_list(self):
+    def params(self):
+        params_dict = {}
         if self.ros_if:
-            # get the dict of params, and then extract only the relevant
-            # information from the topic objects, putting them into another dict
-            # with a named tuple as the value
-            param_dict = {}
-            for param in self.ros_if.params:
-                prm = self.ros_if.params[param]
-                param_dict[param] = ParamInfo(
-                    name=prm.name,
-                    fullname=prm.fullname,
-                )
-
-            return param_dict
-
-        return {}
+            for p, pinst in self.ros_if.params.iteritems():
+                params_dict[p] = pinst.asdict()
+        return params_dict
 
     def interaction(self, name):
         if self.rocon_if and name in self.rocon_if.interactions:
@@ -390,6 +355,9 @@ class PyrosROS(zmp.Node):
         rospy.init_node(self.name, argv=self.argv, disable_signals=True)
         rospy.logwarn('rostful node started with args : %r', self.argv)
 
+        # Create a dynamic reconfigure server ( needs to be done after node_init )
+        self.server = Server(PyrosConfig, self.reconfigure)
+
         #TODO : install shutdown hook to shutdown if detected
 
         logging.debug("zmp[{name}] running, pid[{pid}]".format(name=self.name, pid=os.getpid()))
@@ -397,6 +365,14 @@ class PyrosROS(zmp.Node):
         super(PyrosROS, self).run()
 
         logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+
+
+    def update(self):
+        """
+        Update function to call from a looping thread.
+        """
+
+        self.ros_if.update()
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
@@ -415,3 +391,5 @@ class PyrosROS(zmp.Node):
         return config
 
 
+
+PyrosBase.register(PyrosROS)

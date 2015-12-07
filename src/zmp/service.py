@@ -102,12 +102,13 @@ class Service(object):
             evts = dict(poller.poll(recv_timeout))  # blocking until answer
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"
-                fullresp = ServiceResponse_dictparse(socket.recv())
+                resp = socket.recv()
+                fullresp = ServiceResponse_dictparse(resp)
 
                 if fullresp.has_field('response'):
                     return pickle.loads(fullresp.response)
                 elif fullresp.has_field('exception'):
-                    svcexc = ServiceException_dictparse(socket.recv())
+                    svcexc = ServiceException_dictparse(resp)
                     tb = pickle.loads(svcexc.traceback)
                     if Traceback and isinstance(tb, Traceback):
                         reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb.as_traceback())

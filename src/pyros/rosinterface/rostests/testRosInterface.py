@@ -394,7 +394,7 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
         # NOTE : We need to wait to make sure the tests nodes are started...
-        from pyros.mockinterface.baseinterface import BaseInterface
+        from pyros.baseinterface import BaseInterface
         dt = BaseInterface.DiffTuple([], [])
         while not dt or servicename not in dt[0]:
             dt = self.interface.update()

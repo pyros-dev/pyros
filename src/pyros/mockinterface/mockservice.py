@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import deque, namedtuple
 
-from .baseservice import BaseService
+from pyros.baseinterface import BaseService
 
 ServiceType = namedtuple("ServiceType", "reqtype resptype")
 

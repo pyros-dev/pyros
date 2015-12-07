@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import abc
-from .baseinterface import BaseInterface
+from pyros.baseinterface import BaseInterface
 
 from .mockservice import MockService
 from .mocktopic import MockTopic

@@ -51,26 +51,26 @@ class PyrosClient(object):
         ):
             raise PyrosServiceNotFound('param')
 
-        self.topic_list_svc = zmp.Service.discover('topic_list', 5)
-        if self.topic_list_svc is None or (
+        self.topics_svc = zmp.Service.discover('topics', 5)
+        if self.topics_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.topic_list_svc.providers
+            self.node_name not in self.topics_svc.providers
         ):
-            raise PyrosServiceNotFound('topic_list')
+            raise PyrosServiceNotFound('topics')
 
-        self.service_list_svc = zmp.Service.discover('service_list', 5)
-        if self.service_list_svc is None or (
+        self.services_svc = zmp.Service.discover('services', 5)
+        if self.services_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.service_list_svc.providers
+            self.node_name not in self.services_svc.providers
         ):
-            raise PyrosServiceNotFound('service_list')
+            raise PyrosServiceNotFound('services')
 
-        self.param_list_svc = zmp.Service.discover('param_list', 5)
-        if self.param_list_svc is None or (
+        self.params_svc = zmp.Service.discover('params', 5)
+        if self.params_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.param_list_svc.providers
+            self.node_name not in self.params_svc.providers
         ):
-            raise PyrosServiceNotFound('param_list')
+            raise PyrosServiceNotFound('params')
 
         # ROCON stuff
         # self.namespaces_svc = zmp.Service.discover('namespaces', 5)
@@ -183,35 +183,35 @@ class PyrosClient(object):
         res = self.param_svc.call(args=(param_name, None,))
         return res
 
-    def listtopics(self):
-        res = self.topic_list_svc.call(args=({},))
+    def topics(self):
+        res = self.topics_svc.call()
         return res
         
-    def listsrvs(self):
-        res = self.service_list_svc.call(args=({},))
+    def services(self):
+        res = self.services_svc.call()
         return res
 
-    def listparams(self):
-        res = self.param_list_svc.call(args=({},))
+    def params(self):
+        res = self.params_svc.call()
         return res
 
-    def listacts(self):
-        return {}
+    #def listacts(self):
+    #    return {}
 
-    def namespaces(self):
-        res = self.namespaces_svc.call(args=({},))
-        return res
+    # def namespaces(self):
+    #    res = self.namespaces_svc.call(args=({},))
+    #    return res
 
-    def interactions(self):
-        res = self.interactions_svc.call(args=({},))
-        return res
+    # def interactions(self):
+    #    res = self.interactions_svc.call(args=({},))
+    #    return res
 
-    def interaction(self, name):
-        res = self.interaction_svc.call(args=("",))
-        return res
+    # def interaction(self, name):
+    #    res = self.interaction_svc.call(args=("",))
+    #    return res
 
-    def has_rocon(self):
-        res = self.interaction_svc.call(args=(False,))
-        return res
+    # def has_rocon(self):
+    #    res = self.has_rocon_svc.call(args=(False,))
+    #    return res
 
 # TODO : test client with Rostful Node ( and detect ROS or not to confirm behvior )

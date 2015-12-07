@@ -7,7 +7,7 @@ import re
 import ast
 import socket
 
-from pyros.mockinterface.baseinterface import BaseInterface
+from pyros.baseinterface import BaseInterface
 
 from .action import ActionBack
 from .service import ServiceBack

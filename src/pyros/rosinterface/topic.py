@@ -17,7 +17,7 @@ except ImportError:
     import actionlib_msgs.msg
 
 from importlib import import_module
-from collections import deque
+from collections import deque, OrderedDict
 
 import json
 import sys
@@ -32,10 +32,11 @@ from .util import ROS_MSG_MIMETYPE, request_wants_ros, get_query_bool
 import os
 import urlparse
 
+
 """
-TopicBack is the class handling conversion from REST API to ROS Topic
+TopicBack is the class handling conversion from Python to ROS Topic
 """
-class TopicBack:
+class TopicBack(object):
     def __init__(self, topic_name, topic_type, allow_pub=True, allow_sub=True, queue_size=1):
         self.name = topic_name
         # getting the fullname to make sure we start with /
@@ -66,6 +67,23 @@ class TopicBack:
             self.sub = rospy.Subscriber(self.name, self.rostype, self.topic_callback)
 
         self.empty_cb = None
+
+    def asdict(self):
+        """
+        Here we provide a dictionary suitable for a representation of the Topic instance
+        the main point here is to make it possible to transfer this to remote processes.
+        We are not interested in pickleing the whole class with Subscriber and Publisher
+        :return:
+        """
+        return OrderedDict({
+            'name': self.name,
+            'fullname': self.fullname,
+            'msgtype': self.msgtype,
+            'allow_sub': self.allow_sub,
+            'allow_pub': self.allow_pub,
+            'rostype': self.rostype,
+            'rostype_name': self.rostype_name,
+        })
 
     def publish(self, msg):
         # enforcing correct type to make send / receive symmetric and API less magical

@@ -205,14 +205,12 @@ class Node(multiprocessing.Process):
                     exctype, excvalue, tb = sys.exc_info()
                     if Traceback is not None:
                         svc_socket.send(ServiceException(
-                            service=req.service if req else "Unknown",
                             exc_type=pickle.dumps(exctype),
                             exc_value=pickle.dumps(excvalue),
                             traceback=pickle.dumps(Traceback(tb)),
                         ).serialize())
                     else:
                         svc_socket.send(ServiceException(
-                            service=req.service if req else "Unknown",
                             exc_type=pickle.dumps(exctype),
                             exc_value=pickle.dumps(excvalue),
                             traceback=pickle.dumps("Traceback Unavailable. python-tblib needs to be installed."),

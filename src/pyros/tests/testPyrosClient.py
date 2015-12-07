@@ -14,6 +14,7 @@ from nose.tools import assert_equal, assert_raises
 class TestPyrosClientOnMock(object):
     def setUp(self):
         self.mockInstance = PyrosMock()
+        # setting up mock instance
         cmd_conn = self.mockInstance.start()
         self.client = PyrosClient(cmd_conn)
 
@@ -21,6 +22,13 @@ class TestPyrosClientOnMock(object):
         self.mockInstance.shutdown()
 
     ### TOPICS ###
+
+    def test_list_all(self):
+        t = self.client.topics()
+        # Make sure we get all mock topics
+        assert t is not None
+
+
     def test_inject_None(self):  # injecting None is meaningless and should return false
         assert self.client.topic_inject('random_topic', None)  # simply check that it injected (default Empty since we support kwargs)
 

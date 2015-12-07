@@ -17,6 +17,7 @@ from nose.tools import timed, assert_true, assert_false, assert_raises, assert_e
 # TODO : PYPY
 # http://pypy.org/
 
+# TODO : Test Node exception : correctly tramsmitted, node still keeps spinning...
 
 ### TESTING NODE CREATION / TERMINATION ###
 # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
@@ -64,6 +65,8 @@ def test_node_creation_double_termination():
     assert_false(n1.is_alive())
     n1.shutdown()
     assert_false(n1.is_alive())
+
+# TODO : test update() method is actually called ( how ?)
 
 ### TODO : more testing in case of crash in process, exception, signal, etc.
 
