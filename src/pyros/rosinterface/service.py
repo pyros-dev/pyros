@@ -1,10 +1,20 @@
 from __future__ import absolute_import
 
-import roslib
-import rospy
-from rospy.service import ServiceManager
-import rosservice, rostopic
-import actionlib_msgs.msg
+from . import ros_setup
+try:
+    import roslib
+    import rospy
+    from rospy.service import ServiceManager
+    import rosservice, rostopic
+    import actionlib_msgs.msg
+except ImportError:
+    ros_setup.ROS_emulate_setup()
+    import roslib
+    import rospy
+    from rospy.service import ServiceManager
+    import rosservice, rostopic
+    import actionlib_msgs.msg
+
 
 from importlib import import_module
 from collections import deque

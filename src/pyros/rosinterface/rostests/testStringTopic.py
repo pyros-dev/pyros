@@ -3,13 +3,9 @@ from __future__ import absolute_import
 
 
 import sys
-import os
-# to be able to run from source
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-# Unit test import
-from pyros.rosinterface import message_conversion as msgconv
-from pyros.rosinterface import TopicBack
+# Unit test import ( will emulate ROS setup if needed )
+from pyros.rosinterface.topic import TopicBack
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
@@ -19,7 +15,7 @@ from std_msgs.msg import String, Empty
 
 import pyros
 
-from pyros.rosinterface.tests import rostest_nose
+from . import rostest_nose
 import logging
 import inspect
 import unittest

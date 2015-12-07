@@ -78,13 +78,19 @@ if (CATKIN_ENABLE_TESTING)
     # Ros Tests
     ##############################################################################
 
-    find_package(catkin REQUIRED COMPONENTS rostest)
+    # find_package(catkin REQUIRED COMPONENTS rostest)
 
-    add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
-    add_rostest(src/pyros/rosinterface/rostests/testStringService.test)
+    # These rostests need to be run one by one ( because of rospy side effects)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testStringService.py)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testStringTopic.py)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testRosInterface.py)
+    # Running with nose because rostest fails ( not sure why yet )
+
+    # add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
+    # add_rostest(src/pyros/rosinterface/rostests/testStringService.test)
 
     # Testing rosinterface class integration in pyros
-    add_rostest(src/pyros/rosinterface/rostests/testRosInterface.test)
+    # add_rostest(src/pyros/rosinterface/rostests/testRosInterface.test)
 
 
 endif()

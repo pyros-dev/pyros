@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
-
 import sys
-import os
-# to be able to run from source
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import logging
 
-
-# Unit test import
+# Unit test import (  will emulate ROS setup if needed )
 from pyros.rosinterface import RosInterface
-# ROS imports should now work from ROS or from python (without ROS env setup)
+
 import rospy
 import roslaunch
 from std_msgs.msg import String, Empty
@@ -18,7 +14,7 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 
 
 # useful test tools
-from pyros.rosinterface.tests import rostest_nose
+from . import rostest_nose
 import unittest
 
 # test node process not setup by default (rostest dont need it here)

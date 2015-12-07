@@ -2,20 +2,9 @@
 from __future__ import absolute_import
 
 import sys
-import os
-# to be able to run from source with rostest
-devel_py_pkg = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-if os.path.exists(devel_py_pkg):
-    sys.path.append(devel_py_pkg)
-
 import logging
 
-# nose get this from source ( specific nose import behavior for unit tests )
-# rostest get this from devel workspace
-import pyros
-logging.info("pyros imported from {path}".format(path=pyros.__file__))
 # Unit test import
-from pyros.rosinterface import message_conversion as msgconv
 from pyros.rosinterface import ServiceBack
 
 # ROS imports should now work from ROS or from python (with or without ROS env setup - emulated if needed)
@@ -26,8 +15,7 @@ from std_msgs.msg import String, Empty
 from pyros.srv import StringEchoService
 
 #useful test tools
-from pyros.rosinterface.tests import rostest_nose
-import logging
+from . import rostest_nose
 import inspect
 import unittest
 import nose

@@ -10,7 +10,6 @@ from pyros.rosinterface import message_conversion as msgconv
 import rospy
 
 # useful test tools
-from pyros.rosinterface.tests import rostest_nose
 import nose
 from nose.tools import assert_equal, assert_true, assert_false
 
