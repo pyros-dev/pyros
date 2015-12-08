@@ -26,7 +26,6 @@ import logging
 
 import pyros.srv as srv
 from . import message_conversion as msgconv
-from .action import ActionBack
 
 
 class PyrosROS(PyrosBase):
@@ -56,136 +55,6 @@ class PyrosROS(PyrosBase):
         # Note : It should be working fine for services however
         # TODO : change this to use pure python code to avoid confusion ( for ex. using multiprocessing lib )
         ##############################################################################################
-        def start_action(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Action {action} Start: \n{data} """.format(
-                action=req.action_name,
-                data=req.data_json
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #action_name = unicodedata.normalize('NFKD', req.action_name).encode('ascii', 'ignore')
-            #action is raw str
-            if req.action_name[0] == '/':
-                req.action_name = req.action_name[1:]
-
-            res = False
-            if self.ros_if and req.action_name in self.ros_if.actions:
-                action = self.ros_if.actions[req.action_name]
-
-                goal_msg_type = action.get_msg_type(ActionBack.GOAL_SUFFIX)
-                goal_msg = goal_msg_type()
-
-                input_data = json.loads(req.data_json)
-                input_data.pop('_format', None)  # to follow REST interface design ( maybe shouldnt be here )
-                msgconv.populate_instance(input_data, goal_msg)
-
-                action.publish_goal(goal_msg)
-                res = True
-
-            return srv.StartActionResponse(res)
-
-        def cancel_action(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Action {action} Cancel: \n{data} """.format(
-                action=req.action_name,
-                data=req.data_json
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #action_name = unicodedata.normalize('NFKD', req.action_name).encode('ascii', 'ignore')
-            #action is raw str
-            if req.action_name[0] == '/':
-                req.action_name = req.action_name[1:]
-
-            res = False
-            if self.ros_if and req.action_name in self.ros_if.actions:
-                action = self.ros_if.actions[req.action_name]
-
-                cancel_msg_type = action.get_msg_type(ActionBack.CANCEL_SUFFIX)
-                cancel_msg = cancel_msg_type()
-
-                cancel_data = json.loads(req.data_json)
-                cancel_data.pop('_format', None)  # to follow REST interface design ( maybe shouldnt be here )
-                msgconv.populate_instance(cancel_data, cancel_msg)
-
-                action.publish_cancel(cancel_msg)
-                res = True
-
-            return srv.CancelActionResponse(res)
-
-        def status_action(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Action {action} Status""".format(
-                action=req.action_name
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #action_name = unicodedata.normalize('NFKD', req.action_name).encode('ascii', 'ignore')
-            #action is raw str
-            if req.action_name[0] == '/':
-                req.action_name = req.action_name[1:]
-
-            res = False
-            if self.ros_if and req.action_name in self.ros_if.actions:
-                action = self.ros_if.actions[req.action_name]
-
-                msg = action.get_status()
-
-                if msg is not None:
-                    output_data = msgconv.extract_values(msg)
-                    output_data['_format'] = 'ros'  # to follow existing REST behavior
-                else:
-                    output_data = None
-                output_data = json.dumps(output_data)
-
-            return srv.StatusActionResponse(output_data)
-
-        def feedback_action(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Action {action} Feedback""".format(
-                action=req.action_name
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #action_name = unicodedata.normalize('NFKD', req.action_name).encode('ascii', 'ignore')
-            #action is raw str
-            if req.action_name[0] == '/':
-                req.action_name = req.action_name[1:]
-
-            res = False
-            if self.ros_if and req.action_name in self.ros_if.actions:
-                action = self.ros_if.actions[req.action_name]
-
-                msg = action.get_feedback()
-
-                if msg is not None:
-                    output_data = msgconv.extract_values(msg)
-                    output_data['_format'] = 'ros'  # to follow existing REST behavior
-                else:
-                    output_data = None
-                output_data = json.dumps(output_data)
-
-            return srv.FeedbackActionResponse(output_data)
-
-        def result_action(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Action {action} Result""".format(
-                action=req.action_name
-            ))
-
-            #normalizing names... ( somewhere else ?)
-            #action_name = unicodedata.normalize('NFKD', req.action_name).encode('ascii', 'ignore')
-            #action is raw str
-            if req.action_name[0] == '/':
-                req.action_name = req.action_name[1:]
-
-            res = False
-            if self.ros_if and req.action_name in self.ros_if.actions:
-                action = self.ros_if.actions[req.action_name]
-
-                msg = action.get_result()
-
-                output_data = msgconv.extract_values(msg) if msg is not None else None
-                output_data['_format'] = 'ros'  # to follow existing REST behavior
-                output_data = json.dumps(output_data)
-
-            return srv.ResultActionResponse(output_data)
 
         def start_rapp(req):  # Keep this minimal
             rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
@@ -197,7 +66,7 @@ class PyrosROS(PyrosBase):
             if req.rapp_name[0] == '/':
                 req.rapp_name = req.rapp_name[1:]
 
-            if self.rocon_if :
+            if self.rocon_if:
                 #TMP
                 if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
                     self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
@@ -217,11 +86,6 @@ class PyrosROS(PyrosBase):
             output_data = json.dumps(res)
             return srv.StopRappResponse(output_data)
 
-        self.ActionStartService = rospy.Service('~start_action', srv.StartAction, start_action)
-        self.ActionCancelService = rospy.Service('~cancel_action', srv.CancelAction, cancel_action)
-        self.ActionStatusService = rospy.Service('~status_action', srv.StatusAction, status_action)
-        self.ActionFeedbackService = rospy.Service('~feedback_action', srv.FeedbackAction, feedback_action)
-        self.ActionResultService = rospy.Service('~result_action', srv.ResultAction, result_action)
         self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
         self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
 

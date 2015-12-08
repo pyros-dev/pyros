@@ -10,12 +10,11 @@ from nose.tools import assert_true, assert_false, assert_raises
 
 
 def test_echo_fortytwo():
-    param = MockParam('random_param')
+    param = MockParam('random_param', int)
     assert_true(param.set(42))
     recv = param.get()
     print(recv)
     assert_true(recv == 42)
-
 
 
 if __name__ == '__main__':

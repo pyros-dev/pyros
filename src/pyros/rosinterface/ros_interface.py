@@ -9,47 +9,9 @@ import socket
 
 from pyros.baseinterface import BaseInterface
 
-from .action import ActionBack
 from .service import ServiceBack
 from .topic import TopicBack
 from .param import ParamBack
-
-CONFIG_PATH = '_rosdef'
-SRV_PATH = '_srv'
-MSG_PATH = '_msg'
-ACTION_PATH = '_action'
-
-def get_suffix(path):
-    suffixes = '|'.join([re.escape(s) for s in [CONFIG_PATH,SRV_PATH,MSG_PATH,ACTION_PATH]])
-    match = re.search(r'/(%s)$' % suffixes, path)
-    return match.group(1) if match else ''
-
-def response(start_response, status, data, content_type):
-    content_length = 0
-    if data is not None:
-        content_length = len(data)
-    headers = [('Content-Type', content_type), ('Content-Length', str(content_length))]
-    start_response(status, headers)
-    return data
-#TODO clean this
-def response_200(start_response, data='', content_type='application/json'):
-    return response(start_response, '200 OK', data, content_type)
-
-def response_404(start_response, data='Invalid URL!', content_type='text/plain'):
-    return response(start_response, '404 Not Found', data, content_type)
-
-def response_405(start_response, data=[], content_type='text/plain'):
-    return response(start_response, '405 Method Not Allowed', data, content_type)
-
-def response_500(start_response, error, content_type='text/plain'):
-    e_str = '%s: %s' % (str(type(error)), str(error))
-    return response(start_response, '500 Internal Server Error', e_str, content_type)
-
-class ActionNotExposed(Exception):
-    def __init__(self, action_name):
-        self.action_name = action_name
-    pass
-
 
 
 class RosInterface(BaseInterface):
@@ -64,8 +26,6 @@ class RosInterface(BaseInterface):
         self.params_available = set()
         # connecting to the master via proxy object
         self._master = rospy.get_master()
-
-
 
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
@@ -83,8 +43,6 @@ class RosInterface(BaseInterface):
     def ServiceMaker(self, service_name, service_type):  # the service class implementation
         return ServiceBack(service_name, service_type)
 
-
-
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
         return self.topics_available
@@ -100,7 +58,7 @@ class RosInterface(BaseInterface):
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return TopicBack(topic_name, topic_type, *args, **kwargs)
 
-
+    # PARAMS
     def get_param_list(self):  # function returning all params available on the system
         return self.params_available
 

@@ -16,11 +16,6 @@ generate_dynamic_reconfigure_options(cfg/Pyros.cfg)
 
 add_service_files(DIRECTORY srv
     FILES
-    StartAction.srv
-    CancelAction.srv
-    StatusAction.srv
-    FeedbackAction.srv
-    ResultAction.srv
     StartRapp.srv
     StopRapp.srv
     StringEchoService.srv
