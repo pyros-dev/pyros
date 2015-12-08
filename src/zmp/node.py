@@ -181,7 +181,8 @@ class Node(multiprocessing.Process):
                 req = None
                 try:
                     print('-> POLLIN on {0}'.format(svc_socket))
-                    req = ServiceRequest_dictparse(svc_socket.recv())
+                    req_unparsed = svc_socket.recv()
+                    req = ServiceRequest_dictparse(req_unparsed)
                     if isinstance(req, ServiceRequest):
                         if req.service and req.service in self._providers.keys():
 
@@ -199,21 +200,27 @@ class Node(multiprocessing.Process):
 
                         else:
                             raise UnknownServiceException("Unknown Service {0}".format(req.service))
-                    else:
+                    else:  # should not happen : dictparse would fail before reaching here...
                         raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
                 except Exception:  # we transmit back all errors, and keep spinning...
                     exctype, excvalue, tb = sys.exc_info()
                     if Traceback is not None:
-                        svc_socket.send(ServiceException(
-                            exc_type=pickle.dumps(exctype),
-                            exc_value=pickle.dumps(excvalue),
-                            traceback=pickle.dumps(Traceback(tb)),
+                        svc_socket.send(ServiceResponse(
+                            service=req.service,
+                            exception=ServiceException(
+                                exc_type=pickle.dumps(exctype),
+                                exc_value=pickle.dumps(excvalue),
+                                traceback=pickle.dumps(Traceback(tb)),
+                            )
                         ).serialize())
                     else:
-                        svc_socket.send(ServiceException(
-                            exc_type=pickle.dumps(exctype),
-                            exc_value=pickle.dumps(excvalue),
-                            traceback=pickle.dumps("Traceback Unavailable. python-tblib needs to be installed."),
+                        svc_socket.send(ServiceResponse(
+                            service=req.service,
+                            exception=ServiceException(
+                                exc_type=pickle.dumps(exctype),
+                                exc_value=pickle.dumps(excvalue),
+                                traceback=pickle.dumps("Traceback Unavailable. python-tblib needs to be installed."),
+                            )
                         ).serialize())
 
         # concealing services

@@ -232,8 +232,6 @@ class BaseInterface(object):
         self.topics = {}
         self.params = {}
         self.actions = {}
-        # Currently we ensure that all
-        # the sets contain strings which do not have a leading slash.
 
         # Last requested services topics and actions to be exposed, received
         # from a reconfigure request. Topics which match topics containing

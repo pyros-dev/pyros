@@ -21,6 +21,7 @@ import ast
 import json
 import os
 import logging
+import unicodedata
 
 # TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
 
@@ -32,9 +33,10 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, dynamic_reconfigure = True):
+    def __init__(self, name=None, argv=None, dynamic_reconfigure=True):
         super(PyrosROS, self).__init__(name=name or 'pyros_ros')
-        self.argv = argv
+        # protecting rospy from unicode
+        self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.dynamic_reconfigure = dynamic_reconfigure
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon
@@ -100,11 +102,11 @@ class PyrosROS(PyrosBase):
     def msg_build(self, connec_name):
         msg = None
         if self.ros_if:
-            if self.ros_if.get_topic(connec_name):
-                input_msg_type = self.ros_if.get_topic(connec_name).rostype
+            if connec_name in self.ros_if.topics.keys():
+                input_msg_type = self.ros_if.topics.get(connec_name, None).rostype
                 msg = input_msg_type()
-            elif self.ros_if.get_service(connec_name):
-                input_msg_type = self.ros_if.get_service(connec_name).rostype_req
+            elif connec_name in self.ros_if.services.keys():
+                input_msg_type = self.ros_if.services.get(connec_name, None).rostype_req
                 msg = input_msg_type()
         return msg
 
@@ -112,13 +114,13 @@ class PyrosROS(PyrosBase):
     def topic(self, name, msg_content=None):
         try:
             msg = self.msg_build(name)
-            if self.ros_if and self.ros_if.get_topic(name):
+            if self.ros_if and name in self.ros_if.topics.keys():
                 if msg_content is not None:
                     msgconv.populate_instance(msg_content, msg)
-                    self.ros_if.get_topic(name).publish(msg)
+                    self.ros_if.topics.get(name, None).publish(msg)
                     msg = None  # consuming the message
                 else:
-                    res = self.ros_if.get_topic(name).get(consume=False)
+                    res = self.ros_if.topics.get(name, None).get(consume=False)
                     msg = msgconv.extract_values(res) if res else res
             return msg
         except msgconv.FieldTypeMismatchException, e:
@@ -137,8 +139,8 @@ class PyrosROS(PyrosBase):
             rqst = self.msg_build(name)
             msgconv.populate_instance(rqst_content, rqst)
 
-            if self.ros_if and self.ros_if.get_service(name):
-                resp = self.ros_if.get_service(name).call(rqst)
+            if self.ros_if and name in self.ros_if.services.keys():
+                resp = self.ros_if.services.get(name, None).call(rqst)
                 resp_content = msgconv.extract_values(resp)
             return resp_content
 
@@ -159,12 +161,12 @@ class PyrosROS(PyrosBase):
         return services_dict
 
     def param(self, name, value=None):
-        if self.ros_if and self.ros_if.get_param(name):
+        if self.ros_if and name in self.ros_if.params.keys():
             if value is not None:
-                self.ros_if.get_param(name).set(value)
+                self.ros_if.params.get(name, None).set(value)
                 value = None  # consuming the message
             else:
-                value = self.ros_if.get_param(name).get()
+                value = self.ros_if.params.get(name, None).get()
         return value
 
     def params(self):
@@ -213,8 +215,8 @@ class PyrosROS(PyrosBase):
         """
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
-        rospy.init_node(self.name, argv=self.argv, disable_signals=True)
-        rospy.logwarn('PyrosROS node started with args : %r', self.argv)
+        rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
+        rospy.logwarn('PyrosROS node started with args : %r', self.str_argv)
 
         if self.dynamic_reconfigure:
             # Create a dynamic reconfigure server ( needs to be done after node_init )

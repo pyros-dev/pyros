@@ -78,7 +78,6 @@ class TopicBack(object):
             'msgtype': self.msgtype,
             'allow_sub': self.allow_sub,
             'allow_pub': self.allow_pub,
-            'rostype': self.rostype,
             'rostype_name': self.rostype_name,
         })
 

@@ -70,10 +70,8 @@ class ServiceBack:
         return OrderedDict({
             'name': self.name,
             'fullname': self.fullname,
-            'srvtype': self.srvtype,
             'rostype_name': self.rostype_name,
-            'rostype_req': self.rostype_req,
-            'rostype_resp': self.rostype_resp,
+            'srvtype': self.srvtype,
         })
 
     def call(self, rosreq = None):

@@ -111,7 +111,7 @@ class Service(object):
                 if fullresp.has_field('response'):
                     return pickle.loads(fullresp.response)
                 elif fullresp.has_field('exception'):
-                    svcexc = ServiceException_dictparse(resp)
+                    svcexc = fullresp.exception  # This has already been parsed by ServiceResponse_dictparse
                     tb = pickle.loads(svcexc.traceback)
                     if Traceback and isinstance(tb, Traceback):
                         reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb.as_traceback())

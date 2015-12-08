@@ -19,6 +19,7 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal, n
 # TODO : PYPY
 # http://pypy.org/
 
+
 @nottest
 class TestMockHWNode(object):
     __test__ = False
@@ -321,7 +322,7 @@ class TestMockHWNode(object):
 
 
 
-    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_sub(self):
 
         print("\n" + inspect.currentframe().f_code.co_name)
@@ -338,7 +339,7 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
-    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+    # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_except_from_node_no_service(self):
 
         print("\n" + inspect.currentframe().f_code.co_name)
@@ -359,28 +360,7 @@ class TestMockHWNode(object):
         self.hwnode.shutdown()
         assert_false(self.hwnode.is_alive())
 
-    @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
-    def test_service_except_from_node_wrong_request(self):
-
-        print("\n" + inspect.currentframe().f_code.co_name)
-        assert_false(self.hwnode.is_alive())
-        self.hwnode.start()
-        assert_true(self.hwnode.is_alive())
-
-        print "Discovering breakworld Service..."
-        breakworld = zmp.discover("breakworld", 5)
-        assert_true(breakworld is not None)  # to make sure we get a service provided
-
-        # messing around even if we shouldnt
-        #TODO
-
-        #with assert_raises(zmp.Node.UnknownRequestTypeException) as cm:
-        #    resp = breakworld.call("Hello")
-
-        self.hwnode.shutdown()
-        assert_false(self.hwnode.is_alive())
-
-    # TODO : check unknown response type
+    # TODO : check mo exception cases
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_params_comm_to_sub(self):

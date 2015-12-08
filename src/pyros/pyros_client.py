@@ -184,15 +184,15 @@ class PyrosClient(object):
         return res
 
     def topics(self):
-        res = self.topics_svc.call()
+        res = self.topics_svc.call()  # CAREFUL : timeout can return None
         return res
         
     def services(self):
-        res = self.services_svc.call()
+        res = self.services_svc.call()  # CAREFUL : timeout can return None
         return res
 
     def params(self):
-        res = self.params_svc.call()
+        res = self.params_svc.call()  # CAREFUL : timeout can return None
         return res
 
     #def listacts(self):
