@@ -5,6 +5,7 @@ import sys
 import logging
 
 # Unit test import (  will emulate ROS setup if needed )
+import time
 from pyros.rosinterface import RosInterface
 
 import rospy
@@ -387,7 +388,7 @@ class TestRosInterface(unittest.TestCase):
         """
 
         servicename = '/test/empsrv'
-        self.interface.expose_services([servicename])
+        dt = self.interface.expose_services([servicename])
         # every added service should be in the list of args
         self.assertTrue(servicename in self.interface.services_args)
         # service backend has not been created since the update didn't run yet
@@ -395,8 +396,10 @@ class TestRosInterface(unittest.TestCase):
 
         # NOTE : We need to wait to make sure the tests nodes are started...
         from pyros.baseinterface import BaseInterface
+        start = time.time()
+        timeout = 15
         dt = BaseInterface.DiffTuple([], [])
-        while not dt or servicename not in dt[0]:
+        while (not dt or servicename not in dt[0]) and time.time() - start < timeout:
             dt = self.interface.update()
         # TODO : improve that by providing an easier interface for it.
 

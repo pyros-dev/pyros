@@ -68,6 +68,11 @@ class RosInterface(BaseInterface):
     def ParamMaker(self, param_name, param_type):  # the param class implementation
         return ParamBack(param_name, param_type)
 
+    def reinit(self, services=None, topics=None, params=None):
+        # Note : None means no change ( different from []
+        super(RosInterface, self).reinit(services, topics, params)
+
+
     def update(self):
         """
         Redefining update method in child class to gather all information in one master call per update.
@@ -93,36 +98,6 @@ class RosInterface(BaseInterface):
 
         return super(RosInterface, self).update()
 
-    def reconfigure(self, config, level):
-        """
-        This callback is called when dynamic_reconfigure gets an update on
-        parameter information. Topics which are received through here will be
-        added to the list of topics which are monitored and added to or removed
-        from the view on the REST interface
-        """
-        print(config)
-        new_services = None
-        new_topics = None
-        new_params = None
-        rospy.logwarn("""[{name}] Interface Reconfigure Request: \ntopics : {topics} \nservices : {services}""".format(name=__name__, **config))
-        try:
-            # convert new services to a set and then back to a list to ensure uniqueness
-            new_services = list(set(ast.literal_eval(config["services"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {services} containing malformed service strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new topics to a set and then back to a list to ensure uniqueness
-            new_topics = list(set(ast.literal_eval(config["topics"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {topics} containing malformed topic strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new params to a set and then back to a list to ensure uniqueness
-            new_params = list(set(ast.literal_eval(config["params"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
-
-        self.reinit(new_services, new_topics, new_params)
-        return config
 
 BaseInterface.register(RosInterface)
 

@@ -32,9 +32,10 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name, argv):
-        super(PyrosROS, self).__init__(name='pyros-ROS')
+    def __init__(self, name=None, argv=None, dynamic_reconfigure = True):
+        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
         self.argv = argv
+        self.dynamic_reconfigure = dynamic_reconfigure
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon
 
@@ -86,16 +87,9 @@ class PyrosROS(PyrosBase):
             output_data = json.dumps(res)
             return srv.StopRappResponse(output_data)
 
-        self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
-        self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
+        #self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
+        #self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
 
-        self.provides(self.msg_build)
-        self.provides(self.topic)
-        self.provides(self.topics)
-        self.provides(self.service)
-        self.provides(self.services)
-        self.provides(self.param)
-        self.provides(self.params)
         #self.provides(self.interactions)
         #self.provides(self.namespaces)
         #self.provides(self.interaction)
@@ -128,7 +122,7 @@ class PyrosROS(PyrosBase):
                     msg = msgconv.extract_values(res) if res else res
             return msg
         except msgconv.FieldTypeMismatchException, e:
-            rospy.logerr("Rostful Node : field type mismatch %r" % e)
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=self.__name__, e=e))
 
     def topics(self):
         topics_dict = {}
@@ -149,11 +143,11 @@ class PyrosROS(PyrosBase):
             return resp_content
 
         except rospy.ServiceException, e:
-            rospy.logerr("Rostful Node : service exception %r" % e)
+            rospy.logerr("[{name}] : service exception {e}".format(name=self.__name__, e=e))
         except msgconv.FieldTypeMismatchException, e:
-            rospy.logerr("Rostful Node : field type mismatch %r" % e)
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=self.__name__, e=e))
         except msgconv.NonexistentFieldException, e:
-            rospy.logerr("Rostful Node : non existent field %r" % e)
+            rospy.logerr("[{name}] : non existent field {e}".format(name=self.__name__, e=e))
 
     ###
 
@@ -210,6 +204,9 @@ class PyrosROS(PyrosBase):
     def has_rocon(self):
         return True if self.rocon_if else False
 
+    def reinit(self, services, topics, params):
+        return self.ros_if.reinit(services, topics, params)
+
     def run(self):
         """
         Running in a zmp.Node process, providing zmp.services
@@ -217,10 +214,11 @@ class PyrosROS(PyrosBase):
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
         rospy.init_node(self.name, argv=self.argv, disable_signals=True)
-        rospy.logwarn('rostful node started with args : %r', self.argv)
+        rospy.logwarn('PyrosROS node started with args : %r', self.argv)
 
-        # Create a dynamic reconfigure server ( needs to be done after node_init )
-        self.server = Server(PyrosConfig, self.reconfigure)
+        if self.dynamic_reconfigure:
+            # Create a dynamic reconfigure server ( needs to be done after node_init )
+            self.server = Server(PyrosConfig, self.reconfigure)
 
         #TODO : install shutdown hook to shutdown if detected
 
@@ -230,24 +228,49 @@ class PyrosROS(PyrosBase):
 
         logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
-
     def update(self):
         """
         Update function to call from a looping thread.
         """
-
+        # TODO : add time tracking, desired rate versus actual rate -> readjust.
         self.ros_if.update()
 
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
-        rospy.logwarn("""Reconfigure Request: \renable_rocon : {enable_rocon}""".format(**config))
+
+        rospy.logwarn("""[{name}] Interface Reconfigure Request:
+    topics : {topics}
+    services : {services}
+    enable_rocon : {enable_rocon}
+        """.format(name=__name__, **config))
+
         self.enable_rocon = config["enable_rocon"]
 
         if not self.rocon_if and self.enable_rocon:
             rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
             self.rocon_if = RoconInterface(self.ros_if)
 
-        config = self.ros_if.reconfigure(config, level)
+        print(config)
+        new_services = None
+        new_topics = None
+        new_params = None
+        try:
+            # convert new services to a set and then back to a list to ensure uniqueness
+            new_services = list(set(ast.literal_eval(config["services"])))
+        except ValueError:
+            rospy.logwarn('[{name}] Ignored list {services} containing malformed service strings. Fix your input!'.format(name=__name__, **config))
+        try:
+            # convert new topics to a set and then back to a list to ensure uniqueness
+            new_topics = list(set(ast.literal_eval(config["topics"])))
+        except ValueError:
+            rospy.logwarn('[{name}] Ignored list {topics} containing malformed topic strings. Fix your input!'.format(name=__name__, **config))
+        try:
+            # convert new params to a set and then back to a list to ensure uniqueness
+            new_params = list(set(ast.literal_eval(config["params"])))
+        except ValueError:
+            rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
+
+        self.reinit(new_services, new_topics, new_params)
 
         if self.rocon_if:
             config = self.rocon_if.reconfigure(config, level)

@@ -27,6 +27,7 @@ from .exceptions import UnknownResponseTypeException
 services_lock = manager.Lock()
 services = manager.dict()
 
+#TODO : make this pickleable so we can move it around ( and dynamically rebuild the socket connection )
 class Service(object):
 
     @staticmethod
@@ -62,7 +63,7 @@ class Service(object):
 
     def __init__(self, name, providers=None):
         self.name = name
-        self.providers = providers
+        self.providers = providers  # TODO : make a provide just a list of node names, and have connection URLs somewhere else...
 
     #TODO : implement async_call ( and return future )
     def call(self, args=None, kwargs=None, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
@@ -99,6 +100,8 @@ class Service(object):
         if socket in evts and evts[socket] == zmq.POLLOUT:
             print "POLLOUT"
             socket.send(fullreq.serialize())
+            # TODO : find a way to get rid fo these timeouts when debugging
+            # TODO : when timeout Exception should occur ( not returning None )
             evts = dict(poller.poll(recv_timeout))  # blocking until answer
             if socket in evts and evts[socket] == zmq.POLLIN:
                 print "POLLIN"

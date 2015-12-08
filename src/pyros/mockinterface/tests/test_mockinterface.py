@@ -233,6 +233,9 @@ def test_mockinterface_expose_services_regex():
 
     assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
 
+#TODO : test exception raised properly when update transient cannot happen
+
+
 # TODO : Same for topics and params
 
 if __name__ == '__main__':

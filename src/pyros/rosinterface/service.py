@@ -19,23 +19,27 @@ except ImportError:
 from importlib import import_module
 from collections import OrderedDict
 
-import json
-import sys
-import re
-from StringIO import StringIO
+from .message_conversion import get_msg, get_msg_dict
 
-from . import message_conversion as msgconv
-from . import deffile, definitions
 
-from .util import ROS_MSG_MIMETYPE, request_wants_ros, get_query_bool
+# outputs message structure as string (useful ?)
+def get_service_srv(service):
+    return '\n'.join([
+        get_msg(service.rostype_req),
+        '---',
+        get_msg(service.rostype_resp),
+    ])
 
-import os
-import urlparse
 
-"""
-ServiceBack is the class handling conversion from Python API to ROS Service
-"""
+# outputs message structure as dict
+def get_service_srv_dict(service):
+    return get_msg_dict(service.rostype_req), get_msg_dict(service.rostype_resp)
+
+
 class ServiceBack:
+    """
+    ServiceBack is the class handling conversion from Python API to ROS Service
+    """
     def __init__(self, service_name, service_type):
         self.name = service_name
         # getting the fullname to make sure we start with /
@@ -50,7 +54,7 @@ class ServiceBack:
         self.rostype_req = getattr(srv_module, service_type_name + 'Request')
         self.rostype_resp = getattr(srv_module, service_type_name + 'Response')
 
-        self.srvtype = definitions.get_service_srv_dict(self)
+        self.srvtype = get_service_srv_dict(self)
         #rospy.logwarn('srvtype : %r', self.srvtype)
 
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)

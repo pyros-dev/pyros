@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import sys
 import collections
 import re
 import abc
@@ -81,12 +82,15 @@ class BaseInterface(object):
         removed = []
         for tst_name in [tst for tst in add_names if tst not in resolved_dict.keys()]:
             try:
-                ttype = type_resolve_func(tst_name)
-                resolved_dict[tst_name] = class_build_func(tst_name, ttype, *class_build_args, **class_build_kwargs)
-                added += [tst_name]
-                logging.info("[{name}] Interfacing with {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
-            except Exception:
-                logging.warn("[{name}] Cannot interface with {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
+                ttype = type_resolve_func(tst_name)  # should return None if error - TODO : handle (and reraise) exception !!
+                if ttype is not None:  # transient can be resolved
+                    resolved_dict[tst_name] = class_build_func(tst_name, ttype, *class_build_args, **class_build_kwargs)
+                    added += [tst_name]
+                    logging.info("[{name}] Interfacing with {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
+            except Exception, e:
+                logging.warn("[{name}] Cannot interface with {desc} {transient} : {exc}".format(name=__name__, desc=transient_desc, transient=tst_name, exc=e))
+                exc_info = sys.exc_info()
+                raise exc_info[0], exc_info[1], exc_info[2]
 
         for tst_name in [tst for tst in remove_names if tst in resolved_dict.keys()]:
             logging.info("[{name}] Removing {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
@@ -181,6 +185,10 @@ class BaseInterface(object):
 
     @abc.abstractmethod
     def service_type_resolver(self, service_name):  # function resolving the type of a service
+        """
+        :param service_name: the name of the service
+        :return: returns None if the type cannot be found. Properly except in all other unexpected events.
+        """
         return
 
     @abc.abstractmethod
@@ -194,6 +202,10 @@ class BaseInterface(object):
 
     @abc.abstractmethod
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
+        """
+        :param topic_name: the name of the topic
+        :return: returns None if the topic cannot be found. Properly except in all other unexpected events.
+        """
         return
 
     @abc.abstractmethod
@@ -339,16 +351,27 @@ class BaseInterface(object):
         # First update() will re-detect previously found names, but when trying to update, no duplicates should happen.
         # This should be taken care of in the abstract transient functional interface
 
-    def reinit(self, services, topics, params):
+    def reinit(self, services=None, topics=None, params=None):
         """
-        :param services:
-        :param topics:
-        :param params:
+        :param services: list of services to expose. None means no change, keep current config.
+        :param topics: list of topics to expose. None means no change, keep current config.
+        :param params: list of params to expose. None means no change, keep current config.
         :return: the difference between the transient previously exposed and recently exposed
         """
-        sdt = self.expose_services(services)
-        tdt = self.expose_topics(topics)
-        pdt = self.expose_params(params)
+        if services is not None:
+            sdt = self.expose_services(services)
+        else:
+            sdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
+
+        if topics is not None:
+            tdt = self.expose_topics(topics)
+        else:
+            tdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
+
+        if params is not None:
+            pdt = self.expose_params(params)
+        else:
+            pdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
 
         return BaseInterface.DiffTuple(
             added=sdt.added+tdt.added+pdt.added,

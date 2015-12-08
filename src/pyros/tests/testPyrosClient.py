@@ -23,6 +23,7 @@ class TestPyrosClientOnMock(object):
 
     ### TOPICS ###
 
+    # TODO : test list features more !
     def test_list_all(self):
         t = self.client.topics()
         # Make sure we get all mock topics

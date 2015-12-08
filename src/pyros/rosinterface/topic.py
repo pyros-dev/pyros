@@ -19,18 +19,15 @@ except ImportError:
 from importlib import import_module
 from collections import deque, OrderedDict
 
-import json
-import sys
-import re
-from StringIO import StringIO
+from .message_conversion import get_msg, get_msg_dict
 
-from . import message_conversion as msgconv
-from . import deffile, definitions
 
-from .util import ROS_MSG_MIMETYPE, request_wants_ros, get_query_bool
+def get_topic_msg(topic):
+    return get_msg(topic.rostype)
 
-import os
-import urlparse
+
+def get_topic_msg_dict(topic):
+    return get_msg_dict(topic.rostype)
 
 
 """
@@ -52,7 +49,7 @@ class TopicBack(object):
         self.allow_pub = allow_pub
         self.allow_sub = allow_sub
 
-        self.msgtype = definitions.get_topic_msg_dict(self)
+        self.msgtype = get_topic_msg_dict(self)
         self.msg = deque([], queue_size)
 
         self.pub = None

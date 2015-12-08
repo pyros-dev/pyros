@@ -29,6 +29,13 @@ class PyrosMock(PyrosBase):
         self._stop_event = None  # stop_event to signal the thread for soft shutdown
         self._spinner = None  # thread instance
 
+        # Mock service to be able to trigger services / topics / params creation and temrination
+        self.provides(self.mock_service_appear)
+        self.provides(self.mock_service_disappear)
+        self.provides(self.mock_topic_appear)
+        self.provides(self.mock_topic_disappear)
+        self.provides(self.mock_param_appear)
+        self.provides(self.mock_param_disappear)
         pass
 
     # These should match the design of PyrosClient and Protocol so we are consistent between pipe and python API
@@ -75,6 +82,17 @@ class PyrosMock(PyrosBase):
     def params(self):
         return self.mock_if.get_param_list()
 
+    def reinit(self, services, topics, params):
+        """
+        Allowing dynamic configuration of the process while it s running
+        :param services:
+        :param topics:
+        :param params:
+        :return:
+        """
+        return self.mock_if.reinit(services, topics, params)
+
+
     def run(self):
         """
         Running in a zmp.Node process, providing zmp.services
@@ -93,5 +111,23 @@ class PyrosMock(PyrosBase):
 
         self.mock_if.update()
 
+    # Mock only methods
+    def mock_service_appear(self, svc_name, svc_type):
+        return self.mock_if.mock_service_appear(svc_name, svc_type)
+
+    def mock_service_disappear(self, svc_name):
+        return self.mock_if.mock_service_disappear(svc_name)
+
+    def mock_topic_appear(self, svc_name, svc_type):
+        return self.mock_if.mock_topic_appear(svc_name, svc_type)
+
+    def mock_topic_disappear(self, svc_name):
+        return self.mock_if.mock_topic_disappear(svc_name)
+
+    def mock_param_appear(self, svc_name, svc_type):
+        return self.mock_if.mock_param_appear(svc_name, svc_type)
+
+    def mock_param_disappear(self, svc_name):
+        return self.mock_if.mock_param_disappear(svc_name)
 
 PyrosBase.register(PyrosMock)

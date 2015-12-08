@@ -30,6 +30,7 @@ class PyrosBase(zmp.Node):
         self.provides(self.services)
         self.provides(self.param)
         self.provides(self.params)
+        self.provides(self.reinit)
         pass
 
     # These should match the design of PyrosClient and Protocol so we are consistent between pipe and python API
@@ -60,6 +61,10 @@ class PyrosBase(zmp.Node):
 
     @abc.abstractmethod
     def params(self):
+        return
+
+    @abc.abstractmethod
+    def reinit(self):
         return
 
     def run(self):

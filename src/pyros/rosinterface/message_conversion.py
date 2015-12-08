@@ -39,6 +39,14 @@ import re
 import string
 from base64 import standard_b64encode, standard_b64decode
 
+# Utils function to get message type from ros or its dict representation
+#outputs message structure as string (useful ?)
+def get_msg(msg):
+    return '\n'.join(['%s %s' % line for line in zip(msg._slot_types, msg.__slots__)])
+
+#outputs message structure as dict
+def get_msg_dict(msg):
+    return dict(zip(msg.__slots__,msg._slot_types))
 
 type_map = {
    "bool":    ["bool"],

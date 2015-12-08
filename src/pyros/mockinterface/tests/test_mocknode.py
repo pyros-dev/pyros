@@ -48,7 +48,7 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
     assert_false(topic is None)
     assert_equal(len(topic.providers), 1)
 
-    print("Discovering topic_list Service...")
+    print("Discovering topics Service...")
     topic_list = zmp.discover("topics", 5)  # we wait a bit to let it time to start
     assert_false(topic_list is None)
     assert_equal(len(topic_list.providers), 1)
@@ -58,7 +58,7 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
     assert_false(service is None)
     assert_equal(len(service.providers), 1)
 
-    print("Discovering service_list Service...")
+    print("Discovering services Service...")
     service_list = zmp.discover("services", 5)  # we wait a bit to let it time to start
     assert_false(service_list is None)
     assert_equal(len(service_list.providers), 1)
@@ -68,8 +68,13 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
     assert_false(param is None)
     assert_equal(len(param.providers), 1)
 
-    print("Discovering param_list Service...")
+    print("Discovering params Service...")
     param_list = zmp.discover("params", 5)  # we wait a bit to let it time to start
+    assert_false(param_list is None)
+    assert_equal(len(param_list.providers), 1)
+
+    print("Discovering reinit Service...")
+    param_list = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
     assert_false(param_list is None)
     assert_equal(len(param_list.providers), 1)
 
@@ -77,7 +82,7 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
     assert_false(mockn.is_alive())
 
 
-def test_mocknode_topics():  # Here we check that this node actually provides all the services
+def test_mocknode_topics_detect():  # Here we check that this node actually provides all the services
     mockn = PyrosMock()
     assert_false(mockn.is_alive())
 
@@ -99,6 +104,34 @@ def test_mocknode_topics():  # Here we check that this node actually provides al
     mockn.shutdown()
     assert_false(mockn.is_alive())
 
+
+def test_mocknode_topics_detect_reinit():  # Here we check that this node actually detects a topic upon reinit
+    mockn = PyrosMock()
+    assert_false(mockn.is_alive())
+
+    assert_true(hasattr(mockn, 'topics'))
+
+    mockn.start()
+    assert_true(mockn.is_alive())
+
+    print("Discovering mock_topic_appear Service...")
+    mock_topic_appear = zmp.discover("mock_topic_appear", 5)  # we wait a bit to let it time to start
+    assert_false(mock_topic_appear is None)
+    assert_equal(len(mock_topic_appear.providers), 1)
+
+    # create a topic on that mock process
+    mock_topic_appear.call(args=('test_topic', statusecho_topic))
+
+    print("Discovering topics Service...")
+    topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
+    assert_false(topics is None)
+    assert_equal(len(topics.providers), 1)
+
+    res = topics.call()
+    assert_true('test_topic' in res)
+
+    mockn.shutdown()
+    assert_false(mockn.is_alive())
 
 # TODO : test each service
 

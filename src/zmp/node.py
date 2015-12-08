@@ -98,7 +98,7 @@ nodes = manager.dict()
 
 
 # TODO : Nodelet ( thread, with fast intraprocess zmq comm - entity system design /vs/threadpool ?)
-
+# CAREFUL here : multiprocessing documentation specifies that a process object can be started only once...
 class Node(multiprocessing.Process):
 
     EndPoint = namedtuple("EndPoint", "self func")
