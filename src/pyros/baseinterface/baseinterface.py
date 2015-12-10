@@ -64,7 +64,7 @@ class BaseInterface(object):
         return matches
 
     @staticmethod
-    def _update_transients(add_names, remove_names, transient_desc, resolved_dict, type_resolve_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _update_transients(add_names, remove_names, transient_desc, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Adds transients (service, topic, etc) named in add_names and removes transients named in remove_names  exposed transients resolved_dict
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
@@ -94,6 +94,7 @@ class BaseInterface(object):
 
         for tst_name in [tst for tst in remove_names if tst in resolved_dict.keys()]:
             logging.info("[{name}] Removing {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
+            class_clean_func(resolved_dict[tst_name])  # calling the cleanup function in case we need to do something
             resolved_dict.pop(tst_name, None)
             removed += [tst_name]
 
@@ -102,7 +103,7 @@ class BaseInterface(object):
     @staticmethod
     def _expose_transients_regex(regexes, transient_desc, regex_set, resolved_dict,
                             get_list_func, type_resolve_func,
-                            class_build_func, *class_build_args, **class_build_kwargs):
+                            class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Exposes a list of transients regexes. resolved transients not matching the regexes will be removed.
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
@@ -138,6 +139,7 @@ class BaseInterface(object):
                                 transient_desc,
                                 resolved_dict,
                                 type_resolve_func,
+                                class_clean_func,
                                 class_build_func,
                                 *class_build_args,
                                 **class_build_kwargs
@@ -145,7 +147,7 @@ class BaseInterface(object):
 
 
     @staticmethod
-    def _transient_change_detect(regex_set, transient_desc, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _transient_change_detect(regex_set, transient_desc, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
         """
@@ -166,6 +168,7 @@ class BaseInterface(object):
                     transient_desc,
                     resolved_dict,
                     type_resolve_func,
+                    class_clean_func,
                     class_build_func,
                     *class_build_args,
                     **class_build_kwargs
@@ -195,6 +198,10 @@ class BaseInterface(object):
     def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
         return
 
+    @abc.abstractmethod
+    def ServiceCleaner(self, service):  # the service class implementation
+        return
+
     # Abstract methods to override for topics ("pub/sub type" communication channel)
     @abc.abstractmethod
     def get_topic_list(self):  # function returning all topics available on the system
@@ -212,6 +219,10 @@ class BaseInterface(object):
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return
 
+    @abc.abstractmethod
+    def TopicCleaner(self, topic):  # the topic class implementation
+        return
+
     # Abstract methods to override for params ( "global" get/set objects )
     @abc.abstractmethod
     def get_param_list(self):  # function returning all topics available on the system
@@ -223,6 +234,10 @@ class BaseInterface(object):
 
     @abc.abstractmethod
     def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the topic class implementation
+        return
+
+    @abc.abstractmethod
+    def ParamCleaner(self, param):  # the topic class implementation
         return
 
     def __init__(self, services, topics, params):
@@ -254,6 +269,7 @@ class BaseInterface(object):
                                        transient_desc="service",
                                        resolved_dict=self.services,
                                        type_resolve_func=self.service_type_resolver,
+                                       class_clean_func=self.ServiceCleaner,
                                        class_build_func=self.ServiceMaker,
                                        )
         self.update_services.__name__ = "update_services"
@@ -267,6 +283,7 @@ class BaseInterface(object):
                                        resolved_dict=self.services,
                                        get_list_func=self.get_svc_list,
                                        type_resolve_func=self.service_type_resolver,
+                                       class_clean_func=self.ServiceCleaner,
                                        class_build_func=self.ServiceMaker,
                                        )
         self.expose_services.__doc__ = """
@@ -279,6 +296,7 @@ class BaseInterface(object):
                                               last_got_set=self.last_services_detected,
                                               get_list_func=self.get_svc_list,
                                               type_resolve_func=self.service_type_resolver,
+                                              class_clean_func=self.ServiceCleaner,
                                               class_build_func=self.ServiceMaker,
                                               )
         self.services_change_detect.__doc__ = """
@@ -288,6 +306,7 @@ class BaseInterface(object):
                                      transient_desc="topic",
                                      resolved_dict=self.topics,
                                      type_resolve_func=self.topic_type_resolver,
+                                     class_clean_func=self.TopicCleaner,
                                      class_build_func=self.TopicMaker,
                                      )
         self.update_topics.__name__ = "update_topics"
@@ -301,6 +320,7 @@ class BaseInterface(object):
                                      resolved_dict=self.topics,
                                      get_list_func=self.get_topic_list,
                                      type_resolve_func=self.topic_type_resolver,
+                                     class_clean_func=self.TopicCleaner,
                                      class_build_func=self.TopicMaker,
                                      )
 
@@ -311,6 +331,7 @@ class BaseInterface(object):
                                             last_got_set=self.last_topics_detected,
                                             get_list_func=self.get_topic_list,
                                             type_resolve_func=self.topic_type_resolver,
+                                            class_clean_func=self.TopicCleaner,
                                             class_build_func=self.TopicMaker,
                                             )
 
@@ -318,6 +339,7 @@ class BaseInterface(object):
                                      transient_desc="param",
                                      resolved_dict=self.params,
                                      type_resolve_func=self.param_type_resolver,
+                                     class_clean_func=self.ParamCleaner,
                                      class_build_func=self.ParamMaker,
                                      )
         self.update_params.__name__ = "update_params"
@@ -331,6 +353,7 @@ class BaseInterface(object):
                                      resolved_dict=self.params,
                                      get_list_func=self.get_param_list,
                                      type_resolve_func=self.param_type_resolver,
+                                     class_clean_func=self.ParamCleaner,
                                      class_build_func=self.ParamMaker,
                                      )
 
@@ -341,6 +364,7 @@ class BaseInterface(object):
                                             last_got_set=self.last_params_detected,
                                             get_list_func=self.get_param_list,
                                             type_resolve_func=self.param_type_resolver,
+                                            class_clean_func=self.ParamCleaner,
                                             class_build_func=self.ParamMaker,
                                             )
 

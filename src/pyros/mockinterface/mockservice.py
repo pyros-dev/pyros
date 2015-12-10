@@ -16,6 +16,9 @@ class MockService(BaseService):
     def __init__(self, service_name, service_type):
         super(MockService, self).__init__(service_name, service_type)
 
+    def cleanup(self):
+        pass
+
     def call(self, rosreq=None):
         # simulating echo
         return rosreq

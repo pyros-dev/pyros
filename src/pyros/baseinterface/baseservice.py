@@ -20,5 +20,9 @@ class BaseService(object):
         self.srvtype = (service_type.reqtype, service_type.resptype)
 
     @abc.abstractmethod
+    def cleanup(self):
+        return
+
+    @abc.abstractmethod
     def call(self, rosreq=None):
         return

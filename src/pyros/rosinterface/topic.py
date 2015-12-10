@@ -106,7 +106,7 @@ class TopicBack(object):
         :return: None
         """
         # counting publisher instance per topic name
-        TopicBack.pub_instance_count[sub.name] -= 1
+        TopicBack.sub_instance_count[sub.name] -= 1
         return sub.unregister()
 
     def __init__(self, topic_name, topic_type, queue_size=1, start_timeout=2):
@@ -154,6 +154,21 @@ class TopicBack(object):
             raise TopicBackTimeout()
 
         self.empty_cb = None
+
+    def cleanup(self):
+        """
+        Launched when we want to whithhold this interface instance
+        :return:
+        """
+        # Removing the ROS system wide advert about which topic are interfaced with this process
+        # TODO : lock this for concurrent access
+        if_topics = rospy.get_param('~' + TopicBack.IF_TOPIC_PARAM, [])
+        if_topics.remove(self.fullname)
+        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics)
+
+        # cleanup pub and sub, so we can go through another create / remove cycle properly
+        self._remove_pub(self.pub)
+        self._remove_sub(self.sub)
 
     def asdict(self):
         """
@@ -203,12 +218,3 @@ class TopicBack(object):
     def topic_callback(self, msg):
         self.msg.appendleft(msg)
 
-    def __del__(self):
-        """
-        Launched when memory is collected for this instance
-        :return:
-        """
-
-        # Removing the ROS system wide advert about which topic are interfaced with this process
-        if_topics = rospy.get_param('~' + TopicBack.IF_TOPIC_PARAM, [])
-        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics - [self.fullname])

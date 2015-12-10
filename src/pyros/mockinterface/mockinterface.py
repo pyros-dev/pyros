@@ -39,6 +39,9 @@ class MockInterface(BaseInterface):
     def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
         return MockService(service_name, service_type, *args, **kwargs)
 
+    def ServiceCleaner(self, service):  # the service class cleanup implementation
+        return service.cleanup()
+
     def mock_service_appear(self, svc_name, svc_type):
         self.services_available.append(svc_name)  # Service appears
         self.services_available_type[svc_name] = svc_type
@@ -57,6 +60,9 @@ class MockInterface(BaseInterface):
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return MockTopic(topic_name, topic_type, *args, **kwargs)
 
+    def TopicCleaner(self, topic):  # the topic class implementation
+        return topic.cleanup()
+
     def mock_topic_appear(self, topic_name, topic_type):
         self.topics_available.append(topic_name)  # Service appears
         self.topics_available_type[topic_name] = topic_type
@@ -73,6 +79,9 @@ class MockInterface(BaseInterface):
 
     def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the param class implementation
         return MockParam(param_name, param_type, *args, **kwargs)
+
+    def ParamCleaner(self, param):  # the param class implementation
+        return param.cleanup()
 
     def mock_param_appear(self, param_name, param_type):
         self.params_available.append(param_name)  # Param appears

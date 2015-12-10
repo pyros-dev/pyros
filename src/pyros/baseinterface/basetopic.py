@@ -20,6 +20,9 @@ class BaseTopic(object):
 
         self.msgtype = topic_type.msgtype
 
+    @abc.abstractmethod
+    def cleanup(self):
+        return
 
     @abc.abstractmethod
     def publish(self, msg):

@@ -59,6 +59,9 @@ class ServiceBack:
 
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
 
+    def cleanup(self):
+        pass
+
     def asdict(self):
         """
         Here we provide a dictionary suitable for a representation of the Topic instance

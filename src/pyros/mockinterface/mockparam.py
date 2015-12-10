@@ -12,6 +12,9 @@ class MockParam:
 
         self.value = param_type()  # or None ??
 
+    def cleanup(self):
+        pass
+
     def set(self, val):
         self.value = val
         return True

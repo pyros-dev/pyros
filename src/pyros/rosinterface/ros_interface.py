@@ -48,6 +48,9 @@ class RosInterface(BaseInterface):
     def ServiceMaker(self, service_name, service_type):  # the service class implementation
         return ServiceBack(service_name, service_type)
 
+    def ServiceCleaner(self, service):  # the service class cleanup implementation
+        return service.cleanup()
+
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
         return self.topics_available
@@ -63,6 +66,8 @@ class RosInterface(BaseInterface):
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return TopicBack(topic_name, topic_type, *args, **kwargs)
 
+    def TopicCleaner(self, topic):  # the topic class implementation
+        return topic.cleanup()
     # PARAMS
     def get_param_list(self):  # function returning all params available on the system
         return self.params_available
@@ -73,10 +78,12 @@ class RosInterface(BaseInterface):
     def ParamMaker(self, param_name, param_type):  # the param class implementation
         return ParamBack(param_name, param_type)
 
+    def ParamCleaner(self, param):  # the param class implementation
+        return param.cleanup()
+
     def reinit(self, services=None, topics=None, params=None):
         # Note : None means no change ( different from []
         super(RosInterface, self).reinit(services, topics, params)
-
 
     def update(self):
         """

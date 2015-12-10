@@ -12,6 +12,9 @@ class ParamBack:
         # getting the fullname to make sure we start with /
         self.fullname = self.name if self.name.startswith('/') else '/' + self.name
 
+    def cleanup(self):
+        pass
+
     def asdict(self):
         """
         Here we provide a dictionary suitable for a representation of the Topic instance

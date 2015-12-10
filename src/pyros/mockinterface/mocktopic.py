@@ -22,6 +22,9 @@ class MockTopic(BaseTopic):
 
         self.empty_cb = None
 
+    def cleanup(self):
+        pass
+
     def publish(self, msg):
         self._msg_content = msg
         self.topic_callback(msg)

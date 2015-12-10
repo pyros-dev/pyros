@@ -295,39 +295,43 @@ class TestRosInterface(unittest.TestCase):
         # topic backend has been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        # create the publisher and then try exposing the topic again, simulating
-        # it coming online before expose call.
-        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+        def appear_disappear():
+            # create the publisher and then try exposing the topic again, simulating
+            # it coming online before expose call.
+            nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
 
-        dt = self.interface.update()
-        self.assertTrue(topicname in dt.added)  # detected
-        self.assertEqual(dt.removed, [])  # nothing removed
-        # TODO : do we need a test with subscriber ?
+            dt = self.interface.update()
+            self.assertTrue(topicname in dt.added)  # detected
+            self.assertEqual(dt.removed, [])  # nothing removed
+            # TODO : do we need a test with subscriber ?
 
-        # every added topic should be in the list of args
-        self.assertTrue(topicname in self.interface.topics_args)
-        # topic backend has been created
-        self.assertTrue(topicname in self.interface.topics.keys())
+            # every added topic should be in the list of args
+            self.assertTrue(topicname in self.interface.topics_args)
+            # topic backend has been created
+            self.assertTrue(topicname in self.interface.topics.keys())
 
-        # up to here possible sequences should have been already tested by previous tests
-        # Now comes our actual disappearance / withholding test
-        TopicBack._remove_pub(nonexistent_pub)
+            # up to here possible sequences should have been already tested by previous tests
+            # Now comes our actual disappearance / withholding test
+            TopicBack._remove_pub(nonexistent_pub)
 
-        # every added topic should be in the list of args
-        self.assertTrue(topicname in self.interface.topics_args)
-        # the backend should STILL be there
-        self.assertTrue(topicname in self.interface.topics.keys())
-        # Note the Topic implementation should take care of possible errors in this case
+            # every added topic should be in the list of args
+            self.assertTrue(topicname in self.interface.topics_args)
+            # the backend should STILL be there
+            self.assertTrue(topicname in self.interface.topics.keys())
+            # Note the Topic implementation should take care of possible errors in this case
 
-        dt = self.interface.update()
-        self.assertTrue(topicname in dt.removed)  # detected lost
-        self.assertEqual(dt.added, [])  # nothing added
-        # every exposed topic should remain in the list of args ( in case regex match another topic )
-        self.assertTrue(topicname in self.interface.topics_args)
-        # make sure the topic backend should NOT be there any longer
-        self.assertTrue(topicname not in self.interface.topics.keys())
+            dt = self.interface.update()
+            self.assertTrue(topicname in dt.removed)  # detected lost
+            self.assertEqual(dt.added, [])  # nothing added
+            # every exposed topic should remain in the list of args ( in case regex match another topic )
+            self.assertTrue(topicname in self.interface.topics_args)
+            # make sure the topic backend should NOT be there any longer
+            self.assertTrue(topicname not in self.interface.topics.keys())
 
-        # TODO : test that coming back actually works
+        appear_disappear()
+
+        # test that coming back actually also works
+        appear_disappear()
 
         self.interface.expose_topics([])
         # every withhold topic should NOT be in the list of args
