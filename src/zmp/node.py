@@ -146,7 +146,7 @@ class Node(multiprocessing.Process):
             super(Node, self).start()
 
     def run(self):
-        print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
+        #print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
 
         zcontext = zmq.Context()  # check creating context in init ( compatibility with multiple processes )
         zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
@@ -160,7 +160,7 @@ class Node(multiprocessing.Process):
         # advertising services
         services_lock.acquire()
         for svc_name, svc_endpoint in self._providers.iteritems():
-            print('-> Providing {0} with {1}'.format(svc_name, svc_endpoint))
+            #print('-> Providing {0} with {1}'.format(svc_name, svc_endpoint))
             # needs reassigning to propagate update to manager
             services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
         services_lock.release()
@@ -225,7 +225,7 @@ class Node(multiprocessing.Process):
         # concealing services
         services_lock.acquire()
         for svc_name, svc_endpoint in self._providers.iteritems():
-            print('-> Unproviding {0}'.format(svc_name))
+            #print('-> Unproviding {0}'.format(svc_name))
             services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
         services_lock.release()
 
@@ -233,8 +233,6 @@ class Node(multiprocessing.Process):
         nodes_lock.acquire()
         nodes[self.name] = {}
         nodes_lock.release()
-
-        print("You exited!")
 
     def update(self):
         """
