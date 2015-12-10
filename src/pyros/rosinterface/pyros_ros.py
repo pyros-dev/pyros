@@ -33,8 +33,8 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name_suffix=None, argv=None, dynamic_reconfigure=True):
-        super(PyrosROS, self).__init__(name_suffix=name_suffix or 'ros')
+    def __init__(self, name=None, argv=None, dynamic_reconfigure=True):
+        super(PyrosROS, self).__init__(name=name or 'pyros-ros')
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode

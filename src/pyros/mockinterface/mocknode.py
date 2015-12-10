@@ -19,11 +19,11 @@ class PyrosMock(PyrosBase):
     Mock Interface in pure python ( No ROS needed ).
 
     """
-    def __init__(self, name_suffix='mock'):
+    def __init__(self, name=None):
         self.mock_if = MockInterface()
         # TODO : make the interface part of the super init. Needs to allow choosing hte interface subclass...
-
-        super(PyrosMock, self).__init__(name_suffix)
+        name = name or 'pyros-mock'
+        super(PyrosMock, self).__init__(name)
         self._topic_msg = {}  # storage for the echo topic
         self._param_val = {}  # storage for the test param
         self._stop_event = None  # stop_event to signal the thread for soft shutdown
