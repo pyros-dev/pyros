@@ -3,9 +3,9 @@
 """ A dummy ROS node """
 from __future__ import absolute_import
 
+import common
 import rospy
 import std_msgs
-import common
 
 # TODO : implement service to check if pub
 

@@ -4,11 +4,6 @@ from __future__ import absolute_import
 import sys
 import os
 
-# to be able to run from source and access srv and other catkin generated classes in devel space
-devel_py_pkg = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-if os.path.exists(devel_py_pkg):
-    sys.path.append(devel_py_pkg)
-
 """
  A very simple echo ROS node.
  - echo from topic to echo_topic
@@ -17,12 +12,15 @@ if os.path.exists(devel_py_pkg):
 # TODO echo service
 import functools
 
+import common
 import rospy
 import std_msgs.msg as std_msgs
 import std_srvs.srv as std_srvs
-import common
+
 
 # TODO : fix this import that doesnt work anymore from nosetests. the rossetup should be done on system by the main process before launching this node...
+
+# TODO : get rid of this somehow ( dynamic generation or integration of more basic services in ROS )
 from pyros.srv import StringEchoService
 
 
@@ -73,7 +71,6 @@ if __name__ == '__main__':
         echo = functools.partial(topic_callback, data_type=std_msgs.String, pub=pub)
         sub = rospy.Subscriber(topic_name, std_msgs.String, echo)
 
-        # TODO : get rid of this somehow ( dynamic generation or integration of more basic services in ROS )
         srv = rospy.Service(echo_service_name, StringEchoService, service_callback)
 
         rospy.spin()

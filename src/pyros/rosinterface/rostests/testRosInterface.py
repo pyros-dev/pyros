@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
-import sys
-import logging
-
 # Unit test import (  will emulate ROS setup if needed )
 import time
 from pyros.rosinterface import RosInterface
