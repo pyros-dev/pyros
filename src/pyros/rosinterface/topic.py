@@ -80,6 +80,8 @@ class TopicBack(object):
         """
         # counting publisher instance per topic name
         TopicBack.pub_instance_count[pub.name] -= 1
+
+        # Be aware of https://github.com/ros/ros_comm/issues/111
         return pub.unregister()
 
     @staticmethod
@@ -107,6 +109,8 @@ class TopicBack(object):
         """
         # counting publisher instance per topic name
         TopicBack.sub_instance_count[sub.name] -= 1
+
+        # Be aware of https://github.com/ros/ros_comm/issues/111
         return sub.unregister()
 
     def __init__(self, topic_name, topic_type, queue_size=1, start_timeout=2):
