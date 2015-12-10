@@ -192,7 +192,7 @@ class BaseInterface(object):
         return
 
     @abc.abstractmethod
-    def ServiceMaker(self, service_name, service_type):  # the service class implementation
+    def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
         return
 
     # Abstract methods to override for topics ("pub/sub type" communication channel)
@@ -222,7 +222,7 @@ class BaseInterface(object):
         return
 
     @abc.abstractmethod
-    def ParamMaker(self, param_name, param_type):  # the topic class implementation
+    def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the topic class implementation
         return
 
     def __init__(self, services, topics, params):

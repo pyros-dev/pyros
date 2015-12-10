@@ -27,6 +27,9 @@ from .exceptions import UnknownResponseTypeException
 services_lock = manager.Lock()
 services = manager.dict()
 
+class ServiceCallTimeout(Exception):
+    pass
+
 #TODO : make this pickleable so we can move it around ( and dynamically rebuild the socket connection )
 class Service(object):
 
@@ -119,9 +122,10 @@ class Service(object):
                         reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb)
                 else:
                     raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(fullresp)))
-
-        # TODO : exception on timeout
-        return None
+            else:
+                raise ServiceCallTimeout("Did not receive response through ZMQ socket.")
+        else:
+            raise ServiceCallTimeout("Can not send request through ZMQ socket.")
 
     def expose(self):
         pass

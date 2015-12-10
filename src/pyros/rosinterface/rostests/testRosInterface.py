@@ -7,6 +7,7 @@ import logging
 # Unit test import (  will emulate ROS setup if needed )
 import time
 from pyros.rosinterface import RosInterface
+from pyros.rosinterface import TopicBack
 
 import rospy
 import roslaunch
@@ -186,34 +187,59 @@ class TestRosInterface(unittest.TestCase):
 
         nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
-    @unittest.expectedFailure  # because unregister doesnt work...
     def test_topic_withhold_update_disappear(self):
         """
-        Test topic exposing functionality for a topic which already exists in
+        Test topic witholding functionality for a topic which doesnt exists anymore in
         the ros environment. Normal usecase
         Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
         :return:
         """
-        topicname = '/test/string'
-        dt = self.interface.expose_topics([topicname])
-        self.assertEqual(dt.added, [])  # topicname not detected yet -> not added
-        self.assertEqual(dt.removed, [])  # not changed
+        topicname = '/test/nonexistent3'
         # every added topic should be in the list of args
-        self.assertTrue(topicname in self.interface.topics_args)
-        # topic backend has NOT been created yet
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+        # First update should not change state
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
+        # create the publisher and then try exposing the topic again, simulating
+        # it coming online before expose call.
+        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
         dt = self.interface.update()
-        self.assertTrue(topicname in dt.added)  # topicname detected and added
-        self.assertEqual(dt.removed, [])  # nothing added
+        self.assertEqual(dt.added, [])  # nothing added (not exposed)
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # TODO : do we need a test with subscriber ?
+
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # the backend should not have been created
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
+        dt = self.interface.expose_topics([topicname])
+        self.assertTrue(topicname in dt.added)  # detected and added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every exposed topic should remain in the list of args ( in case regex match another topic )
+        self.assertTrue(topicname in self.interface.topics_args)
+        # make sure the topic backend has been created
+        self.assertTrue(topicname in self.interface.topics.keys())
+
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every withhold topic should STILL be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
-        # topic backend has been created
+        # topic backend should STILL be there
         self.assertTrue(topicname in self.interface.topics.keys())
 
         dt = self.interface.expose_topics([])
+        self.assertTrue(topicname in dt.removed)  # removed
         self.assertEqual(dt.added, [])  # nothing added
-        self.assertTrue(topicname in dt.removed)  # topic name removed
         # every withhold topic should NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
@@ -222,22 +248,21 @@ class TestRosInterface(unittest.TestCase):
         dt = self.interface.update()
         self.assertEqual(dt.added, [])  # nothing added
         self.assertEqual(dt.removed, [])  # nothing removed
-        # every withhold topic should STILL NOT be in the list of args
+        # every withhold topic should NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
+        TopicBack._remove_pub(nonexistent_pub)
 
         dt = self.interface.update()
         self.assertEqual(dt.added, [])  # nothing added
-        self.assertTrue(topicname in dt.removed)  # detected lost
-        # every withhold topic should STILL NOT be in the list of args
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every withhold topic should NOT be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-    @unittest.expectedFailure  # because Topic.unregister() doesnt work
     def test_topic_disappear_update_withhold(self):
         """
         Test topic exposing functionality for a topic which already exists in
@@ -248,30 +273,35 @@ class TestRosInterface(unittest.TestCase):
 
         #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
 
-        topicname = '/test/nonexistent3'
+        topicname = '/test/nonexistent4'
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
         # First update should not change state
         dt = self.interface.update()
-        self.assertTrue(topicname not in dt.added)  # not detected
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.expose_topics([topicname])
+        dt = self.interface.expose_topics([topicname])
+        self.assertEqual(dt.added, [])  # nothing added (topic name doesnt exist yet)
+        self.assertEqual(dt.removed, [])  # nothing removed
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
-        # topic backend has not been created
+        # topic backend has been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
-        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
+        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+
         dt = self.interface.update()
         self.assertTrue(topicname in dt.added)  # detected
+        self.assertEqual(dt.removed, [])  # nothing removed
         # TODO : do we need a test with subscriber ?
 
         # every added topic should be in the list of args
@@ -280,10 +310,8 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics.keys())
 
         # up to here possible sequences should have been already tested by previous tests
-        # Now comes our actual disappearrence / withholding test
-
-        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
-        # TODO : test disappear ( how ? )
+        # Now comes our actual disappearance / withholding test
+        TopicBack._remove_pub(nonexistent_pub)
 
         # every added topic should be in the list of args
         self.assertTrue(topicname in self.interface.topics_args)
@@ -292,7 +320,8 @@ class TestRosInterface(unittest.TestCase):
         # Note the Topic implementation should take care of possible errors in this case
 
         dt = self.interface.update()
-        self.assertTrue(topicname in dt.removed)  # detected
+        self.assertTrue(topicname in dt.removed)  # detected lost
+        self.assertEqual(dt.added, [])  # nothing added
         # every exposed topic should remain in the list of args ( in case regex match another topic )
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend should NOT be there any longer
@@ -313,7 +342,6 @@ class TestRosInterface(unittest.TestCase):
         # make sure the topic backend has been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-
     def test_topic_update_disappear_withhold(self):
         """
         Test topic exposing functionality for a topic which already exists in
@@ -322,7 +350,7 @@ class TestRosInterface(unittest.TestCase):
         :return:
         """
 
-        topicname = '/test/nonexistent4'
+        topicname = '/test/nonexistent5'
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
@@ -500,7 +528,7 @@ class TestRosInterface(unittest.TestCase):
 
     def test_service_withhold_update_disappear(self):
         """
-        Test service exposing functionality for a service which already exists in
+        Test service witholding functionality for a service which doesn exists anymore in
         the ros environment. Normal usecase
         Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
         :return:

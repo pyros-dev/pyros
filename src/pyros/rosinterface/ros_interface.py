@@ -88,7 +88,27 @@ class RosInterface(BaseInterface):
             # Current status : getting all topic types is another master request and might not be always needed
             #  -> dont call again the master from here.
 
-            self.topics_available = set([t[0] for t in (publishers + subscribers)])
+            # Examination of topics :
+            # We keep publishers that is provided by something else ( not our exposed topic pub if present )
+            # OR if we have locally multiple pubs / subs.
+            filtered_publishers = [
+                p for p in publishers
+                if len(p[1]) > (1 if (p[0] in self.topics.keys() and self.topics[p[0]].pub is not None) else 0) or # has a remote publisher OR
+                p[0] in self.topics.keys() and TopicBack.pub_instance_count.get(p[0], 0) > 1  # has a local (process) publisher (but not the interface one)
+                # Although we should have ultimately only one in the interface,
+                # in some case we maybe will have more in the process ( tests, one process multinode, etc. )
+            ]
+            # We keep subscribers that are provided by something else ( not our exposed topic sub if present )
+            # OR if we have locally multiple pubs / subs.
+            filtered_subscribers = [
+                s for s in subscribers
+                if len(s[1]) > (1 if (s[0] in self.topics.keys() and self.topics[s[0]].sub is not None) else 0) or
+                s[0] in self.topics.keys() and TopicBack.sub_instance_count.get(s[0], 0) > 1
+                # Although we should have ultimately only one in the interface,
+                # in some case we maybe have more ( tests, one process multi node, etc. )
+            ]
+            # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
+            self.topics_available = set([t[0] for t in (filtered_publishers + filtered_subscribers)])
             self.services_available = set([s[0] for s in services])
 
             self.params_available = set(rospy.get_param_names())

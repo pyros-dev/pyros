@@ -5,8 +5,10 @@ import abc
 class BaseService(object):
 
     """
-    MockService is a mock for the class handling conversion from python API to Service call
+    BaseService is a base class to handling conversion from python API to Service call
     """
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, service_name, service_type):
         # service_type is a composition of python standard builtin types that still make sense outside of
         # the python environment where there originated from :

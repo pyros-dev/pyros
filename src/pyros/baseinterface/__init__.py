@@ -11,11 +11,13 @@
 from __future__ import absolute_import
 
 from .baseservice import BaseService
+from .basetopic import BaseTopic
 from .baseinterface import BaseInterface
 from .basenode import PyrosBase
 
 __all__ = [
     'BaseService',
+    'BaseTopic',
     'BaseInterface',
     'PyrosBase',
 ]

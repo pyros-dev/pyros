@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import time
+
 from . import ros_setup
 
 try:
@@ -18,6 +20,7 @@ except ImportError:
 
 from importlib import import_module
 from collections import deque, OrderedDict
+from itertools import count
 
 from .message_conversion import get_msg, get_msg_dict
 
@@ -30,12 +33,83 @@ def get_topic_msg_dict(topic):
     return get_msg_dict(topic.rostype)
 
 
-"""
-TopicBack is the class handling conversion from Python to ROS Topic
-"""
+class TopicBackTimeout(Exception):
+    pass
+
+
 class TopicBack(object):
-    def __init__(self, topic_name, topic_type, allow_pub=True, allow_sub=True, queue_size=1):
+    """
+    TopicBack is the class handling conversion from Python to ROS Topic
+    Requirement : Only one topicBack per actual ROS Topic.
+    Since we connect to an already existing ros topic, our number of connections should never drop under 1
+    """
+
+    # We need some kind of instance count here since system state returns only one node instance
+    # as publisher for multiple publisher in this process.
+    # This is used in ros_interface update to determine
+    # if we are the only last ones publishing / subscribing to this topic ( usually the count will be just 1 )
+    pub_instance_count = {}
+    sub_instance_count = {}
+
+    @staticmethod
+    def _create_pub(name, rostype, *args, **kwargs):
+        """
+        Creating a publisherm and adding it to the pub instance count.
+        Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
+        :return: the ros publisher
+        """
+        # counting publisher instance per topic name
+        if name in TopicBack.pub_instance_count.keys():
+            TopicBack.pub_instance_count[name] += 1
+        else:
+            TopicBack.pub_instance_count[name] = 1
+
+        return rospy.Publisher(name, rostype, *args, **kwargs)
+
+    @staticmethod
+    def _remove_pub(pub):
+        """
+        Removing a publisher and substracting it from the pub instance count.
+        :return: None
+        """
+        # counting publisher instance per topic name
+        TopicBack.pub_instance_count[pub.name] -= 1
+        return pub.unregister()
+
+    @staticmethod
+    def _create_sub(name, rostype, topic_callback, *args, **kwargs):
+        """
+        Creating a subscriber and adding it to the pub instance count.
+        Static and Functional style so we can call it from anywhere (tests).
+        Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
+        :return: the subscriber
+        """
+        # counting subscriber instance per topic name
+        if name in TopicBack.sub_instance_count.keys():
+            TopicBack.sub_instance_count[name] += 1
+        else:
+            TopicBack.sub_instance_count[name] = 1
+
+        return rospy.Subscriber(name, rostype, topic_callback, *args, **kwargs)
+
+    @staticmethod
+    def _remove_sub(sub):
+        """
+        Creating a publisher and adding it to the pub instance count.
+        Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
+        :return: None
+        """
+        # counting publisher instance per topic name
+        TopicBack.pub_instance_count[sub.name] -= 1
+        return sub.unregister()
+
+    def __init__(self, topic_name, topic_type, queue_size=1, start_timeout=2):
+
         self.name = topic_name
+
+        # TODO : think about if we enforce fullname before reaching this deep in the code
+        # Any benefit with relative names ?
+
         # getting the fullname to make sure we start with /
         self.fullname = self.name if self.name.startswith('/') else '/' + self.name
 
@@ -46,22 +120,27 @@ class TopicBack(object):
         self.rostype_name = topic_type
         self.rostype = getattr(msg_module, topic_type_name)
 
-        self.allow_pub = allow_pub
-        self.allow_sub = allow_sub
-
         self.msgtype = get_topic_msg_dict(self)
         self.msg = deque([], queue_size)
 
         self.pub = None
-        if self.allow_pub:
-            self.pub = rospy.Publisher(self.name, self.rostype, queue_size=1)
-            # CAREFUL ROS publisher doesnt guarantee messages to be delivered
-            # stream-like design spec -> loss is acceptable.
-            # TODO : maybe combine with "get_num_connections" to determine if publisher ready to publish or not yet ?
 
-        self.sub = None
-        if self.allow_sub:
-            self.sub = rospy.Subscriber(self.name, self.rostype, self.topic_callback)
+        self.pub = self._create_pub(self.fullname, self.rostype, queue_size=1)
+        # CAREFUL ROS publisher doesnt guarantee messages to be delivered
+        # stream-like design spec -> loss is acceptable.
+        self.sub = self._create_sub(self.fullname, self.rostype, self.topic_callback)
+
+        # Here making sure the publisher / subscriber pair is actually connected
+        # before returning to ensure RAII
+        start = time.time()
+        timeout = start_timeout
+        while time.time() - start < timeout and (
+            self.pub.get_num_connections() < 1 or
+            self.sub.get_num_connections() < 1
+        ):
+            rospy.rostime.wallsleep(1)
+        if start - time.time() > timeout:
+            raise TopicBackTimeout()
 
         self.empty_cb = None
 
@@ -76,8 +155,6 @@ class TopicBack(object):
             'name': self.name,
             'fullname': self.fullname,
             'msgtype': self.msgtype,
-            'allow_sub': self.allow_sub,
-            'allow_pub': self.allow_pub,
             'rostype_name': self.rostype_name,
         })
 

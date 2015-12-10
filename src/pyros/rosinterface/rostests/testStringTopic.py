@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import sys
 
 # Unit test import ( will emulate ROS setup if needed )
+import time
 from pyros.rosinterface.topic import TopicBack
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
@@ -63,9 +64,9 @@ def setup_module():
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
         # finishing all process are finished
-        if pub_process is not None:
+        if pub_process is not None and pub_process.is_alive():
             pub_process.stop()
-        if echo_process is not None:
+        if echo_process is not None and echo_process.is_alive():
             echo_process.stop()
 
         rospy.signal_shutdown('test complete')
@@ -160,30 +161,29 @@ class TestStringTopic(unittest.TestCase):
         # No need of parameter for that, any str should work
         self.test_message = "testing"
 
+    def tearDown(self):
+        self.logPoint()
+        pass
+
+    def test_topic_echo(self):
         try:
-            # actual fixture stuff
+            self.logPoint()
+
             # looking for the topic ( similar code than ros_interface.py )
             pub_topic_type = self.topic_wait_type(self.pub_topic_name)
             echo_topic_type = self.topic_wait_type(self.echo_topic_name)
 
             # exposing the topic for testing here
-            self.pub_topic = TopicBack(self.pub_topic_name, pub_topic_type, allow_pub=True, allow_sub=False)
-            self.echo_topic = TopicBack(self.echo_topic_name, echo_topic_type, allow_pub=False, allow_sub=True)
-        except KeyboardInterrupt:
-            self.fail("Test Interrupted !")
+            self.pub_topic = TopicBack(self.pub_topic_name, pub_topic_type)
+            self.echo_topic = TopicBack(self.echo_topic_name, echo_topic_type)
 
-    def tearDown(self):
-        self.logPoint()
-        pass
+            # Making sure the topic interface is ready to be used just after creation
+            subs_connected = self.pub_topic.pub.get_num_connections() > 0  # no local subs
+            assert_true(subs_connected)
+            pubs_connected = self.echo_topic.sub.get_num_connections() > 0  # no local pub
+            assert_true(pubs_connected)
 
-    def test_topic(self):
-        try:
-            self.logPoint()
-
-            # Hack to wait publisher to finish initializing
-            while self.pub_topic.pub.get_num_connections() < 1:
-                rospy.rostime.wallsleep(1)
-
+            # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))
             assert_true(self.pub_topic.publish(self.pub_topic.rostype(self.test_message)))
 
