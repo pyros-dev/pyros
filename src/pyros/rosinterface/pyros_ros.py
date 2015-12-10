@@ -35,8 +35,9 @@ class PyrosROS(PyrosBase):
     """
     def __init__(self, name_suffix=None, argv=None, dynamic_reconfigure=True):
         super(PyrosROS, self).__init__(name_suffix=name_suffix or 'ros')
+        # removing name from argv to avoid overriding specified name unintentionally
+        argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
-        argv = argv or []
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.dynamic_reconfigure = dynamic_reconfigure
         enable_rocon = rospy.get_param('~enable_rocon', False)
@@ -225,11 +226,16 @@ class PyrosROS(PyrosBase):
 
         #TODO : install shutdown hook to shutdown if detected
 
-        logging.debug("zmp[{name}] running, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+        try:
+            logging.debug("zmp[{name}] running, pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
-        super(PyrosROS, self).run()
+            super(PyrosROS, self).run()
 
-        logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+            logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+
+        except KeyboardInterrupt:
+            rospy.logwarn('PyrosROS node stopped by keyboad interrupt')
+
 
     def update(self):
         """

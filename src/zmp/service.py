@@ -125,11 +125,6 @@ class Service(object):
         else:
             raise ServiceCallTimeout("Can not send request through ZMQ socket.")
 
-    def expose(self):
-        pass
-
-    def hide(self):
-        pass
 
 # convenience
 discover = Service.discover
