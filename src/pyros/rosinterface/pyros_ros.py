@@ -247,19 +247,6 @@ class PyrosROS(PyrosBase):
     # Create a callback function for the dynamic reconfigure server.
     def reconfigure(self, config, level):
 
-        rospy.logwarn("""[{name}] Interface Reconfigure Request:
-    topics : {topics}
-    services : {services}
-    enable_rocon : {enable_rocon}
-        """.format(name=__name__, **config))
-
-        self.enable_rocon = config["enable_rocon"]
-
-        if not self.rocon_if and self.enable_rocon:
-            rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
-            self.rocon_if = RoconInterface(self.ros_if)
-
-        print(config)
         new_services = None
         new_topics = None
         new_params = None
@@ -278,6 +265,24 @@ class PyrosROS(PyrosBase):
             new_params = list(set(ast.literal_eval(config["params"])))
         except ValueError:
             rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
+
+        self.enable_rocon = config.get('enable_rocon', False)
+
+        rospy.logwarn("""[{name}] Interface Reconfigure Request:
+    services : {services}
+    topics : {topics}
+    params : {params}
+    enable_rocon : {enable_rocon}
+        """.format(name=__name__,
+                   topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
+                   services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
+                   params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
+                   enable_rocon=config.get('enable_rocon', False),
+                   ))
+
+        if not self.rocon_if and self.enable_rocon:
+            rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
+            self.rocon_if = RoconInterface(self.ros_if)
 
         self.reinit(new_services, new_topics, new_params)
 
