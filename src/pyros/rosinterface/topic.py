@@ -20,7 +20,7 @@ except ImportError:
 
 from importlib import import_module
 from collections import deque, OrderedDict
-from itertools import count
+import zmp
 
 from .message_conversion import get_msg, get_msg_dict
 
@@ -48,8 +48,14 @@ class TopicBack(object):
     # as publisher for multiple publisher in this process.
     # This is used in ros_interface update to determine
     # if we are the only last ones publishing / subscribing to this topic ( usually the count will be just 1 )
+
+    # TO have this working properly with multiple instance, we need a central place to keep that
     pub_instance_count = {}
     sub_instance_count = {}
+
+    # a solution that works multiprocess
+    IF_TOPIC_PARAM = 'pyros_if_topics'
+
 
     @staticmethod
     def _create_pub(name, rostype, *args, **kwargs):
@@ -130,6 +136,11 @@ class TopicBack(object):
         # stream-like design spec -> loss is acceptable.
         self.sub = self._create_sub(self.fullname, self.rostype, self.topic_callback)
 
+        # Advertising ROS system wide, which topic are interfaced with this process
+        # TODO : make this thread safe
+        if_topics = rospy.get_param('~' + TopicBack.IF_TOPIC_PARAM, [])
+        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics + [self.fullname])
+
         # Here making sure the publisher / subscriber pair is actually connected
         # before returning to ensure RAII
         start = time.time()
@@ -191,3 +202,13 @@ class TopicBack(object):
 
     def topic_callback(self, msg):
         self.msg.appendleft(msg)
+
+    def __del__(self):
+        """
+        Launched when memory is collected for this instance
+        :return:
+        """
+
+        # Removing the ROS system wide advert about which topic are interfaced with this process
+        if_topics = rospy.get_param('~' + TopicBack.IF_TOPIC_PARAM, [])
+        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics - [self.fullname])

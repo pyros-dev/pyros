@@ -22,7 +22,6 @@ import collections
 #    Maybe not worth it.
 # - TODO : tox + py.test (benchmark)
 
-
 def ROS_setup_rosdistro_env(default_distro=None):
     default_distro = default_distro or 'indigo'
     # Setting env var like ROS would
@@ -106,6 +105,7 @@ def ROS_setup_ospath(distro_space=None, install_workspace=None, devel_workspace=
             os.environ["LD_LIBRARY_PATH"] = p + ':' + os.environ.get("LD_LIBRARY_PATH", '')
 
 
+# TODO : check if we can use roslib.load_manifest for all this
 def ROS_setup_pythonpath(distro_space=None, install_workspace=None, devel_workspace=None):
 
     distro_space = distro_space or ROS_find_workspaces()[0]

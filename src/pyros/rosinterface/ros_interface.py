@@ -27,6 +27,11 @@ class RosInterface(BaseInterface):
         # connecting to the master via proxy object
         self._master = rospy.get_master()
 
+        # Setting our list of interfaced topic right when we start
+        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
+
+
+
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
     def get_svc_list(self):  # function returning all services available on the system
@@ -79,10 +84,20 @@ class RosInterface(BaseInterface):
         :return Return the difference tuple of services/topics/params exposed/withhold (NOT the detected changes we should not care about).
                 Note that the name must match a regex previously set by the expose call
         """
-        # TODO : improve this by using another node that caches master state
+        # TODO : improve this by using another node that caches master state and provide safe access
         try:
             _, _, system_state = self._master.getSystemState()
             publishers, subscribers, services = system_state
+
+            params = rospy.get_param_names()
+
+            # getting the list of interfaced topics from well known node param
+            if_topics = {}
+            for par in params:
+                if par.endswith(TopicBack.IF_TOPIC_PARAM):
+                    # extract process name from param name ( removing extra slash )
+                    pname = par[:- len('/' + TopicBack.IF_TOPIC_PARAM)]
+                    if_topics[pname] = rospy.get_param(par, [])
 
             # TODO : improvement : get the types here already ( no need to recall master everytime to get it )
             # Current status : getting all topic types is another master request and might not be always needed
@@ -91,27 +106,29 @@ class RosInterface(BaseInterface):
             # Examination of topics :
             # We keep publishers that is provided by something else ( not our exposed topic pub if present )
             # OR if we have locally multiple pubs / subs.
-            filtered_publishers = [
-                p for p in publishers
-                if len(p[1]) > (1 if (p[0] in self.topics.keys() and self.topics[p[0]].pub is not None) else 0) or # has a remote publisher OR
-                p[0] in self.topics.keys() and TopicBack.pub_instance_count.get(p[0], 0) > 1  # has a local (process) publisher (but not the interface one)
-                # Although we should have ultimately only one in the interface,
-                # in some case we maybe will have more in the process ( tests, one process multinode, etc. )
-            ]
+            filtered_publishers = []
+            for p in publishers:
+                # keeping only nodes that are not pyros interface for this topic
+                nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.pub_instance_count.get(p[0], 0) > 1)]
+                # also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+                if nonif_pub_providers:
+                    filtered_publishers.append([p[0], nonif_pub_providers])
+
             # We keep subscribers that are provided by something else ( not our exposed topic sub if present )
             # OR if we have locally multiple pubs / subs.
-            filtered_subscribers = [
-                s for s in subscribers
-                if len(s[1]) > (1 if (s[0] in self.topics.keys() and self.topics[s[0]].sub is not None) else 0) or
-                s[0] in self.topics.keys() and TopicBack.sub_instance_count.get(s[0], 0) > 1
-                # Although we should have ultimately only one in the interface,
-                # in some case we maybe have more ( tests, one process multi node, etc. )
-            ]
+            filtered_subscribers = []
+            for s in subscribers:
+                # keeping only nodes that are not pyros interface for this topic
+                nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.sub_instance_count.get(s[0], 0) > 1)]
+                # also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+                if nonif_sub_providers:
+                    filtered_subscribers.append([s[0], nonif_sub_providers])
+
             # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
             self.topics_available = set([t[0] for t in (filtered_publishers + filtered_subscribers)])
             self.services_available = set([s[0] for s in services])
 
-            self.params_available = set(rospy.get_param_names())
+            self.params_available = set(params)
 
         except socket.error:
             rospy.logerr("[] couldn't get system state from the master ")

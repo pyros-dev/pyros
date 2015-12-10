@@ -33,8 +33,8 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, dynamic_reconfigure=True):
-        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
+    def __init__(self, name_suffix=None, argv=None, dynamic_reconfigure=True):
+        super(PyrosROS, self).__init__(name_suffix=name_suffix or 'ros')
         # protecting rospy from unicode
         argv = argv or []
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]

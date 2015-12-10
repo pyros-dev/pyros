@@ -244,7 +244,6 @@ class Node(multiprocessing.Process):
         """
         pass
 
-
     def shutdown(self, join=True):
         """
         Clean shutdown of the node.
@@ -259,22 +258,6 @@ class Node(multiprocessing.Process):
                 # TODO : after terminate, not before
                 self._popen = None  # this should permit start to run again
             # TODO : timeout before forcing terminate (SIGTERM)
-        pass
-
-    def listen(self, topic, callback):
-
-        # TODO actually open comm channels
-
-        # find topic sender
-
-        # build a pipe with sender
-
-        # register the listener
-        self.listeners[topic] = callback
-        pass
-
-    def unlisten(self, topic):
-        #TODO : inverse of listen
         pass
 
 

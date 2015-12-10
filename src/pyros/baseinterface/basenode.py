@@ -20,8 +20,8 @@ class PyrosBase(zmp.Node):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name='pyros-base'):
-        super(PyrosBase, self).__init__(name)
+    def __init__(self, name_suffix=None):
+        super(PyrosBase, self).__init__('pyros-' + name_suffix or 'base')
 
         self.provides(self.msg_build)
         self.provides(self.topic)
