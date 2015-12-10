@@ -184,15 +184,15 @@ class PyrosClient(object):
         return res
 
     def topics(self):
-        res = self.topics_svc.call()  # CAREFUL : timeout can return None
+        res = self.topics_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
         return res
         
     def services(self):
-        res = self.services_svc.call()  # CAREFUL : timeout can return None
+        res = self.services_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
         return res
 
     def params(self):
-        res = self.params_svc.call()  # CAREFUL : timeout can return None
+        res = self.params_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
         return res
 
     #def listacts(self):
