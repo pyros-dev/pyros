@@ -101,13 +101,11 @@ class Service(object):
 
         evts = dict(poller.poll(send_timeout))
         if socket in evts and evts[socket] == zmq.POLLOUT:
-            print "POLLOUT"
             socket.send(fullreq.serialize())
             # TODO : find a way to get rid fo these timeouts when debugging
             # TODO : when timeout Exception should occur ( not returning None )
             evts = dict(poller.poll(recv_timeout))  # blocking until answer
             if socket in evts and evts[socket] == zmq.POLLIN:
-                print "POLLIN"
                 resp = socket.recv()
                 fullresp = ServiceResponse_dictparse(resp)
 

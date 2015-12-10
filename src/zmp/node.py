@@ -180,7 +180,6 @@ class Node(multiprocessing.Process):
             if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
                 req = None
                 try:
-                    print('-> POLLIN on {0}'.format(svc_socket))
                     req_unparsed = svc_socket.recv()
                     req = ServiceRequest_dictparse(req_unparsed)
                     if isinstance(req, ServiceRequest):
