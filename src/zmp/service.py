@@ -86,7 +86,6 @@ class Service(object):
         kwargs = kwargs or {}
         assert isinstance(kwargs, dict)
 
-        print "Connecting to server(s)..."
         socket = context.socket(zmq.REQ)
 
         # connect to all addresses ( optionally matching node name )

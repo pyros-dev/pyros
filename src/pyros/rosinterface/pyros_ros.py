@@ -126,7 +126,8 @@ class PyrosROS(PyrosBase):
                     msg = msgconv.extract_values(res) if res else res
             return msg
         except msgconv.FieldTypeMismatchException, e:
-            rospy.logerr("[{name}] : field type mismatch {e}".format(name=self.__name__, e=e))
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=__name__, e=e))
+            raise
 
     def topics(self):
         topics_dict = {}
@@ -147,11 +148,14 @@ class PyrosROS(PyrosBase):
             return resp_content
 
         except rospy.ServiceException, e:
-            rospy.logerr("[{name}] : service exception {e}".format(name=self.__name__, e=e))
+            rospy.logerr("[{name}] : service exception {e}".format(name=__name__, e=e))
+            raise
         except msgconv.FieldTypeMismatchException, e:
-            rospy.logerr("[{name}] : field type mismatch {e}".format(name=self.__name__, e=e))
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=__name__, e=e))
+            raise
         except msgconv.NonexistentFieldException, e:
-            rospy.logerr("[{name}] : non existent field {e}".format(name=self.__name__, e=e))
+            rospy.logerr("[{name}] : non existent field {e}".format(name=__name__, e=e))
+            raise
 
     ###
 
@@ -227,11 +231,11 @@ class PyrosROS(PyrosBase):
         #TODO : install shutdown hook to shutdown if detected
 
         try:
-            logging.debug("zmp[{name}] running, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+            logging.debug("zmp[{name}] running, pid[{pid}]".format(name=__name__, pid=os.getpid()))
 
             super(PyrosROS, self).run()
 
-            logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=self.name, pid=os.getpid()))
+            logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=__name__, pid=os.getpid()))
 
         except KeyboardInterrupt:
             rospy.logwarn('PyrosROS node stopped by keyboad interrupt')

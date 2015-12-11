@@ -61,3 +61,5 @@ class FailedToStopRappError(Exception):
 class FailedToListRappsError(Exception):
     """ Failed to list rapps. """
     pass
+
+#TODO : generic exceptions for any kind of message format

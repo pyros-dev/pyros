@@ -37,7 +37,6 @@ class TestPyrosClientOnMock(object):
         assert self.client.topic_inject('random_topic')  # simply check if injected
 
     #TODO : how to test strict backend with Mock ?
-    @nose.SkipTest
     def test_inject_Wrong(self):
         with assert_raises(Exception) as expt:  # TODO : be more specific
             data = 42
@@ -86,7 +85,6 @@ class TestPyrosClientOnMock(object):
 
     ### SERVICES ###
     # TODO : think how to test strict backend with Mock ?
-    @nose.SkipTest
     def test_call_Wrong(self):
         with assert_raises(Exception) as expt:  # TODO : be more specific
             data = 42
@@ -178,3 +176,5 @@ class TestPyrosClientOnMock(object):
         recv = self.client.param_get('random_param')
         print "got value content {0}".format(recv)
         assert recv == {'first': 'first_string', 'second': 'second_string'}
+
+# TODO test service that throw exception

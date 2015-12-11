@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import pickle
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 # Unit test import
 from pyros.rosinterface import message_conversion as msgconv
@@ -31,6 +33,20 @@ def test_String_custom():
     val = msgconv.extract_values(msg)
     assert_equal(val["data"], "teststr2")
 
+
+def test_msg_exception_pickle():
+    exc = msgconv.NonexistentFieldException("message type", ["field1", "field2"])
+
+    pbuf = pickle.dumps(exc)
+    pexc = pickle.loads(pbuf)
+
+    assert_equal(pexc.basetype, "message type")
+    assert_equal(len(pexc.fields), 2)
+    assert_true("field1" in pexc.fields)
+    assert_true("field2" in pexc.fields)
+
+
+#TODO : assert exception are being thrown
 
 if __name__ == '__main__':
     nose.runmodule()

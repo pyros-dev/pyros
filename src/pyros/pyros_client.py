@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import logging
 import unicodedata
 
+import sys
+
 """
 Client to rostful node, Python style.
 Required for multiprocess communication.
@@ -15,6 +17,9 @@ from .pyros_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, 
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.
 
 class PyrosServiceNotFound(Exception):
+    pass
+
+class PyrosServiceTimeout(Exception):
     pass
 
 class PyrosClient(object):
@@ -143,18 +148,20 @@ class PyrosClient(object):
         if isinstance(service_name, unicode):
             service_name = unicodedata.normalize('NFKD', service_name).encode('ascii', 'ignore')
 
-        if _msg_content is not None:
-            res = self.service_svc.call(args=(service_name, _msg_content,))
-        else:  # default kwargs is {}
-            res = self.service_svc.call(args=(service_name, kwargs,))
-
+        try:
+            if _msg_content is not None:
+                res = self.service_svc.call(args=(service_name, _msg_content,))
+            else:  # default kwargs is {}
+                res = self.service_svc.call(args=(service_name, kwargs,))
+        except zmp.service.ServiceCallTimeout, exc:
+            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         # A service that doesn't exist on the node will return res_content.resp_content None.
         # It should probably except...
         # TODO : improve error handling, maybe by checking the type of res ?
 
         return res
 
-    def param_set(self, param_name, _value={}, **kwargs):
+    def param_set(self, param_name, _value=None, **kwargs):
         """
         Setting parameter. if _value, we inject it directly. if not, we use all extra kwargs
         :param topic_name: name of the topic
@@ -165,6 +172,8 @@ class PyrosClient(object):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(param_name, unicode):
             param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
+
+        _value = _value or {}
 
         if kwargs:
             res = self.param_svc.call(args=(param_name, kwargs,))

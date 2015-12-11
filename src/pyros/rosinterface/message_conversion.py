@@ -35,6 +35,8 @@ import roslib
 import rospy
 # TODO : if possible use rospy internals
 
+from pyros.baseinterface import PyrosException
+
 import re
 import string
 from base64 import standard_b64encode, standard_b64decode
@@ -70,22 +72,53 @@ ros_binary_types = ["uint8[]", "char[]"]
 list_braces = re.compile(r'\[[^\]]*\]')
 
 
-class InvalidMessageException(Exception):
+# CAREFUL : exceptions must be pickleable ( we need to pass all arguments to the superclass )
+class InvalidMessageException(PyrosException):
     def __init__(self, inst):
-        Exception.__init__(self, "Unable to extract message values from %s instance" % type(inst).__name__)
+        super(InvalidMessageException, self).__init__(inst)
+        self.inst = inst
+        self.excmsg = "Unable to extract message values from %s instance" % type(inst).__name__
+
+    @property
+    def message(self):
+        return self.excmsg
+
+PyrosException.register(InvalidMessageException)
 
 
-class NonexistentFieldException(Exception):
+class NonexistentFieldException(PyrosException):
     def __init__(self, basetype, fields):
-        Exception.__init__(self, "Message type %s does not have a field %s" % (basetype, '.'.join(fields)))
+        super(NonexistentFieldException, self).__init__(basetype, fields)
+        self.basetype = basetype
+        self.fields = fields
+        self.excmsg = "Message type %s does not have a field %s" % (basetype, '.'.join(fields))
+
+    @property
+    def message(self):
+        return self.excmsg
+
+PyrosException.register(NonexistentFieldException)
 
 
 class FieldTypeMismatchException(Exception):
     def __init__(self, roottype, fields, expected_type, found_type):
+        super(FieldTypeMismatchException, self).__init__(self.roottype, self.fields, self.expected_type, self.found_type)
+        self.roottype = roottype
+        self.fields = fields
+        self.expected_type = expected_type
+        self.found_type = found_type
+
         if roottype == expected_type:
-            Exception.__init__(self, "Expected a JSON object for type %s but received a %s" % (roottype, found_type))
+            self.excmsg = "Expected a JSON object for type %s but received a %s" % (roottype, found_type)
         else:
-            Exception.__init__(self, "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type))
+            self.excmsg = "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type)
+
+    @property
+    def message(self):
+        return self.excmsg
+
+PyrosException.register(FieldTypeMismatchException)
+
 
 
 ### This is a JSON -> ROS conversion module
