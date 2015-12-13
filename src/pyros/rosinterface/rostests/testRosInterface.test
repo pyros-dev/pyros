@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="pyros" type="emptyService.py" name="empty_service"/>
+  <node pkg="pyros" type="triggerService.py" name="trigger_service"/>
+  <test test-name="RosInterface" pkg="pyros" type="testRosInterface.py" name="rosInterfaceTest"/>
+</launch>

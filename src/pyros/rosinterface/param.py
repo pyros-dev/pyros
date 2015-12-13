@@ -1,0 +1,37 @@
+from __future__ import absolute_import
+
+import rospy
+from collections import OrderedDict
+
+"""
+ParamBack is the class handling conversion from REST API to ROS Param
+"""
+class ParamBack:
+    def __init__(self, param_name):
+        self.name = param_name
+        # getting the fullname to make sure we start with /
+        self.fullname = self.name if self.name.startswith('/') else '/' + self.name
+
+    def cleanup(self):
+        pass
+
+    def asdict(self):
+        """
+        Here we provide a dictionary suitable for a representation of the Topic instance
+        the main point here is to make it possible to transfer this to remote processes.
+        We are not interested in pickleing the whole class with Subscriber and Publisher
+        :return:
+        """
+
+        return OrderedDict({
+            'name': self.name,
+            'fullname': self.fullname,
+        })
+
+    def set(self, val):
+        rospy.set_param(self.name, val)
+        return
+
+    def get(self):
+        res = rospy.get_param(self.name)
+        return res

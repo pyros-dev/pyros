@@ -1,5 +1,0 @@
-<launch>
-  <node pkg="rostful_node" type="emptyService.py" name="empty_service"/>
-  <node pkg="rostful_node" type="triggerService.py" name="trigger_service"/>
-  <test test-name="RosInterface" pkg="rostful_node" type="testRosInterface.py" name="rosInterfaceTest"/>
-</launch>

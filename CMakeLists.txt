@@ -11,25 +11,21 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
 )
 catkin_python_setup()
-generate_dynamic_reconfigure_options(cfg/RostfulNode.cfg)
+generate_dynamic_reconfigure_options(cfg/Pyros.cfg)
 #include_directories(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 
 add_service_files(DIRECTORY srv
     FILES
-    StartAction.srv
-    CancelAction.srv
-    StatusAction.srv
-    FeedbackAction.srv
-    ResultAction.srv
     StartRapp.srv
     StopRapp.srv
+    StringEchoService.srv
 )
 generate_messages(DEPENDENCIES std_msgs)
 
-#add_custom_target(rostful_node)  # dummy target
+#add_custom_target(pyros)  # dummy target
 # make sure configure headers are built before any node using them
-#add_dependencies(rostful_node ${${PROJECT_NAME}_EXPORTED_TARGETS})
-#add_dependencies(rostful_node ${PROJECT_NAME}_gencfg)
+#add_dependencies(pyros ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#add_dependencies(pyros ${PROJECT_NAME}_gencfg)
 
 catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
 
@@ -38,7 +34,61 @@ file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
      RELATIVE ${PROJECT_SOURCE_DIR} src/*.py)
 roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
+
+# Trick to get catkin generated classes imported by nose and other usual python tools
+
+set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/srv")
+set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/srv")
+
+if(NOT EXISTS "${link}" AND EXISTS "${path}")
+    message(STATUS "linking catkin generated classes from ${path} to source space in ${link}")
+    execute_process(
+      # Note : return code is broken in 2.8 (trusty version) https://cmake.org/Bug/view.php?id=14928
+      COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${path}" "${link}"
+    )
+endif()
+
+set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/cfg")
+set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/cfg")
+
+if(NOT EXISTS "${link}" AND EXISTS "${path}")
+    message(STATUS "linking catkin generated classes from ${path} to source space in ${link}")
+    execute_process(
+      # Note : return code is broken in 2.8 (trusty version) https://cmake.org/Bug/view.php?id=14928
+      COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${path}" "${link}"
+    )
+endif()
+
 ## Unit tests
 if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
+
+
+    ##############################################################################
+    # Nose Tests
+    ##############################################################################
+
+    catkin_add_nosetests(src/zmp/tests)
+    catkin_add_nosetests(src/pyros/mockinterface/tests)
+    catkin_add_nosetests(src/pyros/rosinterface/tests)
+    catkin_add_nosetests(src/pyros/tests)
+
+    ##############################################################################
+    # Ros Tests
+    ##############################################################################
+
+    # find_package(catkin REQUIRED COMPONENTS rostest)
+
+    # These rostests need to be run one by one ( because of rospy side effects)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testService.py)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testStringTopic.py)
+    catkin_add_nosetests(src/pyros/rosinterface/rostests/testRosInterface.py)
+    # Running with nose because rostest fails ( not sure why yet )
+
+    # add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
+    # add_rostest(src/pyros/rosinterface/rostests/testService.test)
+
+    # Testing rosinterface class integration in pyros
+    # add_rostest(src/pyros/rosinterface/rostests/testRosInterface.test)
+
+
 endif()
