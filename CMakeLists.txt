@@ -65,6 +65,7 @@ if (CATKIN_ENABLE_TESTING)
     # Nose Tests
     ##############################################################################
 
+    catkin_add_nosetests(src/zmp/tests)
     catkin_add_nosetests(src/pyros/mockinterface/tests)
     catkin_add_nosetests(src/pyros/rosinterface/tests)
     catkin_add_nosetests(src/pyros/tests)
