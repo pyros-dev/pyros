@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+# To allow python to run these tests as main script
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import pickle
 import zmp.message
 
+
 import nose
-from nose.tools import assert_true, assert_false, assert_raises, assert_equal
+from nose.tools import assert_true, assert_false, assert_raises, assert_equal, nottest, istest
 # TODO : PYTEST ?
 # http://pytest.org/latest/contents.html
 # https://github.com/ionelmc/pytest-benchmark
@@ -120,249 +122,442 @@ def oneline_symmetric_serialize_parse_serviceresponseexception(resp):
     assert_equal(pickle.loads(finalresp.exception.traceback), "testtraceback")
 
 
-#PROTOBUF Implementation test - default
-def test_initialize_servicerequest_protobuf():
-    # Test Initialization
-    req = zmp.message.ServiceRequest(
-        service="testservice",
-        args=pickle.dumps(("testarg",)),
-        kwargs=pickle.dumps({'testkwarg': 'test'}),
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(req, zmp.message.ServiceRequest))
-    # run actual test
-    initialize_servicerequest(req)
+# PROTOBUF Implementation test - default
+class TestMessageProtobuf(object):
+    def setUp(self):
+        # Checking protobuf implementation
+        if not zmp.message.protobuf_implementation_enabled:
+            raise nose.SkipTest("Protobuf implementation not supported !")
+
+    def tearDown(self):
+        # Setting back default implementation
+        pass
+
+    def test_initialize_servicerequest_protobuf():
+        # Test Initialization
+        req = zmp.message.ServiceRequest(
+            service="testservice",
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
+        # run actual test
+        initialize_servicerequest(req)
 
 
-def test_initialize_serviceresponse_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceResponse(
-        service="testservice",
-        response=pickle.dumps("testresponse"),
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceResponse))
-    # run actual test
-    initialize_serviceresponse(resp)
+    def test_initialize_serviceresponse_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=pickle.dumps("testresponse"),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        initialize_serviceresponse(resp)
 
 
-def test_initialize_serviceexception_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceException(
-        exc_type="testexception",
-        exc_value=pickle.dumps("testexceptionvalue"),
-        traceback=pickle.dumps("testtraceback"),
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceExceptionImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceException))
-    # run actual test
-    initialize_serviceexception(resp)
-
-
-def test_initialize_serviceresponseexception_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceResponse(
-        service="testservice",
-        exception=zmp.message.ServiceException(
+    def test_initialize_serviceexception_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceException(
             exc_type="testexception",
             exc_value=pickle.dumps("testexceptionvalue"),
             traceback=pickle.dumps("testtraceback"),
         )
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceResponse))
-    # run actual test
-    initialize_serviceresponseexception(resp)
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceExceptionImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceException))
+        # run actual test
+        initialize_serviceexception(resp)
 
 
-def test_default_initialize_servicerequest_protobuf():
-    # Test Initialization
-    req = zmp.message.ServiceRequest()
-    # Check we have desired implementation
-    assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(req, zmp.message.ServiceRequest))
-    # run actual test
-    default_initialize_servicerequest(req)
+    def test_initialize_serviceresponseexception_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            exception=zmp.message.ServiceException(
+                exc_type="testexception",
+                exc_value=pickle.dumps("testexceptionvalue"),
+                traceback=pickle.dumps("testtraceback"),
+            )
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        initialize_serviceresponseexception(resp)
 
 
-def test_default_initialize_serviceresponse_protobuf():
-    # Test Initialization
-    resp = zmp.message.ServiceResponse()
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceResponse))
-    # run actual test
-    default_initialize_serviceresponse(resp)
+    def test_default_initialize_servicerequest_protobuf():
+        # Test Initialization
+        req = zmp.message.ServiceRequest()
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
+        # run actual test
+        default_initialize_servicerequest(req)
 
 
-def test_default_initialize_serviceexception_protobuf():
-    # Test Initialization
-    exc = zmp.message.ServiceException()
-    # Check we have desired implementation
-    assert_true(isinstance(exc, zmp.message.ServiceExceptionImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(exc, zmp.message.ServiceException))
-    # run actual test
-    default_initialize_serviceexception(exc)
+    def test_default_initialize_serviceresponse_protobuf():
+        # Test Initialization
+        resp = zmp.message.ServiceResponse()
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        default_initialize_serviceresponse(resp)
 
 
-# No point to have a test_default_initialize_serviceresponseexception_protobuf here
+    def test_default_initialize_serviceexception_protobuf():
+        # Test Initialization
+        exc = zmp.message.ServiceException()
+        # Check we have desired implementation
+        assert_true(isinstance(exc, zmp.message.ServiceExceptionImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(exc, zmp.message.ServiceException))
+        # run actual test
+        default_initialize_serviceexception(exc)
 
 
-def test_symmetric_serialize_parse_servicerequest_protobuf():
-    # Test Initialization
-    req = zmp.message.ServiceRequest(
-        service="testservice",
-        args=pickle.dumps(("testarg",)),
-        kwargs=pickle.dumps({'testkwarg': 'test'}),
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(req, zmp.message.ServiceRequest))
-
-    assert_true(req.initialized())
-
-    # assert parse modifies the current message
-    parsedreq = zmp.message.ServiceRequest()
-    parsedreq._parse(req.serialize())
-    assert_true(isinstance(parsedreq, zmp.message.ServiceRequest))
-    assert_true(parsedreq.initialized())
-    assert_equal(parsedreq.service, "testservice")
-    assert_equal(pickle.loads(parsedreq.args)[0], "testarg")
-    assert_equal(pickle.loads(parsedreq.kwargs)["testkwarg"], "test")
-
-    # assert parse returns the modified list
-    parsedreq_oneline = zmp.message.ServiceRequest()._parse(req.serialize())
-    assert_true(isinstance(parsedreq_oneline, zmp.message.ServiceRequest))
-    assert_true(parsedreq_oneline.initialized())
-    assert_equal(parsedreq_oneline.service, "testservice")
-    assert_equal(pickle.loads(parsedreq_oneline.args)[0], "testarg")
-    assert_equal(pickle.loads(parsedreq_oneline.kwargs)["testkwarg"], "test")
-
-    # run actual tuple-compatible online test
-    oneline_symmetric_serialize_parse_servicerequest(req)
+    # No point to have a test_default_initialize_serviceresponseexception_protobuf here
 
 
-def test_symmetric_serialize_parse_serviceresponse_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceResponse(
-        service="testservice",
-        response=pickle.dumps("testresponse")
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceResponse))
+    def test_symmetric_serialize_parse_servicerequest_protobuf():
+        # Test Initialization
+        req = zmp.message.ServiceRequest(
+            service="testservice",
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
 
-    assert_true(resp.initialized())
+        assert_true(req.initialized())
 
-    # assert parse modifies the current message
-    parsedresp = zmp.message.ServiceResponse()
-    parsedresp._parse(resp.serialize())
-    assert_true(isinstance(parsedresp, zmp.message.ServiceResponse))
-    assert_true(parsedresp.initialized())
-    assert_equal(parsedresp.service, "testservice")
-    assert_equal(pickle.loads(parsedresp.response), "testresponse")
+        # assert parse modifies the current message
+        parsedreq = zmp.message.ServiceRequest()
+        parsedreq._parse(req.serialize())
+        assert_true(isinstance(parsedreq, zmp.message.ServiceRequest))
+        assert_true(parsedreq.initialized())
+        assert_equal(parsedreq.service, "testservice")
+        assert_equal(pickle.loads(parsedreq.args)[0], "testarg")
+        assert_equal(pickle.loads(parsedreq.kwargs)["testkwarg"], "test")
 
-    # assert parse returns the modified list
-    parsedresp_oneline = zmp.message.ServiceResponse()._parse(resp.serialize())
-    assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceResponse))
-    assert_true(parsedresp_oneline.initialized())
-    assert_equal(parsedresp_oneline.service, "testservice")
-    assert_equal(pickle.loads(parsedresp_oneline.response), "testresponse")
+        # assert parse returns the modified list
+        parsedreq_oneline = zmp.message.ServiceRequest()._parse(req.serialize())
+        assert_true(isinstance(parsedreq_oneline, zmp.message.ServiceRequest))
+        assert_true(parsedreq_oneline.initialized())
+        assert_equal(parsedreq_oneline.service, "testservice")
+        assert_equal(pickle.loads(parsedreq_oneline.args)[0], "testarg")
+        assert_equal(pickle.loads(parsedreq_oneline.kwargs)["testkwarg"], "test")
 
-    # run actual tuple-compatible online test
-    oneline_symmetric_serialize_parse_serviceresponse(resp)
-
-
-def test_symmetric_serialize_parse_serviceexception_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceException(
-        exc_type="testexception",
-        exc_value=pickle.dumps("testexceptionvalue"),
-        traceback=pickle.dumps("testtraceback"),
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceExceptionImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceException))
-
-    assert_true(resp.initialized())
-
-    # assert parse modifies the current message
-    parsedresp = zmp.message.ServiceException()
-    parsedresp._parse(resp.serialize())
-    assert_true(isinstance(parsedresp, zmp.message.ServiceException))
-    assert_true(parsedresp.initialized())
-    assert_equal(parsedresp.exc_type, "testexception")
-    assert_equal(pickle.loads(parsedresp.exc_value), "testexceptionvalue")
-    assert_equal(pickle.loads(parsedresp.traceback), "testtraceback")
-
-    # assert parse returns the modified list
-    parsedresp_oneline = zmp.message.ServiceException()._parse(resp.serialize())
-    assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceException))
-    assert_true(parsedresp_oneline.initialized())
-    assert_equal(parsedresp_oneline.exc_type, "testexception")
-    assert_equal(pickle.loads(parsedresp_oneline.exc_value), "testexceptionvalue")
-    assert_equal(pickle.loads(parsedresp_oneline.traceback), "testtraceback")
-
-    # run actual tuple-compatible online test
-    oneline_symmetric_serialize_parse_serviceexception(resp)
+        # run actual tuple-compatible online test
+        oneline_symmetric_serialize_parse_servicerequest(req)
 
 
-def test_symmetric_serialize_parse_serviceresponseexception_protobuf():
-    #Test Initialization
-    resp = zmp.message.ServiceResponse(
-        service="testservice",
-        exception=zmp.message.ServiceException(
+    def test_symmetric_serialize_parse_serviceresponse_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=pickle.dumps("testresponse")
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+
+        assert_true(resp.initialized())
+
+        # assert parse modifies the current message
+        parsedresp = zmp.message.ServiceResponse()
+        parsedresp._parse(resp.serialize())
+        assert_true(isinstance(parsedresp, zmp.message.ServiceResponse))
+        assert_true(parsedresp.initialized())
+        assert_equal(parsedresp.service, "testservice")
+        assert_equal(pickle.loads(parsedresp.response), "testresponse")
+
+        # assert parse returns the modified list
+        parsedresp_oneline = zmp.message.ServiceResponse()._parse(resp.serialize())
+        assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceResponse))
+        assert_true(parsedresp_oneline.initialized())
+        assert_equal(parsedresp_oneline.service, "testservice")
+        assert_equal(pickle.loads(parsedresp_oneline.response), "testresponse")
+
+        # run actual tuple-compatible online test
+        oneline_symmetric_serialize_parse_serviceresponse(resp)
+
+
+    def test_symmetric_serialize_parse_serviceexception_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceException(
             exc_type="testexception",
             exc_value=pickle.dumps("testexceptionvalue"),
             traceback=pickle.dumps("testtraceback"),
         )
-    )
-    # Check we have desired implementation
-    assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
-    # Check it is an instance of Dynamic Functional Facade
-    assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceExceptionImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceException))
 
-    assert_true(resp.initialized())
+        assert_true(resp.initialized())
 
-    # assert parse modifies the current message
-    parsedresp = zmp.message.ServiceResponse()
-    parsedresp._parse(resp.serialize())
-    assert_true(isinstance(parsedresp, zmp.message.ServiceResponse))
-    assert_true(parsedresp.initialized())
-    assert_equal(parsedresp.service, "testservice")
-    assert_equal(parsedresp.HasField('response'), False)
-    assert_equal(parsedresp.HasField('exception'), True)
-    assert_equal(parsedresp.exception.exc_type, "testexception")
-    assert_equal(pickle.loads(parsedresp.exception.exc_value), "testexceptionvalue")
-    assert_equal(pickle.loads(parsedresp.exception.traceback), "testtraceback")
+        # assert parse modifies the current message
+        parsedresp = zmp.message.ServiceException()
+        parsedresp._parse(resp.serialize())
+        assert_true(isinstance(parsedresp, zmp.message.ServiceException))
+        assert_true(parsedresp.initialized())
+        assert_equal(parsedresp.exc_type, "testexception")
+        assert_equal(pickle.loads(parsedresp.exc_value), "testexceptionvalue")
+        assert_equal(pickle.loads(parsedresp.traceback), "testtraceback")
 
-    # assert parse returns the modified list
-    parsedresp_oneline = zmp.message.ServiceResponse()._parse(resp.serialize())
-    assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceResponse))
-    assert_true(parsedresp_oneline.initialized())
-    assert_equal(parsedresp_oneline.service, "testservice")
-    assert_equal(parsedresp_oneline.HasField('response'), False)
-    assert_equal(parsedresp_oneline.HasField('exception'), True)
-    assert_equal(parsedresp_oneline.exception.exc_type, "testexception")
-    assert_equal(pickle.loads(parsedresp_oneline.exception.exc_value), "testexceptionvalue")
-    assert_equal(pickle.loads(parsedresp_oneline.exception.traceback), "testtraceback")
+        # assert parse returns the modified list
+        parsedresp_oneline = zmp.message.ServiceException()._parse(resp.serialize())
+        assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceException))
+        assert_true(parsedresp_oneline.initialized())
+        assert_equal(parsedresp_oneline.exc_type, "testexception")
+        assert_equal(pickle.loads(parsedresp_oneline.exc_value), "testexceptionvalue")
+        assert_equal(pickle.loads(parsedresp_oneline.traceback), "testtraceback")
 
-    # run actual tuple-compatible online test
-    oneline_symmetric_serialize_parse_serviceresponseexception(resp)
+        # run actual tuple-compatible online test
+        oneline_symmetric_serialize_parse_serviceexception(resp)
+
+
+    def test_symmetric_serialize_parse_serviceresponseexception_protobuf():
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            exception=zmp.message.ServiceException(
+                exc_type="testexception",
+                exc_value=pickle.dumps("testexceptionvalue"),
+                traceback=pickle.dumps("testtraceback"),
+            )
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+
+        assert_true(resp.initialized())
+
+        # assert parse modifies the current message
+        parsedresp = zmp.message.ServiceResponse()
+        parsedresp._parse(resp.serialize())
+        assert_true(isinstance(parsedresp, zmp.message.ServiceResponse))
+        assert_true(parsedresp.initialized())
+        assert_equal(parsedresp.service, "testservice")
+        assert_equal(parsedresp.HasField('response'), False)
+        assert_equal(parsedresp.HasField('exception'), True)
+        assert_equal(parsedresp.exception.exc_type, "testexception")
+        assert_equal(pickle.loads(parsedresp.exception.exc_value), "testexceptionvalue")
+        assert_equal(pickle.loads(parsedresp.exception.traceback), "testtraceback")
+
+        # assert parse returns the modified list
+        parsedresp_oneline = zmp.message.ServiceResponse()._parse(resp.serialize())
+        assert_true(isinstance(parsedresp_oneline, zmp.message.ServiceResponse))
+        assert_true(parsedresp_oneline.initialized())
+        assert_equal(parsedresp_oneline.service, "testservice")
+        assert_equal(parsedresp_oneline.HasField('response'), False)
+        assert_equal(parsedresp_oneline.HasField('exception'), True)
+        assert_equal(parsedresp_oneline.exception.exc_type, "testexception")
+        assert_equal(pickle.loads(parsedresp_oneline.exception.exc_value), "testexceptionvalue")
+        assert_equal(pickle.loads(parsedresp_oneline.exception.traceback), "testtraceback")
+
+        # run actual tuple-compatible online test
+        oneline_symmetric_serialize_parse_serviceresponseexception(resp)
+
+
+
+class TestMessageTupleFallback(object):
+    def setUp(self):
+        # Forcing tuple implementation
+        zmp.message.force_namedtuple_implementation()
+
+    def tearDown(self):
+        # Setting back default implementation
+        zmp.message.force_protobuf_implementation()
+
+    def test_initialize_servicerequest_namedtuple(self):
+        #Test Initialization
+        req = zmp.message.ServiceRequest(
+            service="testservice",
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
+        # run actual test
+        initialize_servicerequest(req)
+
+    def test_initialize_serviceresponse_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=pickle.dumps("testresponse"),
+            exception=None,
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        initialize_serviceresponse(resp)
+
+    def test_initialize_serviceexception_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceException(
+            exc_type="testexception",
+            exc_value=pickle.dumps("testexceptionvalue"),
+            traceback=pickle.dumps("testtraceback"),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceExceptionNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceException))
+        # run actual test
+        initialize_serviceexception(resp)
+
+    def test_initialize_serviceresponseexception_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=None,
+            exception=zmp.message.ServiceException(
+                exc_type="testexception",
+                exc_value=pickle.dumps("testexceptionvalue"),
+                traceback=pickle.dumps("testtraceback"),
+            )
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        initialize_serviceresponseexception(resp)
+
+    def test_default_initialize_servicerequest_namedtuple(self):
+        # Test Initialization
+        with assert_raises(TypeError) as cm:
+            req = zmp.message.ServiceRequest()
+
+        req = zmp.message.ServiceRequest(service=None, args=None, kwargs=None)
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
+        # run actual test
+        default_initialize_servicerequest(req)
+
+    def test_default_initialize_serviceresponse_namedtuple(self):
+        # Test Initialization
+        with assert_raises(TypeError) as cm:
+            resp = zmp.message.ServiceResponse()
+
+        resp = zmp.message.ServiceResponse(service=None, response=None, exception=None)
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+        # run actual test
+        default_initialize_serviceresponse(resp)
+
+    def test_default_initialize_serviceexception_namedtuple(self):
+        # Test Initialization
+        with assert_raises(TypeError) as cm:
+            resp = zmp.message.ServiceException()
+
+        resp = zmp.message.ServiceException(exc_type=None, exc_value=None, traceback=None)
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceExceptionNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceException))
+        # run actual test
+        default_initialize_serviceexception(resp)
+
+    def test_symmetric_serialize_parse_servicerequest_namedtuple(self):
+        # Test Initialization
+        req = zmp.message.ServiceRequest(
+            service="testservice",
+            args=pickle.dumps(("testarg",)),
+            kwargs=pickle.dumps({'testkwarg': 'test'}),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(req, zmp.message.ServiceRequest))
+
+        assert_true(req.initialized())
+
+        # run actual protobuf-compatible online test
+        oneline_symmetric_serialize_parse_servicerequest(req)
+
+    def test_symmetric_serialize_parse_serviceresponse_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=pickle.dumps("testresponse"),
+            exception=None,
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+
+        assert_true(resp.initialized())
+
+        # run actual protobuf-compatible online test
+        oneline_symmetric_serialize_parse_serviceresponse(resp)
+
+
+    def test_symmetric_serialize_parse_serviceexception_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceException(
+            exc_type="testexception",
+            exc_value=pickle.dumps("testexceptionvalue"),
+            traceback=pickle.dumps("testtraceback"),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceExceptionNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceException))
+
+        assert_true(resp.initialized())
+
+        # run actual protobuf-compatible online test
+        oneline_symmetric_serialize_parse_serviceexception(resp)
+
+    def test_symmetric_serialize_parse_serviceresponseexception_namedtuple(self):
+        #Test Initialization
+        resp = zmp.message.ServiceResponse(
+            service="testservice",
+            response=None,
+            exception=zmp.message.ServiceException(
+                exc_type="testexception",
+                exc_value=pickle.dumps("testexceptionvalue"),
+                traceback=pickle.dumps("testtraceback"),
+            ),
+        )
+        # Check we have desired implementation
+        assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
+        # Check it is an instance of Dynamic Functional Facade
+        assert_true(isinstance(resp, zmp.message.ServiceResponse))
+
+        assert_true(resp.initialized())
+
+        # run actual protobuf-compatible online test
+        oneline_symmetric_serialize_parse_serviceresponseexception(resp)
 
 
 if __name__ == '__main__':

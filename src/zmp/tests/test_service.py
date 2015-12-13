@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+# To allow python to run these tests as main script
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import time
 import multiprocessing
@@ -20,9 +21,54 @@ from nose.tools import assert_true, assert_false, assert_raises, assert_equal, n
 # http://pypy.org/
 
 
-@nottest
-class TestMockHWNode(object):
-    __test__ = False
+@istest
+# IPC protocol
+# Node as fixture to guarantee cleanup
+# Better to have IPC as main class as it is simpler and easier to test than Socket.
+class TestMockHWNodeIPC(object):
+    __test__ = True
+
+    class HWNode(zmp.Node):
+        def __init__(self, name):
+            super(TestMockHWNodeIPC.HWNode, self).__init__(name)
+            self.magic_number = 666
+            # TODO : improvement : autodetect class own methods
+            # TODO : assert static ?
+            self.provides(self.helloworld)
+            self.provides(self.breakworld)
+            self.provides(self.add)
+            self.provides(self.getlucky)
+
+        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
+        def helloworld(msg):
+            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
+
+        @staticmethod
+        def breakworld(msg):
+            raise Exception("Excepting Not Exceptionnally")
+
+        @staticmethod
+        def add(a, b):
+            return a+b
+
+        def getlucky(self):
+            return self.magic_number
+
+    def setUp(self):
+        # services is already setup globally
+        self.hwnode = TestMockHWNodeIPC.HWNode(name="HNode")
+        self.hwnodeextra = TestMockHWNodeIPC.HWNode(name="HNodeExtra")
+
+    def tearDown(self):
+        if self.hwnode.is_alive():
+            self.hwnode.shutdown(join=True)
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.shutdown(join=True)
+        # if it s still alive terminate it.
+        if self.hwnode.is_alive():
+            self.hwnode.terminate()
+        if self.hwnodeextra.is_alive():
+            self.hwnodeextra.terminate()
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     def test_service_discover(self):
@@ -383,58 +429,9 @@ class TestMockHWNode(object):
 
 
 # Node as fixture to guarantee cleanup
-# IPC protocol
-@istest
-class TestMockHWNodeIPC(TestMockHWNode):
-    __test__ = True
-
-    class HWNode(zmp.Node):
-        def __init__(self, name):
-            super(TestMockHWNodeIPC.HWNode, self).__init__(name)
-            self.magic_number = 666
-            # TODO : improvement : autodetect class own methods
-            # TODO : assert static ?
-            self.provides(self.helloworld)
-            self.provides(self.breakworld)
-            self.provides(self.add)
-            self.provides(self.getlucky)
-
-        @staticmethod  # TODO : verify : is it true that a service is always a static method ( execution does not depend on instance <=> process local data ) ?
-        def helloworld(msg):
-            return "Hello! I am " + zmp.current_node().name if msg == "Hello" else "..."
-
-        @staticmethod
-        def breakworld(msg):
-            raise Exception("Excepting Not Exceptionnally")
-
-        @staticmethod
-        def add(a, b):
-            return a+b
-
-        def getlucky(self):
-            return self.magic_number
-
-    def setUp(self):
-        # services is already setup globally
-        self.hwnode = TestMockHWNodeIPC.HWNode(name="HNode")
-        self.hwnodeextra = TestMockHWNodeIPC.HWNode(name="HNodeExtra")
-
-    def tearDown(self):
-        if self.hwnode.is_alive():
-            self.hwnode.shutdown(join=True)
-        if self.hwnodeextra.is_alive():
-            self.hwnodeextra.shutdown(join=True)
-        # if it s still alive terminate it.
-        if self.hwnode.is_alive():
-            self.hwnode.terminate()
-        if self.hwnodeextra.is_alive():
-            self.hwnodeextra.terminate()
-
-
-# Node as fixture to guarantee cleanup
 # TCP protocol
 @istest
-class TestMockHWNodeSocket(TestMockHWNode):
+class TestMockHWNodeSocket(TestMockHWNodeIPC):
     __test__ = True
 
     class HWNode(zmp.Node):

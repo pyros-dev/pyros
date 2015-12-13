@@ -27,8 +27,17 @@ except (ImportError):
     # The pickleable interface might just be a useful fallback if you don't want to use protobuf.
     # In that case, just call force_namedtuple_implementation() after importing this module to override default setup.
 
+protobuf_implementation_enabled = False
+
 #TODO : check python3 to avoid too much hacking here
 def force_protobuf_implementation():
+
+    if not _PROTOBUF:
+        logging.error("Cannot activate protobuf implementation. Protobuf package not imported.")
+        return False
+
+    global protobuf_implementation_enabled
+    protobuf_implementation_enabled = True
     # Dynamic Functional Facade for internal message format
 
     global ServiceRequest, ServiceRequest_dictparse
@@ -65,12 +74,18 @@ def force_protobuf_implementation():
     # TODO : Generic / Template class / Functional Interface for any kind of message
 
 
+# Fallback implementation. need to be defined at module level to be pickleable ( unless dill is used )
+ServiceRequestNTImpl = namedtuple("ServiceRequest", "service args kwargs")
+ServiceResponseNTImpl = namedtuple("ServiceResponse", "service response exception")
+ServiceExceptionNTImpl = namedtuple("ServiceException", "exc_type exc_value traceback")
+
+
 def force_namedtuple_implementation():
+    global protobuf_implementation_enabled
+    protobuf_implementation_enabled = False
     # Dynamic Functional Facade for internal message format
 
-    global ServiceRequest, ServiceRequestNTImpl, ServiceRequest_dictparse
-    # Fallback implementation. need to be defined at module level to be pickleable ( unless dill is used )
-    ServiceRequestNTImpl = namedtuple("ServiceRequest", "service args kwargs")
+    global ServiceRequest, ServiceRequest_dictparse
     # Extend named tuple implementation
     ServiceRequest = ServiceRequestNTImpl
     ServiceRequest.initialized = lambda s: True
@@ -79,9 +94,7 @@ def force_namedtuple_implementation():
     # Factory Function for oneline parsing creation
     ServiceRequest_dictparse = lambda m: pickle.loads(m)
 
-    global ServiceResponse, ServiceResponseNTImpl, ServiceResponse_dictparse
-    # Fallback implementation. need to be defined at module level to be pickleable ( unless dill is used )
-    ServiceResponseNTImpl = namedtuple("ServiceResponse", "service response exception")
+    global ServiceResponse, ServiceResponse_dictparse
     # Extend named tuple implementation
     ServiceResponse = ServiceResponseNTImpl
     ServiceResponse.initialized = lambda s: True
@@ -90,9 +103,7 @@ def force_namedtuple_implementation():
     # Factory Function for oneline parsing creation
     ServiceResponse_dictparse = lambda m: pickle.loads(m)
 
-    global ServiceException, ServiceExceptionNTImpl, ServiceException_dictparse
-    # Fallback implementation. need to be defined at module level to be pickleable ( unless dill is used )
-    ServiceExceptionNTImpl = namedtuple("ServiceException", "exc_type exc_value traceback")
+    global ServiceException, ServiceException_dictparse
     # Extend named tuple implementation
     ServiceException = ServiceExceptionNTImpl
     ServiceException.initialized = lambda s: True
@@ -102,6 +113,7 @@ def force_namedtuple_implementation():
     ServiceException_dictparse = lambda m: pickle.loads(m)
 
     # TODO : Generic / Template class / Functional Interface for any kind of message
+
 
 # Default behavior : choose protobuf if available
 if _PROTOBUF:

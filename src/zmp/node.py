@@ -195,7 +195,8 @@ class Node(multiprocessing.Process):
                             resp = self._providers[req.service].func(*args, **kwargs)
                             svc_socket.send(ServiceResponse(
                                 service=req.service,
-                                response=pickle.dumps(resp)
+                                response=pickle.dumps(resp),
+                                exception=None,  # needed for namedtuple protocol
                             ).serialize())
 
                         else:
@@ -208,11 +209,12 @@ class Node(multiprocessing.Process):
                     try:
                         ftb = Traceback(tb)
                     except TypeError as exc:
-                        ftb = "Traceback manipulation error {exc}. Verify that python-tblib is installed.".format(exc=exc)
+                        ftb = "Traceback manipulation error: {exc}. Verify that python-tblib is installed.".format(exc=exc)
 
                     # sending back that exception with traceback
                     svc_socket.send(ServiceResponse(
                         service=req.service,
+                        response=None,  # needed for namedtuple protocol
                         exception=ServiceException(
                             exc_type=pickle.dumps(exctype),
                             exc_value=pickle.dumps(excvalue),
