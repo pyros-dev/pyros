@@ -25,6 +25,7 @@ from nose.tools import assert_false, assert_true, assert_equal
 # test node process not setup by default (rostest dont need it here)
 pub_process = None
 echo_process = None
+slow_process = None
 
 
 # This should have the same effect as the <name>.test file for rostest.
@@ -39,17 +40,18 @@ def setup_module():
 
         # start required nodes - needs to match the content of *.test files for rostest to match
 
-        global pub_process, echo_process
+        global pub_process, echo_process, slow_process
 
         rospy.set_param('/echo_node/echo_service_name', 'test_service')
         echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='echo_node')
-
         echo_process = launch.launch(echo_node)
-
-        # TODO : also use pub and sub nodes in more granular tests
+        rospy.set_param('/slow_node/slow_service_name', 'test_timeout_service')
+        slow_node = roslaunch.core.Node('pyros', 'string_slow_node.py', name='slow_node')
+        slow_process = launch.launch(slow_node)
 
         # set required parameters - needs to match the content of *.test files for rostest to match
         rospy.set_param('/stringServiceTest/echo_service_name', 'test_service')
+        rospy.set_param('/stringServiceTest/slow_service_name', 'test_timeout_service')
 
         # we still need a node to interact with topics
         rospy.init_node('TestStringService', anonymous=True, disable_signals=True)
@@ -64,13 +66,15 @@ def teardown_module():
             pub_process.stop()
         if echo_process is not None:
             echo_process.stop()
+        if slow_process is not None:
+            slow_process.stop()
 
         rospy.signal_shutdown('test complete')
 
         rostest_nose.rostest_nose_teardown_module()
 
 
-class TestStringService(unittest.TestCase):
+class TestService(unittest.TestCase):
     """ Testing the TopicBack class with String message """
     # misc method
     def logPoint(self):
@@ -94,22 +98,23 @@ class TestStringService(unittest.TestCase):
     def setUp(self):
         self.logPoint()
         # Here we hook to the test service in supported ways
-        param_name = "/stringServiceTest/echo_service_name"
-        self.echo_service_name = rospy.get_param(param_name, "")
-        print 'Parameter {p} has value {v}'.format(p=param_name, v=self.echo_service_name)
-        if self.echo_service_name == "":
-            self.fail("{0} parameter not found".format(param_name))
-
+        self.echo_service_name = rospy.get_param("/stringServiceTest/echo_service_name", "")
+        self.slow_service_name = rospy.get_param("/stringServiceTest/slow_service_name", "")
         # No need of parameter for that, any str should work
         self.test_message = "testing"
 
         try:
             # actual fixture stuff
-            # looking for the topic ( similar code than ros_interface.py )
+            # looking for the service ( similar code than ros_interface.py )
             echo_service_type = self.service_wait_type(self.echo_service_name)
 
-            # exposing the topic for testing here
+            # exposing the service for testing here
             self.echo_service = ServiceBack(self.echo_service_name, echo_service_type)
+            # looking for the service ( similar code than ros_interface.py )
+            slow_service_type = self.service_wait_type(self.slow_service_name)
+
+            # exposing the service for testing here
+            self.slow_service = ServiceBack(self.slow_service_name, slow_service_type)
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")
 
@@ -121,12 +126,26 @@ class TestStringService(unittest.TestCase):
         try:
             self.logPoint()
 
-            print("calling : {msg} on topic {topic}".format(msg=self.test_message, topic=self.echo_service.name))
+            print("calling : {msg} on service {service}".format(msg=self.test_message, service=self.echo_service.name))
             resp = self.echo_service.call(self.echo_service.rostype_req(self.test_message))
             self.assertIn(resp.response, [self.test_message])
 
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")
+
+    #TODO
+    # def test_slow_service_timeout(self):
+    #
+    #     try:
+    #         self.logPoint()
+    #
+    #         print("calling : {msg} on service {service}".format(msg=self.test_message, service=self.slow_service.name))
+    #         with self.assertRaises(TypeError):
+    #         resp = self.slow_service.call(self.slow_service.rostype_req(self.test_message))
+    #         self.assertIn(resp.response, [self.test_message])
+    #
+    #     except KeyboardInterrupt:
+    #         self.fail("Test Interrupted !")
 
 
 if __name__ == '__main__':

@@ -9,16 +9,12 @@ import os
  - echo from topic to echo_topic
  - echo service
 """
-# TODO echo service
 import functools
 
 import common
 import rospy
 import std_msgs.msg as std_msgs
 import std_srvs.srv as std_srvs
-
-
-# TODO : fix this import that doesnt work anymore from nosetests. the rossetup should be done on system by the main process before launching this node...
 
 # TODO : get rid of this somehow ( dynamic generation or integration of more basic services in ROS )
 from pyros.srv import StringEchoService
