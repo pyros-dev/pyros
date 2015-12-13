@@ -115,8 +115,8 @@ class Service(object):
                     tb = pickle.loads(svcexc.traceback)
                     if Traceback and isinstance(tb, Traceback):
                         reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb.as_traceback())
-                    else:  # assuming traceback is directly usable in reraise
-                        reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), tb)
+                    else:  # traceback not usable
+                        reraise(pickle.loads(svcexc.exc_type), pickle.loads(svcexc.exc_value), None)
                 else:
                     raise UnknownResponseTypeException("Unknown Response Type {0}".format(type(fullresp)))
             else:
