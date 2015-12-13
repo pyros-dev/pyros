@@ -2,7 +2,7 @@ import __builtin__
 import cPickle
 from collections import namedtuple
 
-# TODO : protobuf
+# TODO : use basemsg and develop a generic way of converting python type to custom type
 
 # type map specifying conversion
 # basic types should be python builtin types

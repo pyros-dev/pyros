@@ -53,43 +53,35 @@ class PyrosROS(PyrosBase):
         else:
             self.rocon_if = None
 
-
-        ##############################################################################################
-        #### Helpers in case we need to listen to someone talking from a different process
-        # Needed because of limitation in rospy that we cannot publish on topic from different process
-        # Note : It should be working fine for services however
-        # TODO : change this to use pure python code to avoid confusion ( for ex. using multiprocessing lib )
-        ##############################################################################################
-
-        def start_rapp(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
-                rapp=req.rapp_name
-            ))
-            #normalizing names... ( somewhere else ?)
-            #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
-            #service is raw str
-            if req.rapp_name[0] == '/':
-                req.rapp_name = req.rapp_name[1:]
-
-            if self.rocon_if:
-                #TMP
-                if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
-                    self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
-
-            res = True
-
-            return srv.StartRappResponse(res)
-
-        def stop_rapp(req):  # Keep this minimal
-            rospy.logwarn("""Requesting Rapp Stop: """)
-
-            if self.rocon_if:
-                #TMP
-                self.rocon_if.stop_rapp()
-
-            res = {"stopped": True}
-            output_data = json.dumps(res)
-            return srv.StopRappResponse(output_data)
+        # def start_rapp(req):  # Keep this minimal
+        #     rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
+        #         rapp=req.rapp_name
+        #     ))
+        #     #normalizing names... ( somewhere else ?)
+        #     #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
+        #     #service is raw str
+        #     if req.rapp_name[0] == '/':
+        #         req.rapp_name = req.rapp_name[1:]
+        #
+        #     if self.rocon_if:
+        #         #TMP
+        #         if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
+        #             self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
+        #
+        #     res = True
+        #
+        #     return srv.StartRappResponse(res)
+        #
+        # def stop_rapp(req):  # Keep this minimal
+        #     rospy.logwarn("""Requesting Rapp Stop: """)
+        #
+        #     if self.rocon_if:
+        #         #TMP
+        #         self.rocon_if.stop_rapp()
+        #
+        #     res = {"stopped": True}
+        #     output_data = json.dumps(res)
+        #     return srv.StopRappResponse(output_data)
 
         #self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
         #self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
@@ -101,6 +93,10 @@ class PyrosROS(PyrosBase):
 
         ####
 
+    # TODO: get rid of this to need one less client-node call
+    # we need make the message type visible to client,
+    # and have him convert to a python structure that we can then convert to a message
+    # dynamically right when calling the service.
     def msg_build(self, connec_name):
         msg = None
         if self.ros_if:

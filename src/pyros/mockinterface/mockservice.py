@@ -21,6 +21,7 @@ class MockService(BaseService):
 
     def call(self, rosreq=None):
         # simulating echo
+
         return rosreq
 
 BaseService.register(MockService)

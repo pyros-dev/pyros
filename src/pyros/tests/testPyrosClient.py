@@ -37,11 +37,11 @@ class TestPyrosClientOnMock(object):
         assert self.client.topic_inject('random_topic')  # simply check if injected
 
     #TODO : how to test strict backend with Mock ?
-    def test_inject_Wrong(self):
-        with assert_raises(Exception) as expt:  # TODO : be more specific
-            data = 42
-            self.client.topic_inject('random_topic', data)  # simply check exception raised
-        # assert_equal(expt, smthg...)
+    #def test_inject_Wrong(self):
+    #    with assert_raises(Exception) as expt:  # TODO : be more specific
+    #        data = 42
+    #        self.client.topic_inject('random_topic', data)  # simply check exception raised
+    #    # assert_equal(expt, smthg...)
 
     def test_extract_None(self):
         assert self.client.topic_extract('random_topic') is None  # simply check if nothing extracted
@@ -85,12 +85,12 @@ class TestPyrosClientOnMock(object):
 
     ### SERVICES ###
     # TODO : think how to test strict backend with Mock ?
-    def test_call_Wrong(self):
-        with assert_raises(Exception) as expt:  # TODO : be more specific
-            data = 42
-            print "request content {0}".format(data)
-            resp = self.client.service_call('random_service', data)  # simply check exception raised
-        # assert_equal(expt, smthg...)
+    #def test_call_Wrong(self):
+    #    with assert_raises(Exception) as expt:  # TODO : be more specific
+    #        data = 42
+    #        print "request content {0}".format(data)
+    #        resp = self.client.service_call('random_service', data)  # simply check exception raised
+    #    # assert_equal(expt, smthg...)
 
     def test_call_echo_Simple_Arg(self):
         data = 'data_string'
@@ -131,8 +131,8 @@ class TestPyrosClientOnMock(object):
         assert resp == {'first': 'first_string', 'second': 'second_string'}
 
     ### PARAMS ###
-    def test_set_None(self):  # injecting None is meaningless and should return false
-        assert not self.client.param_set('random_param', None)  # simply check that it didnt set
+    #def test_set_None(self):  # injecting None is meaningless and should return false
+    #    assert not self.client.param_set('random_param', None)  # simply check that it didnt set
 
     def test_set_Empty(self):
         assert self.client.param_set('random_param')  # simply check if set
