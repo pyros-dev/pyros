@@ -1,4 +1,4 @@
-udo: required
+sudo: required
 dist: trusty
 language: generic
 install:
@@ -14,9 +14,6 @@ install:
   - rosdep update
 # Use rosdep to install rostful-node's dependencies
   - rosdep install --default-yes --from-paths ./ --rosdistro $CI_ROS_DISTRO
-# Trying to install latest tblib to fix build
-# TODO : get rid of this
-  - pip install --user tblib
 script:
   - source /opt/ros/$CI_ROS_DISTRO/setup.bash
   - mkdir build
