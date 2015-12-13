@@ -88,6 +88,7 @@ def force_namedtuple_implementation():
     global ServiceRequest, ServiceRequest_dictparse
     # Extend named tuple implementation
     ServiceRequest = ServiceRequestNTImpl
+    ServiceRequest.__new__.__defaults__ = (None,) * len(ServiceRequest._fields)  # making all fields optional ( like in protobuf protocol )
     ServiceRequest.initialized = lambda s: True
     ServiceRequest.has_field = lambda s, f: getattr(s, f, None) is not None
     ServiceRequest.serialize = lambda s: pickle.dumps(s)
@@ -97,6 +98,7 @@ def force_namedtuple_implementation():
     global ServiceResponse, ServiceResponse_dictparse
     # Extend named tuple implementation
     ServiceResponse = ServiceResponseNTImpl
+    ServiceResponse.__new__.__defaults__ = (None,) * len(ServiceResponse._fields)  # making all fields optional ( like in protobuf protocol )
     ServiceResponse.initialized = lambda s: True
     ServiceResponse.has_field = lambda s, f: getattr(s, f, None) is not None
     ServiceResponse.serialize = lambda s: pickle.dumps(s)
@@ -106,6 +108,7 @@ def force_namedtuple_implementation():
     global ServiceException, ServiceException_dictparse
     # Extend named tuple implementation
     ServiceException = ServiceExceptionNTImpl
+    ServiceException.__new__.__defaults__ = (None,) * len(ServiceException._fields)  # making all fields optional ( like in protobuf protocol )
     ServiceException.initialized = lambda s: True
     ServiceException.has_field = lambda s, f: getattr(s, f, None) is not None
     ServiceException.serialize = lambda s: pickle.dumps(s)

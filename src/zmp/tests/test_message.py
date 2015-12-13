@@ -133,7 +133,7 @@ class TestMessageProtobuf(object):
         # Setting back default implementation
         pass
 
-    def test_initialize_servicerequest_protobuf():
+    def test_initialize_servicerequest_protobuf(self):
         # Test Initialization
         req = zmp.message.ServiceRequest(
             service="testservice",
@@ -148,7 +148,7 @@ class TestMessageProtobuf(object):
         initialize_servicerequest(req)
 
 
-    def test_initialize_serviceresponse_protobuf():
+    def test_initialize_serviceresponse_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceResponse(
             service="testservice",
@@ -162,7 +162,7 @@ class TestMessageProtobuf(object):
         initialize_serviceresponse(resp)
 
 
-    def test_initialize_serviceexception_protobuf():
+    def test_initialize_serviceexception_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceException(
             exc_type="testexception",
@@ -177,7 +177,7 @@ class TestMessageProtobuf(object):
         initialize_serviceexception(resp)
 
 
-    def test_initialize_serviceresponseexception_protobuf():
+    def test_initialize_serviceresponseexception_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceResponse(
             service="testservice",
@@ -195,7 +195,7 @@ class TestMessageProtobuf(object):
         initialize_serviceresponseexception(resp)
 
 
-    def test_default_initialize_servicerequest_protobuf():
+    def test_default_initialize_servicerequest_protobuf(self):
         # Test Initialization
         req = zmp.message.ServiceRequest()
         # Check we have desired implementation
@@ -206,7 +206,7 @@ class TestMessageProtobuf(object):
         default_initialize_servicerequest(req)
 
 
-    def test_default_initialize_serviceresponse_protobuf():
+    def test_default_initialize_serviceresponse_protobuf(self):
         # Test Initialization
         resp = zmp.message.ServiceResponse()
         # Check we have desired implementation
@@ -217,7 +217,7 @@ class TestMessageProtobuf(object):
         default_initialize_serviceresponse(resp)
 
 
-    def test_default_initialize_serviceexception_protobuf():
+    def test_default_initialize_serviceexception_protobuf(self):
         # Test Initialization
         exc = zmp.message.ServiceException()
         # Check we have desired implementation
@@ -231,7 +231,7 @@ class TestMessageProtobuf(object):
     # No point to have a test_default_initialize_serviceresponseexception_protobuf here
 
 
-    def test_symmetric_serialize_parse_servicerequest_protobuf():
+    def test_symmetric_serialize_parse_servicerequest_protobuf(self):
         # Test Initialization
         req = zmp.message.ServiceRequest(
             service="testservice",
@@ -266,7 +266,7 @@ class TestMessageProtobuf(object):
         oneline_symmetric_serialize_parse_servicerequest(req)
 
 
-    def test_symmetric_serialize_parse_serviceresponse_protobuf():
+    def test_symmetric_serialize_parse_serviceresponse_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceResponse(
             service="testservice",
@@ -298,7 +298,7 @@ class TestMessageProtobuf(object):
         oneline_symmetric_serialize_parse_serviceresponse(resp)
 
 
-    def test_symmetric_serialize_parse_serviceexception_protobuf():
+    def test_symmetric_serialize_parse_serviceexception_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceException(
             exc_type="testexception",
@@ -333,7 +333,7 @@ class TestMessageProtobuf(object):
         oneline_symmetric_serialize_parse_serviceexception(resp)
 
 
-    def test_symmetric_serialize_parse_serviceresponseexception_protobuf():
+    def test_symmetric_serialize_parse_serviceresponseexception_protobuf(self):
         #Test Initialization
         resp = zmp.message.ServiceResponse(
             service="testservice",
@@ -375,7 +375,6 @@ class TestMessageProtobuf(object):
 
         # run actual tuple-compatible online test
         oneline_symmetric_serialize_parse_serviceresponseexception(resp)
-
 
 
 class TestMessageTupleFallback(object):
@@ -449,10 +448,7 @@ class TestMessageTupleFallback(object):
 
     def test_default_initialize_servicerequest_namedtuple(self):
         # Test Initialization
-        with assert_raises(TypeError) as cm:
-            req = zmp.message.ServiceRequest()
-
-        req = zmp.message.ServiceRequest(service=None, args=None, kwargs=None)
+        req = zmp.message.ServiceRequest()
         # Check we have desired implementation
         assert_true(isinstance(req, zmp.message.ServiceRequestNTImpl))
         # Check it is an instance of Dynamic Functional Facade
@@ -462,10 +458,7 @@ class TestMessageTupleFallback(object):
 
     def test_default_initialize_serviceresponse_namedtuple(self):
         # Test Initialization
-        with assert_raises(TypeError) as cm:
-            resp = zmp.message.ServiceResponse()
-
-        resp = zmp.message.ServiceResponse(service=None, response=None, exception=None)
+        resp = zmp.message.ServiceResponse()
         # Check we have desired implementation
         assert_true(isinstance(resp, zmp.message.ServiceResponseNTImpl))
         # Check it is an instance of Dynamic Functional Facade
@@ -475,10 +468,7 @@ class TestMessageTupleFallback(object):
 
     def test_default_initialize_serviceexception_namedtuple(self):
         # Test Initialization
-        with assert_raises(TypeError) as cm:
-            resp = zmp.message.ServiceException()
-
-        resp = zmp.message.ServiceException(exc_type=None, exc_value=None, traceback=None)
+        resp = zmp.message.ServiceException()
         # Check we have desired implementation
         assert_true(isinstance(resp, zmp.message.ServiceExceptionNTImpl))
         # Check it is an instance of Dynamic Functional Facade

@@ -196,7 +196,6 @@ class Node(multiprocessing.Process):
                             svc_socket.send(ServiceResponse(
                                 service=req.service,
                                 response=pickle.dumps(resp),
-                                exception=None,  # needed for namedtuple protocol
                             ).serialize())
 
                         else:
@@ -214,7 +213,6 @@ class Node(multiprocessing.Process):
                     # sending back that exception with traceback
                     svc_socket.send(ServiceResponse(
                         service=req.service,
-                        response=None,  # needed for namedtuple protocol
                         exception=ServiceException(
                             exc_type=pickle.dumps(exctype),
                             exc_value=pickle.dumps(excvalue),
