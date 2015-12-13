@@ -17,10 +17,12 @@ if _CATKIN:  # using distutils : https://docs.python.org/2/distutils
             'zmp',
             'pyros',
             'pyros.tests',
+            'pyros.baseinterface',
             'pyros.mockinterface',
             'pyros.mockinterface.tests',
             'pyros.rosinterface',
             'pyros.rosinterface.tests',
+            'pyros.rosinterface.rostests',
             'pyros.zmpinterface',
             'pyros.zmpinterface.tests',
             'tblib',
@@ -57,7 +59,7 @@ else:  # using setuptools : http://pythonhosted.org/setuptools/
         install_requires=[
             'tblib',  # this might not always install six (latest version does not)
             'six',
-            'dill',
+            #'dill',
             'funcsigs',
         ],
         zip_safe=False,  # TODO testing...
