@@ -11,16 +11,35 @@ Required for multiprocess communication.
 """
 
 import zmp
+from .exceptions import PyrosException
 from .pyros_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.
 
-class PyrosServiceNotFound(Exception):
-    pass
 
-class PyrosServiceTimeout(Exception):
-    pass
+class PyrosServiceNotFound(PyrosException):
+    def __init__(self, message):
+        super(PyrosServiceNotFound, self).__init__(message)
+        self.excmsg = message
+
+    @property
+    def message(self):
+        return self.excmsg
+
+
+# CAREFUL : exceptions must be pickleable ( we need to pass all arguments to the superclass )
+class PyrosServiceTimeout(PyrosException):
+    def __init__(self, message):
+        super(PyrosServiceTimeout, self).__init__(message)
+        self.excmsg = message
+
+    @property
+    def message(self):
+        return self.excmsg
+
+PyrosException.register(PyrosServiceTimeout)
+
 
 class PyrosClient(object):
     def __init__(self, node_name=None):
