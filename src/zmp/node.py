@@ -11,6 +11,7 @@ import multiprocessing, multiprocessing.reduction
 import types
 import zmq
 import socket
+import logging
 import pickle
 #import dill as pickle
 
@@ -203,24 +204,21 @@ class Node(multiprocessing.Process):
                         raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
                 except Exception:  # we transmit back all errors, and keep spinning...
                     exctype, excvalue, tb = sys.exc_info()
-                    if Traceback is not None:
-                        svc_socket.send(ServiceResponse(
-                            service=req.service,
-                            exception=ServiceException(
-                                exc_type=pickle.dumps(exctype),
-                                exc_value=pickle.dumps(excvalue),
-                                traceback=pickle.dumps(Traceback(tb)),
-                            )
-                        ).serialize())
-                    else:
-                        svc_socket.send(ServiceResponse(
-                            service=req.service,
-                            exception=ServiceException(
-                                exc_type=pickle.dumps(exctype),
-                                exc_value=pickle.dumps(excvalue),
-                                traceback=pickle.dumps("Traceback Unavailable. python-tblib needs to be installed."),
-                            )
-                        ).serialize())
+                    # trying to make a pickleable traceback
+                    try:
+                        ftb = Traceback(tb)
+                    except TypeError as exc:
+                        ftb = "Traceback manipulation error {exc}. Verify that python-tblib is installed.".format(exc=exc)
+
+                    # sending back that exception with traceback
+                    svc_socket.send(ServiceResponse(
+                        service=req.service,
+                        exception=ServiceException(
+                            exc_type=pickle.dumps(exctype),
+                            exc_value=pickle.dumps(excvalue),
+                            traceback=pickle.dumps(ftb),
+                        )
+                    ).serialize())
 
         # concealing services
         services_lock.acquire()
