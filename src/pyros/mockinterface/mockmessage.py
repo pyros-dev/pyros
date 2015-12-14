@@ -56,9 +56,11 @@ def populate_instance(msg, inst):
     return _to_inst(msg, type(inst).__name__, type(inst).__name__, inst)
 
 
-def _to_inst(msg, ptype, roottype, inst=None, stack=[]):
+def _to_inst(msg, ptype, roottype, inst=None, stack=None):
 
     # Check to see whether this is a primitive type
+    if stack is None:
+        stack = []
     if ptype in __builtin__.__dict__ and (
         __builtin__.__dict__[ptype] in primitive_types or
         __builtin__.__dict__[ptype] in composed_types

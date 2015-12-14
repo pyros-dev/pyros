@@ -27,7 +27,13 @@ def get_msg_definitions(msg, skip_this=False):
         msg_dfns.append(dfn)
     return msg_dfns
 
-def get_definitions(services=[], topics=[], actions=[]):
+def get_definitions(services=None, topics=None, actions=None):
+    if services is None:
+        services = []
+    if topics is None:
+        topics = []
+    if actions is None:
+        actions = []
     service_dfns = []
     action_dfns = []
     msg_dfns = []

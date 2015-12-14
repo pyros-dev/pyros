@@ -182,8 +182,10 @@ def _from_object_inst(inst, rostype):
     return msg
 
 
-def _to_inst(msg, rostype, roottype, inst=None, stack=[]):
+def _to_inst(msg, rostype, roottype, inst=None, stack=None):
     # Check if it's uint8[], and if it's a string, try to b64decode
+    if stack is None:
+        stack = []
     if rostype in ros_binary_types:
         return _to_binary_inst(msg)
 

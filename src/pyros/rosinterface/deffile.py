@@ -194,7 +194,9 @@ class DefFile(object):
         except:
             return None
     
-    def get_list(self, key, split_pattern=', ', default=[], strip_brackets=True, json=True):
+    def get_list(self, key, split_pattern=', ', default=None, strip_brackets=True, json=True):
+        if default is None:
+            default = []
         val = self.get(key)
         if val is None:
             return default
