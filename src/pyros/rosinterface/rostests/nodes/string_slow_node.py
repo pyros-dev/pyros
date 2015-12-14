@@ -33,7 +33,7 @@ if __name__ == '__main__':
         rospy.loginfo('String Slow node started. [' + rospy.get_name() + ']')
 
         slow_service_name = rospy.get_param("~slow_service_name", "slow_service")
-        print 'Parameter %s has value %s' % (rospy.resolve_name('~slow_service_name'), slow_service_name)
+        print 'Parameter {0!s} has value {1!s}'.format(rospy.resolve_name('~slow_service_name'), slow_service_name)
         if slow_service_name == "":
             print "{0} parameter not found".format(rospy.resolve_name('~slow_service_name'))
             raise common.TestArgumentNotFound

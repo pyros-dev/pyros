@@ -69,5 +69,5 @@ class Interaction(rocon_interactions.Interaction):
           Format the interaction into a human-readable string.
         '''
         s = rocon_interactions.Interaction.__str__(self)
-        s += console.cyan + "  Launch List" + console.reset + "  : " + console.yellow + "%s" % self.launch_list.keys() + console.reset + '\n'  # noqa
+        s += console.cyan + "  Launch List" + console.reset + "  : " + console.yellow + "{0!s}".format(self.launch_list.keys()) + console.reset + '\n'  # noqa
         return s

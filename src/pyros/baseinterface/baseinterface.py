@@ -43,7 +43,7 @@ class BaseInterface(object):
                 if pattern.match(key):
                     return cand
             except:
-                logging.warn('[ros_interface] Ignoring invalid regex string "%s"!' % cand)
+                logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(cand))
 
         return None
 
@@ -60,7 +60,7 @@ class BaseInterface(object):
             pattern = re.compile(BaseInterface.cap_match_string(regex))
             matches = [cand for cand in match_candidates if pattern.match(cand)]
         except:
-            logging.warn('[ros_interface] Ignoring invalid regex string "%s"!' % regex)
+            logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(regex))
         return matches
 
     @staticmethod

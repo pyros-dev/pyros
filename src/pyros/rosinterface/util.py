@@ -21,5 +21,5 @@ def load_type(msg_type_name):
     if not hasattr(msg_module,type_name) and (type_name.endswith('Request') or type_name.endswith('Response')):
         msg_module = import_module(module_name + '.srv')
     if not hasattr(msg_module,type_name):
-        raise TypeError('Unknown ROS msg %s' % msg_type_name)
+        raise TypeError('Unknown ROS msg {0!s}'.format(msg_type_name))
     return getattr(msg_module,type_name)

@@ -80,7 +80,7 @@ class TestService(unittest.TestCase):
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
         callingFunction = inspect.stack()[1][3]
-        print 'in %s - %s()' % (currentTest, callingFunction)
+        print 'in {0!s} - {1!s}()'.format(currentTest, callingFunction)
 
     def service_wait_type(self, service_name, retries=5, retrysleep=1):
         resolved_service_name = rospy.resolve_name(service_name)

@@ -8,7 +8,7 @@ try:
     _ROCON_AVAILABLE = True
 except ImportError, e:
     import logging
-    logging.warn("Error: could not import RoconInterface - disabling. %s" % e)
+    logging.warn("Error: could not import RoconInterface - disabling. {0!s}".format(e))
     _ROCON_AVAILABLE = False
 
 import zmp

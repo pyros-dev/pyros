@@ -77,7 +77,7 @@ class InteractionWatcher(threading.Thread):  #TODO : DO NOT inherit from thread.
 
         for service_name in iamgr_services.keys():
             if not rocon_python_comms.service_is_available(iamgr_services[service_name]):
-                raise rocon_python_comms.NotFoundException("'%s' service is not validated" % service_name)
+                raise rocon_python_comms.NotFoundException("'{0!s}' service is not validated".format(service_name))
 
         if not self.get_interactions_service_proxy :
             self.get_interactions_service_proxy = rospy.ServiceProxy(iamgr_services['get_interactions'], rocon_interaction_srvs.GetInteractions)

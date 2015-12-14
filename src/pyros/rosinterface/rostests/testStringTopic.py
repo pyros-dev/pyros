@@ -91,7 +91,7 @@ class TestStringTopic(unittest.TestCase):
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
         callingFunction = inspect.stack()[1][3]
-        print 'in %s - %s()' % (currentTest, callingFunction)
+        print 'in {0!s} - {1!s}()'.format(currentTest, callingFunction)
 
     def msg_extract(self, topic, retries=5, retrysleep=1):
         msg = topic.get()
