@@ -16,25 +16,38 @@
 pyros
 -----
 
-The node embedded in a ROS system to allow rostful, celery, and other multi process python libraries to work with ROS
+- If you are a ROS developer and want to use python inside ROS, you can stop reading and go have a look there instead https://github.com/ros/ros_comm
 
-This is not meant to be launched by itself.
-Instead it should be used as a python package, creating a node for interfacing to the world outside ROS.
+- If you are a Python developer and are curious about how you can plug a robot in your existing System using python, then keep on reading.
 
+Pyros is a multiprocess interface python package.
+It is not meant to run by itself, instead it should be used as a client library,
+connecting to a specific process inside your multiprocess system in order to interface with it.
+
+ROS usage
+---------
+ROS needs to be installed on your machine for the rosinterface to work.
+This package includes :
+- a rosnode that will be launched in a separate process to maintain isolation.
+- a client library to connect to this node and interface with the ROS system.
+This node doesn't need ROS to run and perform tests on it.
+
+This package can also be added to your ROS workspace as a normal ROS package and everything should work.
+Other (python or ROS) packages can use pyros to access the ROS system.
 Meaning each package depending on pyros will create their own ROS node.
 It is intended so that the configuration ( what is exposed or not ) can be different for each one of them.
-Be careful however in settings where we have multiple similar clients ( like web server scaling ), only one node is needed here.
-
-This node should be launched with roslaunch and follow ros de facto standards, in order to perform tests on it.
+Be careful in settings where we have multiple similar clients ( like web server scaling ), only one pyros node is needed.
 
 Will NOT do in pyros
 --------------------
 - Support for Actions (http://wiki.ros.org/actionlib) in pyros itself.
 Actions are built upon multiple ROS topics, and can be interfaced like that,
 by writing an action client on the other hand ( pure python, javascript on top of rostful, etc. ),
-with pyros just forwarding all the required topics. If this statement happens to be not true, this can be reconsidered.
+with pyros just forwarding all the required topics.
+
+If this statement happens to be not true, this can be reconsidered.
 Additionally when interfacing with other systems "outside" of ROS, services are probably what you want,
-maybe also topics, but probably not actions.
-And actions can probably be implemented with just only a couple services.
+maybe also topics sometimes, but probably not actions.
+And actions can probably be implemented with just only a couple of services.
 The problem here is likely the latency + communication rate that will, anyway, be hard to maintain while moving through layers to go outside of ROS.
 
