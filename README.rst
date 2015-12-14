@@ -1,16 +1,16 @@
-.. image:: https://travis-ci.org/asmodehn/rostful-node.svg?branch=indigo-devel
-    :target: https://travis-ci.org/asmodehn/rostful-node
+.. image:: https://travis-ci.org/asmodehn/pyros.svg?branch=indigo-devel
+    :target: https://travis-ci.org/asmodehn/pyros
 
-.. image:: https://requires.io/github/asmodehn/rostful-node/requirements.svg?branch=mp_exception
-     :target: https://requires.io/github/asmodehn/rostful-node/requirements/?branch=mp_exception
+.. image:: https://requires.io/github/asmodehn/pyros/requirements.svg?branch=indigo-devel
+     :target: https://requires.io/github/asmodehn/pyros/requirements/?branch=indigo-devel
      :alt: Requirements Status
 
-.. image:: https://landscape.io/github/asmodehn/rostful-node/indigo-devel/landscape.svg?style=flat
-   :target: https://landscape.io/github/asmodehn/rostful-node/indigo-devel
+.. image:: https://landscape.io/github/asmodehn/pyros/indigo-devel/landscape.svg?style=flat
+   :target: https://landscape.io/github/asmodehn/pyros/indigo-devel
    :alt: Code Health
 
-.. image:: https://www.quantifiedcode.com/api/v1/project/9a82d3edf0f04500915b0e6c5d3b8751/badge.svg
-  :target: https://www.quantifiedcode.com/app/project/9a82d3edf0f04500915b0e6c5d3b8751
+.. image:: https://www.quantifiedcode.com/api/v1/project/68d207b248dd4b3f89cf48e5de89c461/badge.svg
+  :target: https://www.quantifiedcode.com/app/project/68d207b248dd4b3f89cf48e5de89c461
   :alt: Code issues
 
 pyros
