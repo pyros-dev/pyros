@@ -15,8 +15,14 @@ class MockInterface(BaseInterface):
     """
     MockInterface.
     """
-    def __init__(self, services=[], topics=[], params=[]):
+    def __init__(self, services=None, topics=None, params=None):
         # Current mock implementation of services, topics and params
+        if services is None:
+            services = []
+        if topics is None:
+            topics = []
+        if params is None:
+            params = []
         super(MockInterface, self).__init__(services, topics, params)
         # These list what is available on the Mock implementation.
         # They are accessible directly for tests who want to simulate multiprocess communication framework changes.
