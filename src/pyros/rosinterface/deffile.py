@@ -76,7 +76,7 @@ class DefFile(object):
                 if quiet:
                     return False
                 else:
-                    raise TypeError("%s:%s definition already exists" % (dfn.type, dfn.name))
+                    raise TypeError("{0!s}:{1!s} definition already exists".format(dfn.type, dfn.name))
         self.definitions.append(dfn)
         if quiet:
             return True
@@ -122,20 +122,20 @@ class DefFile(object):
         if self.manifest:
             s = ''
             if self.format and not suppress_formats:
-                s += '[Manifest!%s]\n' % self.format
+                s += '[Manifest!{0!s}]\n'.format(self.format)
             else:
                 s += '[Manifest]\n'
             s += self.manifest.__str__()
             strs.append(s)
         elif self.format and not suppress_formats:
-            strs.append('[Manifest!%s]' % self.format)
+            strs.append('[Manifest!{0!s}]'.format(self.format))
         
         for dfn in self.definitions:
             s = ''
             if dfn.format and not suppress_formats:
-                s += '[%s:%s!%s]\n' % (dfn.type, dfn.name, dfn.format)
+                s += '[{0!s}:{1!s}!{2!s}]\n'.format(dfn.type, dfn.name, dfn.format)
             else:
-                s += '[%s:%s]\n' % (dfn.type, dfn.name)
+                s += '[{0!s}:{1!s}]\n'.format(dfn.type, dfn.name)
             s += dfn.__str__()
             strs.append(s)
         
@@ -145,9 +145,9 @@ class DefFile(object):
             if sec_name.find(':') != -1:
                 sec_name = ':' + sec_name
             if section.format and not suppress_formats:
-                s += '[%s!%s]\n' % (sec_name, section.format)
+                s += '[{0!s}!{1!s}]\n'.format(sec_name, section.format)
             else:
-                s += '[%s]\n' % sec_name
+                s += '[{0!s}]\n'.format(sec_name)
             s += section.__str__()
             strs.append(s)
         
@@ -168,7 +168,7 @@ class DefFile(object):
             null_sec_val = self.get_section(None).__getitem__(key) if self.has_section(None) and hasattr(self.get_section(None),'__getitem__') else None
             if (self.manifest and key in self.manifest 
                 and null_sec_val is not None):
-                raise RuntimeError('Manifest and null section both have key %s!' % str(key))
+                raise RuntimeError('Manifest and null section both have key {0!s}!'.format(str(key)))
             elif null_sec_val is not None:
                 return null_sec_val
             elif not self.manifest:
@@ -230,7 +230,7 @@ class DefFile(object):
                     pass
             if (self.manifest and key in self.manifest 
                 and null_sec_val is True):
-                raise RuntimeError('Manifest and null section both have key %s!' % str(key))
+                raise RuntimeError('Manifest and null section both have key {0!s}!'.format(str(key)))
             elif null_sec_val is not None:
                 return null_sec_val
             elif not self.manifest:
@@ -245,7 +245,7 @@ class DefFile(object):
         return self.tostring()
     
     def __repr__(self):
-        return 'DefFile(format=%s,manifest=%s,definitions=%s,sections=%s)' % (repr(self.format),repr(self.manifest),repr(self.definitions),repr(self.sections))
+        return 'DefFile(format={0!s},manifest={1!s},definitions={2!s},sections={3!s})'.format(repr(self.format), repr(self.manifest), repr(self.definitions), repr(self.sections))
                 
 
 class Manifest(object):
@@ -263,23 +263,23 @@ class Manifest(object):
     def tostring(self):
         strs = []
         if self.def_type is not None:
-            strs.append('Def-Type = %s' % self.def_type)
+            strs.append('Def-Type = {0!s}'.format(self.def_type))
         for include_file, include_type in self.includes:
             if include_type:
-                strs.append('Include.%s = %s' % (include_type, include_file))
+                strs.append('Include.{0!s} = {1!s}'.format(include_type, include_file))
             else:
-                strs.append('Include = %s' % include_file)
+                strs.append('Include = {0!s}'.format(include_file))
         for key, value in self.fields.iteritems():
-            strs.append('%s = %s' % (key,value))
+            strs.append('{0!s} = {1!s}'.format(key, value))
         return '\n'.join(strs)
     
     def __str__(self):
         return self.tostring()
     
     def __repr__(self):
-        def_type_str = ',%s' % repr(self.def_type) if self.def_type is not None else ''
-        includes_str = ',%s' % repr(self.includes) if self.includes else ''
-        return 'Manifest(fields=%s%s%s)' % (repr(self.fields), def_type_str, includes_str)
+        def_type_str = ',{0!s}'.format(repr(self.def_type)) if self.def_type is not None else ''
+        includes_str = ',{0!s}'.format(repr(self.includes)) if self.includes else ''
+        return 'Manifest(fields={0!s}{1!s}{2!s})'.format(repr(self.fields), def_type_str, includes_str)
     
     def __iter__(self):
         return self.fields.iteritems()
@@ -393,10 +393,10 @@ class INISection(Section):
         strs = []
         for key, value in self.fields.iteritems():
             if value.find('\n') != -1:
-                strs.append("%s = |" % key)
+                strs.append("{0!s} = |".format(key))
                 [strs.append(re.sub(r'=',r'\\=',line)) for line in value.split('\n')]
             else:
-                strs.append('%s = %s' % (key,value))
+                strs.append('{0!s} = {1!s}'.format(key, value))
         return '\n'.join(strs)
     
     @staticmethod
@@ -409,7 +409,7 @@ class INISection(Section):
         return ini
     
     def __repr__(self):
-        return 'INISection(%s, fields=%s)' % (repr(self.name), repr(self.fields))
+        return 'INISection({0!s}, fields={1!s})'.format(repr(self.name), repr(self.fields))
     
     def __iter__(self):
         return self.fields.iteritems()
@@ -476,7 +476,7 @@ class RawSection(Section):
         return self.content
     
     def __repr__(self):
-        return 'RawSection(%s,content=%s)' % (repr(self.name), repr(self.content))
+        return 'RawSection({0!s},content={1!s})'.format(repr(self.name), repr(self.content))
 
 def get_definition_from_section(section_class):
     sec_class_name = section_class.__name__
@@ -488,7 +488,7 @@ def get_definition_from_section(section_class):
         
         def __repr__(self):
             sec_repr = section_class.__repr__(self)
-            return sec_repr.replace('%s(' % sec_class_name,'%s(%s,' % (dfn_class_name,repr(self.type)))
+            return sec_repr.replace('{0!s}('.format(sec_class_name),'{0!s}({1!s},'.format(dfn_class_name, repr(self.type)))
     DfnClass.__name__ = dfn_class_name
     return DfnClass
 
@@ -512,7 +512,7 @@ class ROSStyleDefinition(Definition):
         for idx, seg_name in enumerate(self.segment_names):
             if seg_name == index:
                 return self.segment(idx)
-        raise IndexError("No segment named %s" % index)
+        raise IndexError("No segment named {0!s}".format(index))
              
     def __getitem__(self,index):
         if len(self.segments) == 1:
@@ -534,12 +534,12 @@ class ROSStyleDefinition(Definition):
         for segment in self.segments:
             strs = []
             for name, type in segment:
-                strs.append('%s %s' % (type, name))
+                strs.append('{0!s} {1!s}'.format(type, name))
             segment_strs.append('\n'.join(strs))
         return '\n----\n'.join(segment_strs)
     
     def __repr__(self):
-        return 'ROSStyleDefinition(%s,%s,%s,segment_values=%s)' % (repr(self.type),repr(self.name),repr(self.segment_names),repr(self.segments))
+        return 'ROSStyleDefinition({0!s},{1!s},{2!s},segment_values={3!s})'.format(repr(self.type), repr(self.name), repr(self.segment_names), repr(self.segments))
 
 
 class DefFileParser(object):
@@ -621,9 +621,9 @@ class DefFileParser(object):
             if go_easy:
                 return None
             elif format:
-                raise ParsingError('No section parser for section %s and format %s' % (name,format))
+                raise ParsingError('No section parser for section {0!s} and format {1!s}'.format(name, format))
             else:
-                raise ParsingError('No section parser for section %s' % name)
+                raise ParsingError('No section parser for section {0!s}'.format(name))
         return matches[max(matches.keys())](name,format,self._get_reader())
     
     def add_definition_parser(self,parser, dfn_type, format, def_file_format=None):
@@ -652,9 +652,9 @@ class DefFileParser(object):
             if go_easy:
                 return None
             elif format:
-                raise ParsingError('No definition parser for type %s and format %s' % (dfn_type,format))
+                raise ParsingError('No definition parser for type {0!s} and format {1!s}'.format(dfn_type, format))
             else:
-                raise ParsingError('No definition parser for type %s' % dfn_type)
+                raise ParsingError('No definition parser for type {0!s}'.format(dfn_type))
         return matches[max(matches.keys())](dfn_type,name,format,self._get_reader())
     
     def readline(self,new=True):
@@ -680,7 +680,7 @@ class DefFileParser(object):
                     sec = parser.parse()
                     section_info = {'section': None, 'data': sec}
                 else:
-                    raise ParsingError('Parsing error: invalid section line\n%s' % line)
+                    raise ParsingError('Parsing error: invalid section line\n{0!s}'.format(line))
             self.null_section = False
             yield section_info
             line = self.readline(new=False)
@@ -732,7 +732,7 @@ class DefFileParser(object):
         if not def_file.type and self.default_def_type:
             def_file.type = self.default_def_type
         if self.require_def_type and not re.match(self.require_def_type,def_file.type):
-            raise ParsingError("Require def file type %s, got %s" % (self.require_def_type,def_file.type))
+            raise ParsingError("Require def file type {0!s}, got {1!s}".format(self.require_def_type, def_file.type))
         self.fp = None
         self.current_line = 0
         return def_file
@@ -973,7 +973,7 @@ class ROSStyleDefinitionParser(DefFileParser.DefinitionParser):
         else:
             segs.append(segment)
         if num_segments and len(segs) != num_segments:
-            raise ParsingError('Parsing error: This ROS-style definition is required to have %d segments: %s' % (num_segments, self.SEGMENT_NAMES))
+            raise ParsingError('Parsing error: This ROS-style definition is required to have {0:d} segments: {1!s}'.format(num_segments, self.SEGMENT_NAMES))
         rosdef.segments = tuple(segs)
         if not num_segments:
             rosdef.segment_names = tuple(str(i) for i in xrange(len(segs)))

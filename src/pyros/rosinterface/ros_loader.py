@@ -52,30 +52,27 @@ _srvs_lock = Lock()
 
 class InvalidTypeStringException(Exception):
     def __init__(self, typestring):
-        Exception.__init__(self, "%s is not a valid type string" % typestring)
+        Exception.__init__(self, "{0!s} is not a valid type string".format(typestring))
 
 
 class InvalidPackageException(Exception):
     def __init__(self, package, original_exception):
         Exception.__init__(self,
-           "Unable to load the manifest for package %s. Caused by: %s"
-           % (package, original_exception.message)
+           "Unable to load the manifest for package {0!s}. Caused by: {1!s}".format(package, original_exception.message)
        )
 
 
 class InvalidModuleException(Exception):
     def __init__(self, modname, subname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s.%s from package %s. Caused by: %s"
-           % (modname, subname, modname, str(original_exception))
+           "Unable to import {0!s}.{1!s} from package {2!s}. Caused by: {3!s}".format(modname, subname, modname, str(original_exception))
         )
 
 
 class InvalidClassException(Exception):
     def __init__(self, modname, subname, classname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s class %s from package %s. Caused by %s"
-           % (subname, classname, modname, str(original_exception))
+           "Unable to import {0!s} class {1!s} from package {2!s}. Caused by {3!s}".format(subname, classname, modname, str(original_exception))
         )
 
 
@@ -184,7 +181,7 @@ def _load_class(modname, subname, classname):
         raise InvalidPackageException(modname, exc)
 
     try:
-        pypkg = __import__('%s.%s' % (modname, subname))
+        pypkg = __import__('{0!s}.{1!s}'.format(modname, subname))
     except Exception as exc:
         raise InvalidModuleException(modname, subname, exc)
 

@@ -42,19 +42,19 @@ if __name__ == '__main__':
         rospy.loginfo('String Echo node started. [' + rospy.get_name() + ']')
 
         topic_name = rospy.get_param("~topic_name", "topic")
-        print 'Parameter %s has value %s' % (rospy.resolve_name('~topic_name'), topic_name)
+        print 'Parameter {0!s} has value {1!s}'.format(rospy.resolve_name('~topic_name'), topic_name)
         if topic_name == "":
             print "{0} parameter not found".format(rospy.resolve_name('~topic_name'))
             raise common.TestArgumentNotFound
 
         echo_topic_name = rospy.get_param("~echo_topic_name", "echo_topic")
-        print 'Parameter %s has value %s' % (rospy.resolve_name('~echo_topic_name'), echo_topic_name)
+        print 'Parameter {0!s} has value {1!s}'.format(rospy.resolve_name('~echo_topic_name'), echo_topic_name)
         if echo_topic_name == "":
             print "{0} parameter not found".format(rospy.resolve_name('~echo_topic_name'))
             raise common.TestArgumentNotFound
 
         echo_service_name = rospy.get_param("~echo_service_name", "echo_service")
-        print 'Parameter %s has value %s' % (rospy.resolve_name('~echo_service_name'), echo_service_name)
+        print 'Parameter {0!s} has value {1!s}'.format(rospy.resolve_name('~echo_service_name'), echo_service_name)
         if echo_service_name == "":
             print "{0} parameter not found".format(rospy.resolve_name('~echo_service_name'))
             raise common.TestArgumentNotFound

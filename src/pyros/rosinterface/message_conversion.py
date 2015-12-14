@@ -44,7 +44,7 @@ from base64 import standard_b64encode, standard_b64decode
 # Utils function to get message type from ros or its dict representation
 #outputs message structure as string (useful ?)
 def get_msg(msg):
-    return '\n'.join(['%s %s' % line for line in zip(msg._slot_types, msg.__slots__)])
+    return '\n'.join(['{0!s} {1!s}'.format(*line) for line in zip(msg._slot_types, msg.__slots__)])
 
 #outputs message structure as dict
 def get_msg_dict(msg):
@@ -77,7 +77,7 @@ class InvalidMessageException(PyrosException):
     def __init__(self, inst):
         super(InvalidMessageException, self).__init__(inst)
         self.inst = inst
-        self.excmsg = "Unable to extract message values from %s instance" % type(inst).__name__
+        self.excmsg = "Unable to extract message values from {0!s} instance".format(type(inst).__name__)
 
     @property
     def message(self):
@@ -91,7 +91,7 @@ class NonexistentFieldException(PyrosException):
         super(NonexistentFieldException, self).__init__(basetype, fields)
         self.basetype = basetype
         self.fields = fields
-        self.excmsg = "Message type %s does not have a field %s" % (basetype, '.'.join(fields))
+        self.excmsg = "Message type {0!s} does not have a field {1!s}".format(basetype, '.'.join(fields))
 
     @property
     def message(self):
@@ -109,9 +109,9 @@ class FieldTypeMismatchException(Exception):
         self.found_type = found_type
 
         if roottype == expected_type:
-            self.excmsg = "Expected a JSON object for type %s but received a %s" % (roottype, found_type)
+            self.excmsg = "Expected a JSON object for type {0!s} but received a {1!s}".format(roottype, found_type)
         else:
-            self.excmsg = "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type)
+            self.excmsg = "{0!s} message requires a {1!s} for field {2!s}, but got a {3!s}".format(roottype, expected_type, '.'.join(fields), found_type)
 
     @property
     def message(self):
@@ -310,30 +310,27 @@ _srvs_lock = Lock()
 
 class InvalidTypeStringException(Exception):
     def __init__(self, typestring):
-        Exception.__init__(self, "%s is not a valid type string" % typestring)
+        Exception.__init__(self, "{0!s} is not a valid type string".format(typestring))
 
 
 class InvalidPackageException(Exception):
     def __init__(self, package, original_exception):
         Exception.__init__(self,
-           "Unable to load the manifest for package %s. Caused by: %s"
-           % (package, original_exception.message)
+           "Unable to load the manifest for package {0!s}. Caused by: {1!s}".format(package, original_exception.message)
        )
 
 
 class InvalidModuleException(Exception):
     def __init__(self, modname, subname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s.%s from package %s. Caused by: %s"
-           % (modname, subname, modname, str(original_exception))
+           "Unable to import {0!s}.{1!s} from package {2!s}. Caused by: {3!s}".format(modname, subname, modname, str(original_exception))
         )
 
 
 class InvalidClassException(Exception):
     def __init__(self, modname, subname, classname, original_exception):
         Exception.__init__(self,
-           "Unable to import %s class %s from package %s. Caused by %s"
-           % (subname, classname, modname, str(original_exception))
+           "Unable to import {0!s} class {1!s} from package {2!s}. Caused by {3!s}".format(subname, classname, modname, str(original_exception))
         )
 
 
@@ -404,7 +401,7 @@ def _load_class(modname, subname, classname):
         raise InvalidPackageException(modname, exc)
 
     try:
-        pypkg = __import__('%s.%s' % (modname, subname))
+        pypkg = __import__('{0!s}.{1!s}'.format(modname, subname))
     except Exception as exc:
         raise InvalidModuleException(modname, subname, exc)
 

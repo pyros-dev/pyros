@@ -187,7 +187,7 @@ class RoconInterface(object):
 
             return output_data
         except rospy.ServiceException, e:
-            print "Rapp start call failed: %r" % e
+            print "Rapp start call failed: {0!r}".format(e)
 
     def stop_rapp(self):
         try:
@@ -205,7 +205,7 @@ class RoconInterface(object):
 
             return output_data
         except rospy.ServiceException, e:
-            print "Rapp stop call failed: %r" % e
+            print "Rapp stop call failed: {0!r}".format(e)
 
 
 

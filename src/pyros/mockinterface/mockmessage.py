@@ -27,15 +27,15 @@ StatusMsg = namedtuple("StatusMsg", "error code message")
 # defining Exceptions
 class NonexistentFieldException(Exception):
     def __init__(self, oridict, basetype, message):
-        Exception.__init__(self, "Trying to convert %s to Message type %s triggered %s" % (oridict, basetype, message))
+        Exception.__init__(self, "Trying to convert {0!s} to Message type {1!s} triggered {2!s}".format(oridict, basetype, message))
 
 
 class FieldTypeMismatchException(Exception):
     def __init__(self, roottype, fields, expected_type, found_type):
         if roottype == expected_type:
-            Exception.__init__(self, "Expected a Python object for type %s but received a %s" % (roottype, found_type))
+            Exception.__init__(self, "Expected a Python object for type {0!s} but received a {1!s}".format(roottype, found_type))
         else:
-            Exception.__init__(self, "%s message requires a %s for field %s, but got a %s" % (roottype, expected_type, '.'.join(fields), found_type))
+            Exception.__init__(self, "{0!s} message requires a {1!s} for field {2!s}, but got a {3!s}".format(roottype, expected_type, '.'.join(fields), found_type))
 
 
 def extract_values(inst):
