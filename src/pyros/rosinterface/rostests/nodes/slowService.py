@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import rospy
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, EmptyResponse
 
 
 def handle_msg(rq):
     print("server got request")
     rospy.rostime.wallsleep(30)
-    return Empty()
+    return EmptyResponse()
 
 
 def empty_server():

@@ -26,6 +26,10 @@ import collections
 # - TODO : tox + py.test (benchmark)
 
 def ROS_setup_rosdistro_env(default_distro=None):
+
+    # TODO : investigate if running the actual setup.bash script (from proper workspace) wouldn't be better :
+    #  http://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
+
     default_distro = default_distro or 'indigo'
     # Setting env var like ROS would
     # TODO : find the proper place in ros where this is set and use it instead
