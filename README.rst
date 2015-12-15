@@ -1,3 +1,6 @@
+Pyros
+=====
+
 .. image:: https://travis-ci.org/asmodehn/pyros.svg?branch=indigo-devel
     :target: https://travis-ci.org/asmodehn/pyros
 
@@ -13,8 +16,6 @@
   :target: https://www.quantifiedcode.com/app/project/68d207b248dd4b3f89cf48e5de89c461
   :alt: Code issues
 
-pyros
------
 
 - If you are a ROS developer and want to use python inside ROS, you can stop reading and go have a look there instead https://github.com/ros/ros_comm
 

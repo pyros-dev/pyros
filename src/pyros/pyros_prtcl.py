@@ -5,6 +5,7 @@ from collections import namedtuple
 """
 Pure python protocol ( only for pipe communication between process )
 Designed to have always atomic sensible data on the pipe.
+TODO : double check if this is still needed. ZMP will encapsulate everything needed...
 """
 
 MsgBuild = namedtuple('MsgBuild', 'name msg_content')

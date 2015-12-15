@@ -1,8 +1,9 @@
-Change history
-==============
+Changelog
+=========
 
 0.1.0
 -----
+* Separated Pyros from Rostful. Pyros as generic multiprocess system interface so Rostful remains pure python web REST API, without multiprocess complexity.
 * Separated the pure python multiprocess + communication handling into a small package, waiting for extraction.
 * Build an Abstract Base Class structure to make interfacing more testable, and easier to extend.
 * Build a mock interface implementation in order to test and verify basic abstract behaviors.
@@ -17,6 +18,6 @@ Change history
 
 0.0.2
 -----
-Converted to Catkin
-Migrated from raw python to Flask
-Experimental Rocon support
+* Rostful Converted to Catkin
+* Migrated from raw python to Flask
+* Experimental Rocon support
