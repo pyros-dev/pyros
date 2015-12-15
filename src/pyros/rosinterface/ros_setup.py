@@ -28,7 +28,23 @@ import collections
 def ROS_setup_rosdistro_env(default_distro=None):
 
     # TODO : investigate if running the actual setup.bash script (from proper workspace) wouldn't be better :
-    #  http://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
+    # import os
+    # import sys
+    # import pprint
+    # import subprocess
+    #
+    # command = ['bash', '-c', 'source /opt/ros/indigo/setup.bash && env']
+    #
+    # proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    #
+    # for line in proc.stdout:
+    #   (key, _, value) = line.partition("=")
+    #   os.environ[key] = value.rstrip()
+    #   if key == 'PYTHONPATH':
+    #       for newp in [p for p in value.split(':') if p not in sys.path]:
+    #           sys.path.append(newp)
+    #
+    # proc.communicate()
 
     default_distro = default_distro or 'indigo'
     # Setting env var like ROS would
