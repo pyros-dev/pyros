@@ -8,6 +8,7 @@ Changelog
 * Build an Abstract Base Class structure to make interfacing more testable, and easier to extend.
 * Build a mock interface implementation in order to test and verify basic abstract behaviors.
 * Moved the rosinterface into it s special place and wrapped it tightly with tests
+* Dropping actions support from Pyros (should be done in another package)
 * added a few methods to do a ros setup dynamically, if it wasn't done before running the package code and if needed
 
 0.0.7
@@ -16,8 +17,3 @@ Changelog
 * Added basic unit tests
 * Refactored all components
 
-0.0.2
------
-* Rostful Converted to Catkin
-* Migrated from raw python to Flask
-* Experimental Rocon support
