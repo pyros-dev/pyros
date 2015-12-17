@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
 
-"""
-ParamBack is the class handling conversion from Python API to Mock Param
-"""
-class MockParam:
+class MockParam(object):
+    """
+    MockParam is the class handling mock behavior for Param
+    """
     def __init__(self, param_name, param_type):
         self.name = param_name
         # getting the fullname to make sure we start with /
@@ -15,9 +15,9 @@ class MockParam:
     def cleanup(self):
         pass
 
-    def set(self, val):
+    def setval(self, val):
         self.value = val
         return True
 
-    def get(self):
+    def getval(self):
         return self.value
