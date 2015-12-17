@@ -36,6 +36,7 @@ class PyrosMock(PyrosBase):
         self.provides(self.mock_topic_disappear)
         self.provides(self.mock_param_appear)
         self.provides(self.mock_param_disappear)
+        self.provides(self.reinit)
         pass
 
     # These should match the design of PyrosClient and Protocol so we are consistent between pipe and python API
@@ -56,7 +57,10 @@ class PyrosMock(PyrosBase):
         return msg
         
     def topics(self):
-        return self.mock_if.get_topic_list()
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.mock_if.topics
 
     # a simple string echo service
     def service(self, name, rqst_content=None):
@@ -67,7 +71,10 @@ class PyrosMock(PyrosBase):
         return resp_content
 
     def services(self):
-        return self.mock_if.get_svc_list()
+        """
+        :return: the list of services we interfaced with ( not the list of all available services )
+        """
+        return self.mock_if.services
 
     # a simple test param
     def param(self, name, value=None):
@@ -80,7 +87,10 @@ class PyrosMock(PyrosBase):
         return val
 
     def params(self):
-        return self.mock_if.get_param_list()
+        """
+        :return: the list of params we interfaced with ( not the list of all available params )
+        """
+        return self.mock_if.params
 
     def reinit(self, services, topics, params):
         """
@@ -91,7 +101,6 @@ class PyrosMock(PyrosBase):
         :return:
         """
         return self.mock_if.reinit(services, topics, params)
-
 
     def run(self):
         """
@@ -104,11 +113,11 @@ class PyrosMock(PyrosBase):
 
         logging.debug("mock shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
-    def update(self):
+    def update_throttled(self):
         """
         Update function to call from a looping thread.
         """
-
+        print "Running mockinterface update()..."
         self.mock_if.update()
 
     # Mock only methods

@@ -3,10 +3,11 @@ from __future__ import absolute_import
 import rospy
 from collections import OrderedDict
 
-"""
-ParamBack is the class handling conversion from REST API to ROS Param
-"""
-class ParamBack:
+
+class ParamBack(object):
+    """
+    ParamBack is the class handling conversion from REST API to ROS Param
+    """
     def __init__(self, param_name):
         self.name = param_name
         # getting the fullname to make sure we start with /
@@ -28,10 +29,10 @@ class ParamBack:
             'fullname': self.fullname,
         })
 
-    def set(self, val):
+    def setval(self, val):
         rospy.set_param(self.name, val)
         return
 
-    def get(self):
+    def getval(self):
         res = rospy.get_param(self.name)
         return res

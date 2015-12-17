@@ -36,7 +36,7 @@ def get_service_srv_dict(service):
     return get_msg_dict(service.rostype_req), get_msg_dict(service.rostype_resp)
 
 
-class ServiceBack:
+class ServiceBack(object):
     """
     ServiceBack is the class handling conversion from Python API to ROS Service
     """
