@@ -45,7 +45,6 @@ if not rosgraph.masterapi.is_online():
     roscore_process.start()
 
 # Start roslaunch
-global launch
 launch = roslaunch.scriptapi.ROSLaunch()
 launch.start()
 

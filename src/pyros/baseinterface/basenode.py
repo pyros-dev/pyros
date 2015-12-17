@@ -90,7 +90,10 @@ class PyrosBase(zmp.Node):
         if self.last_update > self.update_interval:
             self.update_throttled()
 
-
     def update_throttled(self):
+        """
+        An update method that is only run every self.update_interval
+        :return:
+        """
         pass
 

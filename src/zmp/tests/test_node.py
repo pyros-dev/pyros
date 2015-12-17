@@ -75,6 +75,10 @@ def test_node_creation_double_termination():
 
 
 def test_update_rate():
+    """
+    Testing that the update methods get a correct timedelta
+    :return:
+    """
     # TODO : investigate if node multiprocessing plugin would help simplify this
     # playing with list to pass a reference to this
     testing_last_update = [time.time()]

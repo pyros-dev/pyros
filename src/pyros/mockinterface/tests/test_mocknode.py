@@ -157,6 +157,10 @@ def test_mocknode_topics_detect_reinit():  # Here we check that this node actual
 
 
 def test_mocknode_topics_detect_throttled():
+    """
+    Testing that the mocknode detection of topics is throttled properly
+    :return:
+    """
     mockn = PyrosMock()
     assert_false(mockn.is_alive())
 
