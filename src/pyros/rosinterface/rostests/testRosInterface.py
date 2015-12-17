@@ -424,10 +424,10 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
         # NOTE : We need to wait to make sure the tests nodes are started...
-        from pyros.baseinterface import BaseInterface
+        from pyros.baseinterface import DiffTuple
         start = time.time()
         timeout = 15
-        dt = BaseInterface.DiffTuple([], [])
+        dt = DiffTuple([], [])
         while (not dt or servicename not in dt[0]) and time.time() - start < timeout:
             dt = self.interface.update()
         # TODO : improve that by providing an easier interface for it.

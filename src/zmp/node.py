@@ -17,6 +17,9 @@ import pickle
 
 # allowing pickling of exceptions to transfer it
 from collections import namedtuple
+
+import time
+
 try:
     from tblib.decorators import Traceback
     # TODO : potential candidates for pickle + tblib replacement for easier serialization
@@ -147,9 +150,11 @@ class Node(multiprocessing.Process):
             super(Node, self).start()
 
     def run(self):
+
         #print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
 
         zcontext = zmq.Context()  # check creating context in init ( compatibility with multiple processes )
+        # Apparently not needed ? Ref : https://github.com/zeromq/pyzmq/issues/770
         zcontext.setsockopt(socket.SO_REUSEADDR, 1)  # required to make restart easy and avoid debugging traps...
         svc_socket = zcontext.socket(zmq.REP)  # Ref : http://api.zeromq.org/2-1:zmq-socket # TODO : ROUTER instead ?
         svc_socket.bind(self._svc_address,)
@@ -171,10 +176,11 @@ class Node(multiprocessing.Process):
         nodes[self.name] = {'service_conn': self._svc_address}
         nodes_lock.release()
 
+        # Starting the clock
+        start = time.time()
+
         # loop listening to connection
         while not self.exit.is_set():
-            #TODO : variable timeframe updates ( usual gameloop technics )
-            self.update()
 
             # blocking. messages are received ASAP. timeout only determine update/shutdown speed.
             socks = dict(poller.poll(timeout=100))
@@ -220,6 +226,13 @@ class Node(multiprocessing.Process):
                         )
                     ).serialize())
 
+            # time is ticking
+            now = time.time()
+            timedelta = now - start
+            start = now
+
+            self.update(timedelta)
+
         # concealing services
         services_lock.acquire()
         for svc_name, svc_endpoint in self._providers.iteritems():
@@ -232,10 +245,11 @@ class Node(multiprocessing.Process):
         nodes[self.name] = {}
         nodes_lock.release()
 
-    def update(self):
+    def update(self, timedelta):
         """
         Runs at every update cycle in the node process/thread.
         Usually you want to override this method to extend the behavior of the node in your implementation
+        :param: timedelta : the time spent since the last call
         :return:
         """
         pass

@@ -7,6 +7,9 @@ import re
 import abc
 from functools import partial
 
+# module wide to be pickleable
+DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
+
 
 class BaseInterface(object):
     """
@@ -14,7 +17,6 @@ class BaseInterface(object):
     Assumption : we only deal with absolute names here. The users should resolve them
     """
     __metaclass__ = abc.ABCMeta
-    DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
     @staticmethod
     def cap_match_string(match):
@@ -98,7 +100,7 @@ class BaseInterface(object):
             resolved_dict.pop(tst_name, None)
             removed += [tst_name]
 
-        return BaseInterface.DiffTuple(added, removed)
+        return DiffTuple(added, removed)
 
     @staticmethod
     def _expose_transients_regex(regexes, transient_desc, regex_set, resolved_dict,
@@ -157,7 +159,7 @@ class BaseInterface(object):
         lost_tsts = last_got_set - transient_detected
 
         if not new_tsts and not lost_tsts:
-            return BaseInterface.DiffTuple([], [])
+            return DiffTuple([], [])
 
         added_tst_lst = [t for t in list(set(new_tsts)) if BaseInterface.find_first_regex_match(t, regex_set) is not None]
         removed_tst_lst = [t for t in list(set(lost_tsts)) if BaseInterface.find_first_regex_match(t, regex_set) is not None]
@@ -383,19 +385,19 @@ class BaseInterface(object):
         if services is not None:
             sdt = self.expose_services(services)
         else:
-            sdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
+            sdt = DiffTuple([], [])  # no change in exposed services
 
         if topics is not None:
             tdt = self.expose_topics(topics)
         else:
-            tdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
+            tdt = DiffTuple([], [])  # no change in exposed services
 
         if params is not None:
             pdt = self.expose_params(params)
         else:
-            pdt = BaseInterface.DiffTuple([], [])  # no change in exposed services
+            pdt = DiffTuple([], [])  # no change in exposed services
 
-        return BaseInterface.DiffTuple(
+        return DiffTuple(
             added=sdt.added+tdt.added+pdt.added,
             removed=sdt.removed+tdt.removed+pdt.removed
         )
@@ -408,7 +410,7 @@ class BaseInterface(object):
         tdt = self.topics_change_detect()
         pdt = self.params_change_detect()
 
-        return BaseInterface.DiffTuple(
+        return DiffTuple(
             added=sdt.added+tdt.added+pdt.added,
             removed=sdt.removed+tdt.removed+pdt.removed
         )

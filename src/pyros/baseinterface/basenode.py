@@ -23,6 +23,9 @@ class PyrosBase(zmp.Node):
     def __init__(self, name=None):
         super(PyrosBase, self).__init__(name or 'pyros')
 
+        self.last_update = 0
+        self.update_interval = 1  # seconds to wait between each update
+
         self.provides(self.msg_build)
         self.provides(self.topic)
         self.provides(self.topics)
@@ -78,11 +81,16 @@ class PyrosBase(zmp.Node):
 
         logging.debug("mock shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
-    def update(self):
+    def update(self, timedelta):
         """
         Update function to call from a looping thread.
+        :param timedelta: the time past since the last update call
         """
+        self.last_update += timedelta
+        if self.last_update > self.update_interval:
+            self.update_throttled()
 
+
+    def update_throttled(self):
         pass
-
 
