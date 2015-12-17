@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import rospy
+import time
 
 from .ros_interface import RosInterface
 try:
@@ -241,6 +242,7 @@ class PyrosROS(PyrosBase):
         Update function to call from a looping thread.
         """
         # TODO : add time tracking, desired rate versus actual rate -> readjust.
+        #print("[{name}] {node} UPDATE {t}".format(name=__name__, node=self.name, t=time.time()))
         self.ros_if.update()
 
     # Create a callback function for the dynamic reconfigure server.

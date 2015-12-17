@@ -240,7 +240,7 @@ class TestPyrosROS(unittest.TestCase):
                 rosn.shutdown()
         # TODO : do we need a test with subscriber ?
 
-
+# TODO : test the update() is actually throttled
 
 # TODO : test each service
 

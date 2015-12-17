@@ -88,6 +88,7 @@ class PyrosBase(zmp.Node):
         """
         self.last_update += timedelta
         if self.last_update > self.update_interval:
+            self.last_update = 0
             self.update_throttled()
 
     def update_throttled(self):
