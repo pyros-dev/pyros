@@ -66,10 +66,22 @@ class BaseInterface(object):
         return matches
 
     @staticmethod
-    def _update_transients(add_names, remove_names, transient_desc, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def regexes_match_sublist(regexes, match_candidates):
+        """
+        Filter the match_candidates list to return only the candidate that match the regex
+        :param regexes: a list of regex used to filter the list of candidates
+        :param match_candidates: the list of candidates
+        :return: the filtered list of only the candidates that match the regex
+        """
+
+        return [match for sublist in [BaseInterface.regex_match_sublist(rgx, match_candidates) for rgx in regexes] for match in sublist]
+
+    @staticmethod
+    def _update_transients(add_names, remove_names, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Adds transients (service, topic, etc) named in add_names and removes transients named in remove_names  exposed transients resolved_dict
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
+        :param regex_set: the list of regex to filter transients to update
         :param add_names: the names of the transients to add
         :param remove_names: the names of the transients to remove
         :param resolved_dict: the list to add the resolved transient(s) to
@@ -80,6 +92,7 @@ class BaseInterface(object):
         :return: the list of transients exposed
         """
         # Important : no effect if names is empty list. only return empty. functional style.
+
         added = []
         removed = []
         for tst_name in [tst for tst in add_names if tst not in resolved_dict.keys()]:
@@ -104,12 +117,13 @@ class BaseInterface(object):
 
     @staticmethod
     def _expose_transients_regex(regexes, transient_desc, regex_set, resolved_dict,
-                            get_list_func, type_resolve_func,
+                            last_got_set, get_list_func, type_resolve_func,
                             class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Exposes a list of transients regexes. resolved transients not matching the regexes will be removed.
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
         :param regexes: the list of regex to filter the transient to add
+        :param regex_set: the list of regex already existing
         :param resolved_dict: the list to add the resolved transient(s) to
         :param get_list_func: the function to get the list of all transients currently available to be exposed
         :param add_func: the function used to add the transient to the list of exposed ones
@@ -125,21 +139,21 @@ class BaseInterface(object):
         for tst_regex in [r for r in regexes if not r in regex_set]:
             regex_set.add(tst_regex)
             logging.info('[{name}] Exposing {desc} regex : {regex}'.format(name=__name__, desc=transient_desc, regex=tst_regex))
-            add_names = BaseInterface.regex_match_sublist(tst_regex, get_list_func())
+            # TODO : check here for bugs & add test : what if we add multiple regexes ? wont we miss some add_names ?
 
         # look through the current service args and delete those values which
         # will not be valid when the args are replaced with the new ones. run on
         # a copy so that we will remove from the original without crashing
         for tst_regex in [r for r in regex_set if not r in regexes]:
-            rem_names = [n for n in BaseInterface.regex_match_sublist(tst_regex, resolved_dict.keys()) if BaseInterface.find_first_regex_match(n, regexes) is None]
             logging.info('[{name}] Withholding {desc} regex : {regex}'.format(name=__name__, desc=transient_desc, regex=tst_regex))
             regex_set.remove(tst_regex)
 
-        return BaseInterface._update_transients(
-                                add_names,
-                                rem_names,
+        return BaseInterface._transient_change_detect(
                                 transient_desc,
+                                regex_set,
                                 resolved_dict,
+                                last_got_set,
+                                get_list_func,
                                 type_resolve_func,
                                 class_clean_func,
                                 class_build_func,
@@ -149,25 +163,24 @@ class BaseInterface(object):
 
 
     @staticmethod
-    def _transient_change_detect(regex_set, transient_desc, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _transient_change_detect(transient_desc, regex_set, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
+        This function also applies changes due to regex_set updates if needed
         """
 
         transient_detected = set(get_list_func())
-        new_tsts = transient_detected - last_got_set
+        new_matches = set([m for m in BaseInterface.regexes_match_sublist(regex_set, transient_detected)])
+        to_add = new_matches   # we start interfacing with new matches
+        lost_matches = set([n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None])
         lost_tsts = last_got_set - transient_detected
-
-        if not new_tsts and not lost_tsts:
-            return DiffTuple([], [])
-
-        added_tst_lst = [t for t in list(set(new_tsts)) if BaseInterface.find_first_regex_match(t, regex_set) is not None]
-        removed_tst_lst = [t for t in list(set(lost_tsts)) if BaseInterface.find_first_regex_match(t, regex_set) is not None]
+        to_remove = lost_tsts | lost_matches  # we stop interfacing with lost transient OR lost matches
 
         dt = BaseInterface._update_transients(
-                    added_tst_lst,
-                    removed_tst_lst,
+                    to_add,
+                    to_remove,
                     transient_desc,
+                    regex_set,
                     resolved_dict,
                     type_resolve_func,
                     class_clean_func,
@@ -176,10 +189,9 @@ class BaseInterface(object):
                     **class_build_kwargs
                  )
 
+        last_got_set.update(transient_detected)
         if lost_tsts:
             last_got_set.difference_update(lost_tsts)
-        if new_tsts:
-            last_got_set.update(new_tsts)
 
         return dt
 
@@ -269,6 +281,7 @@ class BaseInterface(object):
         # use is mostly internal ( and child classes )
         self.update_services = partial(BaseInterface._update_transients,
                                        transient_desc="service",
+                                       regex_set=self.services_args,
                                        resolved_dict=self.services,
                                        type_resolve_func=self.service_type_resolver,
                                        class_clean_func=self.ServiceCleaner,
@@ -283,6 +296,7 @@ class BaseInterface(object):
                                        transient_desc="service",
                                        regex_set=self.services_args,
                                        resolved_dict=self.services,
+                                       last_got_set=self.last_services_detected,
                                        get_list_func=self.get_svc_list,
                                        type_resolve_func=self.service_type_resolver,
                                        class_clean_func=self.ServiceCleaner,
@@ -306,6 +320,7 @@ class BaseInterface(object):
 
         self.update_topics = partial(BaseInterface._update_transients,
                                      transient_desc="topic",
+                                     regex_set=self.topics_args,
                                      resolved_dict=self.topics,
                                      type_resolve_func=self.topic_type_resolver,
                                      class_clean_func=self.TopicCleaner,
@@ -320,6 +335,7 @@ class BaseInterface(object):
                                      transient_desc="topic",
                                      regex_set=self.topics_args,
                                      resolved_dict=self.topics,
+                                     last_got_set=self.last_topics_detected,
                                      get_list_func=self.get_topic_list,
                                      type_resolve_func=self.topic_type_resolver,
                                      class_clean_func=self.TopicCleaner,
@@ -339,6 +355,7 @@ class BaseInterface(object):
 
         self.update_params = partial(BaseInterface._update_transients,
                                      transient_desc="param",
+                                     regex_set=self.params_args,
                                      resolved_dict=self.params,
                                      type_resolve_func=self.param_type_resolver,
                                      class_clean_func=self.ParamCleaner,
@@ -353,6 +370,7 @@ class BaseInterface(object):
                                      transient_desc="param",
                                      regex_set=self.params_args,
                                      resolved_dict=self.params,
+                                     last_got_set=self.last_params_detected,
                                      get_list_func=self.get_param_list,
                                      type_resolve_func=self.param_type_resolver,
                                      class_clean_func=self.ParamCleaner,
@@ -360,7 +378,7 @@ class BaseInterface(object):
                                      )
 
         self.params_change_detect = partial(BaseInterface._transient_change_detect,
-                                            transient_desc="topic",
+                                            transient_desc="param",
                                             regex_set=self.params_args,
                                             resolved_dict=self.params,
                                             last_got_set=self.last_params_detected,
@@ -396,6 +414,23 @@ class BaseInterface(object):
             pdt = self.expose_params(params)
         else:
             pdt = DiffTuple([], [])  # no change in exposed services
+
+        return DiffTuple(
+            added=sdt.added+tdt.added+pdt.added,
+            removed=sdt.removed+tdt.removed+pdt.removed
+        )
+
+    def update_on_diff(self, service_dt, topics_dt, params_dt):
+
+        sdt = self.update_services(add_names=[m for m in BaseInterface.regexes_match_sublist(self.services_args, service_dt.added)],
+                                   remove_names=service_dt.removed
+                                   )
+        tdt = self.update_topics(add_names=[m for m in BaseInterface.regexes_match_sublist(self.topics_args, topics_dt.added)],
+                                 remove_names=topics_dt.removed
+                                 )
+        pdt = self.update_params(add_names=[m for m in BaseInterface.regexes_match_sublist(self.params_args, params_dt.added)],
+                                 remove_names=params_dt.removed
+                                 )
 
         return DiffTuple(
             added=sdt.added+tdt.added+pdt.added,

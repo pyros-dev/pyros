@@ -25,7 +25,8 @@ from nose.tools import assert_true, assert_equal, timed
 launch = None
 
 
-# This should have the same effect as the <name>.test file for rostest. Should be used only by nose ( or other python test tool )
+# This should have the same effect as the <name>.test file for rostest.
+# Should be used only by nose ( or other python test tool )
 # CAREFUL with comments, copy paste mistake are real...
 # CAREFUL dont use assertFalse -> easy to miss when reviewing code
 def setup_module():
@@ -240,9 +241,132 @@ class TestPyrosROS(unittest.TestCase):
                 rosn.shutdown()
         # TODO : do we need a test with subscriber ?
 
-# TODO : test the update() is actually throttled
+    def test_rosnode_services(self):  # Here we check that this node actually discovers topics
+
+        # Starting underlying system before
+        rospy.set_param('/string_echo/topic_name', '~topic')  # private names to not mess things up too much
+        rospy.set_param('/string_echo/echo_topic_name', '~echo_topic')
+        rospy.set_param('/string_echo/echo_service_name', '~echo_service')
+
+        string_echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='string_echo')
+        string_echo_process = launch.launch(string_echo_node)
+        try:
+            # Starting PyrosROS with preconfigured topics,
+            # disabling dynamic_reconf to avoid override asynchronously on start().
+            rosn = PyrosROS(dynamic_reconfigure=False)
+            try:
+                rosn.ros_if.reinit(services=['/string_echo/echo_service'])  # careful assuming the service fullname here
+                assert_true(not rosn.is_alive())
+                rosn.start()
+                assert_true(rosn.is_alive())
+
+                print("Discovering services Service...")
+                services = zmp.discover("services", 5)  # we wait a bit to let it time to start
+                assert_true(services is not None)
+                print("services providers : {svc}".format(svc=services.providers))
+                assert_equal(len(services.providers), 1)
+                assert_true(rosn.name in [p[0] for p in services.providers])
+
+                start = time.time()
+                timeout = 15  # should be enough to let the node start (?)
+                res = services.call()
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                while time.time() - start < timeout and not '/string_echo/echo_service' in res.keys():
+                    rospy.rostime.wallsleep(1)
+                    res = services.call()
+
+                assert_true('/string_echo/echo_service' in res.keys())  # echo_service has been created, detected and exposed
+            finally:
+                # finishing PyrosROS process
+                if rosn is not None and rosn.is_alive():
+                    rosn.shutdown()
+
+        finally:
+            # finishing string_pub_process
+            if string_echo_process is not None and string_echo_process.is_alive():
+                string_echo_process.stop()
+
+    def test_rosnode_services_reinit(self):  # Here we check that this node actually provides all the services
+        rosn = PyrosROS(dynamic_reconfigure=False)
+        try:
+            assert_true(not rosn.is_alive())
+            rosn.start()
+            assert_true(rosn.is_alive())
+
+            print("Discovering services Service...")
+            services = zmp.discover("services", 5)  # we wait a bit to let it time to start
+            assert_true(services is not None)
+            print("services providers : {svc}".format(svc=services.providers))
+            assert_equal(len(services.providers), 1)
+            assert_true(rosn.name in [p[0] for p in services.providers])
+
+            res = services.call()
+            assert_true('echo_service' not in res.keys())  # test_topic has not been created, detected or exposed
+
+            print("Discovering reinit Service...")
+            reinit = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
+            assert_true(reinit is not None)
+            print("reinit providers : {svc}".format(svc=reinit.providers))
+            assert_equal(len(reinit.providers), 1)
+            assert_true(rosn.name in [p[0] for p in reinit.providers])
+
+            rospy.set_param('/string_echo/topic_name', '~topic')  # private names to not mess things up too much
+            rospy.set_param('/string_echo/echo_topic_name', '~echo_topic')
+            rospy.set_param('/string_echo/echo_service_name', '~echo_service')
+
+            string_echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='string_echo')
+            string_echo_process = launch.launch(string_echo_node)
+            try:
+
+                new_config = reinit.call(kwargs={
+                    'services': ['/string_echo/echo_service'],
+                    'topics': [],
+                    'params': []
+                })
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                start = time.time()
+                timeout = 15  # should be enough to let the node start (?)
+                res = services.call()
+                while time.time() - start < timeout and not '/string_echo/echo_service' in res.keys():
+                    rospy.rostime.wallsleep(1)
+                    res = services.call()
+
+                assert_true('/string_echo/echo_service' in res.keys())  # test_topic has been created, detected and exposed
+
+            finally:
+                # finishing all processes
+                if string_echo_process is not None and string_echo_process.is_alive():
+                    string_echo_process.stop()
+        finally:
+            # finishing PyrosROS process
+            if rosn is not None and rosn.is_alive():
+                rosn.shutdown()
+
 
 # TODO : test each service
+
+# TODO : test the update() is actually throttled (careful about cache behavior : no throttling)
+
+
+
+# Testing with Connection Cache
+class TestPyrosROSCache(TestPyrosROS):
+    def setUp(self):
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
+        self.connection_cache_proc = launch.launch(self.connection_cache_node)
+
+        super(TestPyrosROSCache, self).setUp()
+
+    def tearDown(self):
+        super(TestPyrosROSCache, self).tearDown()
+
+        self.connection_cache_proc.stop()
+
 
 if __name__ == '__main__':
 

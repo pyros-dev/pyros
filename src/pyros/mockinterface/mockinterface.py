@@ -23,7 +23,6 @@ class MockInterface(BaseInterface):
             topics = []
         if params is None:
             params = []
-        super(MockInterface, self).__init__(services, topics, params)
         # These list what is available on the Mock implementation.
         # They are accessible directly for tests who want to simulate multiprocess communication framework changes.
         self.services_available = []
@@ -32,6 +31,8 @@ class MockInterface(BaseInterface):
         self.topics_available_type = {}
         self.params_available = []
         self.params_available_type = {}
+        # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
+        super(MockInterface, self).__init__(services, topics, params)
 
     # mock functions that simulate/mock similar interface than what is found on multiprocess framework supported
     # We should try our best to go for the lowest common denominator here

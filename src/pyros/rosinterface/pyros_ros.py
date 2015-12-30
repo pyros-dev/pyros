@@ -1,9 +1,17 @@
 from __future__ import absolute_import
 
+import collections
 import rospy
 import time
 
 from .ros_interface import RosInterface
+
+try:
+    import rocon_std_msgs.msg as rocon_std_msgs
+except ImportError:
+    print("Cannot import rocon_std_msgs needed to use ConnectionCache.")
+    rocon_std_msgs = None
+
 try:
     from .roconinterface.rocon_interface import RoconInterface
     _ROCON_AVAILABLE = True
@@ -27,7 +35,7 @@ import unicodedata
 # TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
 
 import pyros.srv as srv
-from . import message_conversion as msgconv
+from . import message_conversion as msgconv, TopicBack
 
 
 class PyrosROS(PyrosBase):
@@ -35,12 +43,16 @@ class PyrosROS(PyrosBase):
     Interface with ROS.
     """
     def __init__(self, name=None, argv=None, dynamic_reconfigure=True):
-        super(PyrosROS, self).__init__(name=name or 'pyros-ros')
+        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.dynamic_reconfigure = dynamic_reconfigure
+
+        # subscriber to a list publisher ( to avoid needing to call the master )
+        self.conn_list = None
+
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon
 
@@ -225,6 +237,12 @@ class PyrosROS(PyrosBase):
             # Create a dynamic reconfigure server ( needs to be done after node_init )
             self.server = Server(PyrosConfig, self.reconfigure)
 
+        if rocon_std_msgs is not None:
+            # We hookup to connections_list publisher.
+            # If one exists, after receiving a msg, it will slow down our update rate
+            # because then a call to the master wont be needed.
+            self.conn_list = rospy.Subscriber('~connections_list', rocon_std_msgs.ConnectionsList, self._list_cb)
+
         #TODO : install shutdown hook to shutdown if detected
 
         try:
@@ -237,12 +255,52 @@ class PyrosROS(PyrosBase):
         except KeyboardInterrupt:
             rospy.logwarn('PyrosROS node stopped by keyboad interrupt')
 
+    def _list_cb(self, data):
+        # Because connection cache doesnt provide params (Why ?)
+        self.ros_if.retrieve_params()
+
+        # TODO : unit tests for this
+        # building a custom system_state ( like the one provided by ROS master)
+        system_state = collections.namedtuple("SystemState", "publishers subscribers services")({}, {}, {})
+
+        for c in data.connections:
+            if c.type == c.PUBLISHER:
+                system_state.publishers[c.name] = system_state.publishers.get(c.name, []) + [c.node]
+            elif c.type == c.SUBSCRIBER:
+                system_state.subscribers[c.name] = system_state.subscribers.get(c.name, []) + [c.node]
+            elif c.type == c.SERVICE:
+                system_state.services[c.name] = system_state.services.get(c.name, []) + [c.node]
+
+        print ("PYROS LIST_CB PUBLISHERS : {pubs}".format(pubs=system_state.publishers.keys()))
+        print ("PYROS LIST_CB SUBSCRIBERS : {subs}".format(subs=system_state.subscribers.keys()))
+        print ("PYROS LIST_CB SERVICES : {svcs}".format(svcs=system_state.services.keys()))
+        # ROSmaster system_state format
+        rosmaster_ss = (
+            [[name, system_state.publishers[name]] for name in system_state.publishers],
+            [[name, system_state.subscribers[name]] for name in system_state.subscribers],
+            [[name, system_state.services[name]] for name in system_state.services],
+        )
+        # updating system state
+        self.ros_if.retrieve_system_state(rosmaster_ss)
+        self.ros_if.update()
+
+        # increasing update rate since we got a cache subscriber successfully hookedup:
+        self.update_interval = 10
+
+    def _diff_cb(self, data):
+        # TODO : unit tests for this
+        # calling update() of ROSinterface base class
+        #self.ros_if.update_on_diff()
+        # TODO : implement and test
+
+        # increasing update rate:
+        #self.update_interval = 1
+        pass
+
     def update_throttled(self):
         """
         Update function to call from a looping thread.
         """
-        # TODO : add time tracking, desired rate versus actual rate -> readjust.
-        #print("[{name}] {node} UPDATE {t}".format(name=__name__, node=self.name, t=time.time()))
         self.ros_if.update()
 
     # Create a callback function for the dynamic reconfigure server.
