@@ -129,12 +129,8 @@ class RosInterface(BaseInterface):
 
             # we call the master only if we dont get system_state from connection cache
             if self.connection_cache is not None:
-                try:
-                    publishers, subscribers, services = self.connection_cache.getSystemState()
-                except rocon_python_comms.UnknownSystemState:
-                    # this will trigger if we didn't receive anything from the cache node yet.
-                    publishers, subscribers, services = self._master.getSystemState()[2]
-
+                # this will call the master directly if the proxy didnt get anything from the cache node.
+                publishers, subscribers, services = self.connection_cache.getSystemState(silent_fallback=True)
             else:
                 publishers, subscribers, services = self._master.getSystemState()[2]
 
