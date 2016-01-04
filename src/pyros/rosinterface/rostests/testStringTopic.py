@@ -45,7 +45,7 @@ def setup_module():
 
         rospy.set_param('/echo_node/topic_name', 'test_topic')
         rospy.set_param('/echo_node/echo_topic_name', 'echo_test_topic')
-        echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='echo_node')
+        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
 
         echo_process = launch.launch(echo_node)
 

@@ -248,7 +248,7 @@ class TestPyrosROS(unittest.TestCase):
         rospy.set_param('/string_echo/echo_topic_name', '~echo_topic')
         rospy.set_param('/string_echo/echo_service_name', '~echo_service')
 
-        string_echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='string_echo')
+        string_echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='string_echo')
         string_echo_process = launch.launch(string_echo_node)
         try:
             # Starting PyrosROS with preconfigured topics,
@@ -316,7 +316,7 @@ class TestPyrosROS(unittest.TestCase):
             rospy.set_param('/string_echo/echo_topic_name', '~echo_topic')
             rospy.set_param('/string_echo/echo_service_name', '~echo_service')
 
-            string_echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='string_echo')
+            string_echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='string_echo')
             string_echo_process = launch.launch(string_echo_node)
             try:
 

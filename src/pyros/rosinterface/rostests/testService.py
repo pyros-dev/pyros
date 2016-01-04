@@ -43,7 +43,7 @@ def setup_module():
         global pub_process, echo_process, slow_process
 
         rospy.set_param('/echo_node/echo_service_name', 'test_service')
-        echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='echo_node')
+        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
         echo_process = launch.launch(echo_node)
         rospy.set_param('/slow_node/slow_service_name', 'test_timeout_service')
         slow_node = roslaunch.core.Node('pyros', 'string_slow_node.py', name='slow_node')
