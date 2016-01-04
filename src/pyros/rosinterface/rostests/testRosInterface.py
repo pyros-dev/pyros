@@ -13,7 +13,7 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 
 
 # useful test tools
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import unittest
 
 # test node process not setup by default (rostest dont need it here)

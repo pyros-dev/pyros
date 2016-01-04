@@ -15,7 +15,7 @@ from std_msgs.msg import String, Empty
 from pyros.srv import StringEchoService
 
 #useful test tools
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import inspect
 import unittest
 import nose

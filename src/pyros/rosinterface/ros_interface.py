@@ -14,6 +14,10 @@ from .service import ServiceBack
 from .topic import TopicBack
 from .param import ParamBack
 
+try:
+    import rocon_python_comms
+except ImportError:
+    rocon_python_comms = None
 
 
 
@@ -36,6 +40,8 @@ class RosInterface(BaseInterface):
 
         # connecting to the master via proxy object
         self._master = rospy.get_master()
+
+        self.connection_cache = None  # connection cache needs to be inited after node_init -> not in interface.__init__()
 
         # Setting our list of interfaced topic right when we start
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
@@ -106,15 +112,31 @@ class RosInterface(BaseInterface):
         self.params_available = set(params)
         self.params_available_lock.release()
 
-    def retrieve_system_state(self, system_state=None):
+    def retrieve_system_state(self):
         """
         :param system_state: can be none OR a system_state-like tuple of connections
         This will retrieve the system state from ROS master if needed, and apply changes to local variable to keep
         a local representation of the connections available up to date.
         """
         try:
-            # we call the master only if we dont get system_state passed in
-            publishers, subscribers, services = system_state or self._master.getSystemState()[2]
+            if self.connection_cache is None and rocon_python_comms is not None:
+                # connectioncache proxy if available (remap the topics if necessary instead of passing params)
+                self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
+                    list_sub='~connections_list',
+                    diff_opt=True,
+                    diff_sub='~connections_diff'
+                )
+
+            # we call the master only if we dont get system_state from connection cache
+            if self.connection_cache is not None:
+                try:
+                    publishers, subscribers, services = self.connection_cache.getSystemState()
+                except rocon_python_comms.UnknownSystemState:
+                    # this will trigger if we didn't receive anything from the cache node yet.
+                    publishers, subscribers, services = self._master.getSystemState()[2]
+
+            else:
+                publishers, subscribers, services = self._master.getSystemState()[2]
 
             # getting the list of interfaced topics from well known node param
             if_topics = {}
@@ -162,7 +184,7 @@ class RosInterface(BaseInterface):
 
     def update(self, system_state=None):
         self.retrieve_params()
-        self.retrieve_system_state(system_state)  # This will call the master if needed
+        self.retrieve_system_state()  # This will call the master if needed
         return super(RosInterface, self).update()
 
 BaseInterface.register(RosInterface)

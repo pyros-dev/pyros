@@ -17,7 +17,7 @@ import zmp
 import dynamic_reconfigure.client as dynamic_reconfigure_client
 
 # useful test tools
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import unittest
 from nose.tools import assert_true, assert_equal, timed
 
