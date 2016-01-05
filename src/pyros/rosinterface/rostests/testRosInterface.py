@@ -16,6 +16,7 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 from pyros_setup import rostest_nose
 import unittest
 
+launch = None
 # test node process not setup by default (rostest dont need it here)
 empty_srv_process = None
 trigger_srv_process = None
@@ -29,6 +30,7 @@ def setup_module():
         rostest_nose.rostest_nose_setup_module()
 
         # Start roslaunch
+        global launch
         launch = roslaunch.scriptapi.ROSLaunch()
         launch.start()
 
@@ -703,9 +705,27 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
 
+# Testing with Connection Cache
+class TestRosInterfaceCache(TestRosInterface):
+    def setUp(self):
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
+        self.connection_cache_proc = launch.launch(self.connection_cache_node)
 
+        super(TestRosInterfaceCache, self).setUp()
 
+    def tearDown(self):
+        super(TestRosInterfaceCache, self).tearDown()
 
+        self.connection_cache_proc.stop()
+
+        time.sleep(1)
+
+    # explicitely added here only needed to help the debugger.
+    # This will fail because of https://github.com/ros/ros_comm/issues/111
+    # The topic from previous test is still registered on master...
+    def test_topic_expose_appear_update(self):
+        super(TestRosInterfaceCache, self).test_topic_expose_appear_update()
 
         
 if __name__ == '__main__':

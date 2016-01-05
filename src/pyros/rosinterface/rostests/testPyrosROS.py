@@ -251,7 +251,7 @@ class TestPyrosROS(unittest.TestCase):
         string_echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='string_echo')
         string_echo_process = launch.launch(string_echo_node)
         try:
-            # Starting PyrosROS with preconfigured topics,
+            # Starting PyrosROS with preconfigured services,
             # disabling dynamic_reconf to avoid override asynchronously on start().
             rosn = PyrosROS(dynamic_reconfigure=False)
             try:
@@ -271,7 +271,7 @@ class TestPyrosROS(unittest.TestCase):
                 timeout = 15  # should be enough to let the node start (?)
                 res = services.call()
                 # What we get here is non deterministic
-                # however we can wait for topic to be detected to make sure we get it after some time
+                # however we can wait for service to be detected to make sure we get it after some time
 
                 while time.time() - start < timeout and not '/string_echo/echo_service' in res.keys():
                     rospy.rostime.wallsleep(1)
@@ -357,7 +357,9 @@ class TestPyrosROS(unittest.TestCase):
 class TestPyrosROSCache(TestPyrosROS):
     def setUp(self):
         self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
-                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
+                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list'),
+                                                                     ('/rocon/connection_cache/diff', '/pyros_ros/connections_diff'),
+                                                                     ])
         self.connection_cache_proc = launch.launch(self.connection_cache_node)
 
         super(TestPyrosROSCache, self).setUp()
