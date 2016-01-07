@@ -8,6 +8,7 @@ from pyros.rosinterface import TopicBack
 
 import rospy
 import roslaunch
+import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
@@ -705,6 +706,25 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
 
+class timeout(object):
+    """
+    Small useful timeout class
+    """
+    def __init__(self, seconds):
+        self.seconds = seconds
+
+    def __enter__(self):
+        self.die_after = time.time() + self.seconds
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    @property
+    def timed_out(self):
+        return time.time() > self.die_after
+
+
 # Testing with Connection Cache
 class TestRosInterfaceCache(TestRosInterface):
     def setUp(self):
@@ -712,14 +732,25 @@ class TestRosInterfaceCache(TestRosInterface):
                                                          remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
         self.connection_cache_proc = launch.launch(self.connection_cache_node)
 
+        # wait for node to be started
+        node_api = None
+        with timeout(5) as t:
+            while not t.timed_out and node_api is None:
+                node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
+
+        assert node_api is not None  # make sure the connection cache node is started before moving on.
+
         super(TestRosInterfaceCache, self).setUp()
 
     def tearDown(self):
         super(TestRosInterfaceCache, self).tearDown()
 
         self.connection_cache_proc.stop()
+        while self.connection_cache_proc.is_alive():
+            time.sleep(0.2)  # waiting for cache node to die
+        assert not self.connection_cache_proc.is_alive()
+        time.sleep(1)  # TODO : investigate : we shouldnt need this
 
-        time.sleep(1)
 
     # explicitely added here only needed to help the debugger.
     # This will fail because of https://github.com/ros/ros_comm/issues/111
