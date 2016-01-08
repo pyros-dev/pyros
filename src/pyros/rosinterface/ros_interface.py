@@ -166,12 +166,8 @@ class RosInterface(BaseInterface):
                     pname = par[:- len('/' + TopicBack.IF_TOPIC_PARAM)]
                     if_topics[pname] = rospy.get_param(par, [])
 
-            # TODO : improvement : get the types here already ( no need to recall master everytime to get it )
-            # Current status : getting all topic types is another master request and might not be always needed
-            #  -> dont call again the master from here.
-
             # Examination of topics :
-            # We keep publishers that is provided by something else ( not our exposed topic pub if present )
+            # We keep publishers that are provided by something else ( not our exposed topic pub if present )
             # OR if we have locally multiple pubs / subs.
             filtered_publishers = []
             for p in publishers:
