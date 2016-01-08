@@ -5,7 +5,14 @@ import sys
 import logging
 
 # Unit test import
-from pyros.rosinterface import ServiceBack
+try:
+    from pyros.rosinterface import ServiceBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import ServiceBack
 
 # ROS imports should now work from ROS or from python (with or without ROS env setup - emulated if needed)
 import rospy

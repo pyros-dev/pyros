@@ -6,7 +6,14 @@ import sys
 
 # Unit test import ( will emulate ROS setup if needed )
 import time
-from pyros.rosinterface.topic import TopicBack
+try:
+    from pyros.rosinterface import TopicBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import TopicBack
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
