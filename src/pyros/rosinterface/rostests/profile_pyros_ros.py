@@ -2,37 +2,24 @@
 from __future__ import absolute_import
 
 # ROS SETUP if needed
-try:
-    import rospy
-    import rosgraph
-    import roslaunch
-except ImportError, ie:
-    import os
-    import sys
-    import pprint
-    import subprocess
-
-    command = ['bash', '-c', 'source /opt/ros/indigo/setup.bash && env']
-
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-
-    for line in proc.stdout:
-      (key, _, value) = line.partition("=")
-      os.environ[key] = value.rstrip()
-      if key == 'PYTHONPATH':
-          for newp in [p for p in value.split(':') if p not in sys.path]:
-              sys.path.append(newp)
-
-    proc.communicate()
-
-    import rospy
-    import rosgraph
-    import roslaunch
 
 import multiprocessing
 import time
 import cProfile
-from pyros.rosinterface import PyrosROS
+try:
+    import rospy
+    import rosgraph
+    import roslaunch
+    from pyros.rosinterface import PyrosROS
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    import rospy
+    import rosgraph
+    import roslaunch
+    from pyros.rosinterface import PyrosROS
 
 roscore_process = None
 
@@ -53,14 +40,18 @@ rosn = PyrosROS(dynamic_reconfigure=False)
 
 def update_loop():
     count = 255
+    start = time.time()
     while count > 0:
-        rosn.update()
-        time.sleep(0.1)
+        # time is ticking
+        now = time.time()
+        timedelta = now - start
+        start = now
+
+        rosn.update(timedelta)
+
         count -= 1
 
-update_loop()
-
-cProfile.run('rosn.update()')
+cProfile.run('update_loop()')
 
 rospy.signal_shutdown('test complete')
 

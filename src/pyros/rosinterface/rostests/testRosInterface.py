@@ -3,8 +3,16 @@ from __future__ import absolute_import
 
 # Unit test import (  will emulate ROS setup if needed )
 import time
-from pyros.rosinterface import RosInterface
-from pyros.rosinterface import TopicBack
+try:
+    from pyros.rosinterface import RosInterface
+    from pyros.rosinterface import TopicBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import RosInterface
+    from pyros.rosinterface import TopicBack
 
 import rospy
 import roslaunch

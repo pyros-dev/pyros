@@ -6,7 +6,14 @@ import logging
 
 # Unit test import (  will emulate ROS setup if needed )
 import time
-from pyros.rosinterface import PyrosROS
+try:
+    from pyros.rosinterface import PyrosROS
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import PyrosROS
 
 import rospy
 import roslaunch
