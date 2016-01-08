@@ -53,7 +53,8 @@ class PyrosROS(PyrosBase):
         enable_rocon = rospy.get_param('~enable_rocon', False)
         self.enable_rocon = enable_rocon
 
-        self.ros_if = RosInterface()
+        self.enable_cache = rospy.get_param('~enable_cache', False)
+        self.ros_if = RosInterface(enable_cache=self.enable_cache)
 
         if _ROCON_AVAILABLE and self.enable_rocon:
 

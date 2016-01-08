@@ -25,7 +25,8 @@ class RosInterface(BaseInterface):
     """
     RosInterface.
     """
-    def __init__(self, services=None, topics=None, params=None):
+    def __init__(self, enable_cache=False, services=None, topics=None, params=None):
+        self.enable_cache = enable_cache
         # This is run before init_node(). Only do things here that do not need the node to be initialized.
         # Current mock implementation of services, topics and params
         self.services_available_lock = threading.Lock()  # writer lock (because we have subscribers on another thread)
@@ -44,7 +45,7 @@ class RosInterface(BaseInterface):
         # connecting to the master via proxy object
         self._master = rospy.get_master()
 
-        self.connection_cache = None  # connection cache needs to be inited after node_init -> not in interface.__init__()
+        self.connection_cache = None  # if enabled, connection cache needs to be inited after node_init -> not in interface.__init__()
 
         # Setting our list of interfaced topic right when we start
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
@@ -134,7 +135,7 @@ class RosInterface(BaseInterface):
         a local representation of the connections available up to date.
         """
         try:
-            if self.connection_cache is None and rocon_python_comms is not None:
+            if self.connection_cache is None and self.enable_cache and rocon_python_comms is not None:
                 # connectioncache proxy if available (remap the topics if necessary instead of passing params)
                 self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
                     list_sub='~connections_list',
@@ -154,7 +155,7 @@ class RosInterface(BaseInterface):
                     service_types = []
             else:
                 publishers, subscribers, services = self._master.getSystemState()[2]
-                topic_types = self.connection_cache.getTopicTypes()[2]
+                topic_types = self._master.getTopicTypes()[2]
                 service_types = []  # master misses this API to be consistent
 
             # getting the list of interfaced topics from well known node param

@@ -1,6 +1,7 @@
 #This python package is handling all ROS related communication for rostful-node.
 from __future__ import absolute_import
 
+import os
 
 import pyros_setup
 
@@ -15,7 +16,7 @@ try:
     from .pyros_ros import PyrosROS
 except ImportError:
     global pyros_setup
-    pyros_setup = pyros_setup.delayed_import()
+    pyros_setup = pyros_setup.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
     from .topic import TopicBack
     from .service import ServiceBack
     from .param import ParamBack
