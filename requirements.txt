@@ -1,0 +1,6 @@
+--index-url https://pypi.python.org/simple/
+--extra-index-url https://testpypi.python.org/simple/
+
+nose
+
+-e .
