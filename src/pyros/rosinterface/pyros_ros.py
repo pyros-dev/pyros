@@ -18,15 +18,15 @@ from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInf
 
 from pyros.baseinterface import PyrosBase
 from dynamic_reconfigure.server import Server
-from pyros.cfg import PyrosConfig
+from . import pyros_cfg
 import ast
 import os
 import logging
 import unicodedata
 
 # TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
+# TODO : get rid of cfg, srv and other things that require ROS build system, so that we can have pyros as pure python package ?
 
-import pyros.srv as srv
 from . import message_conversion as msgconv
 from .topic import TopicBack
 
@@ -244,11 +244,9 @@ class PyrosROS(PyrosBase):
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
         rospy.logwarn('PyrosROS {name} node started with args : {argv}'.format(name=self.name, argv=self.str_argv))
 
-
-
         if self.dynamic_reconfigure:
             # Create a dynamic reconfigure server ( needs to be done after node_init )
-            self.server = Server(PyrosConfig, self.reconfigure)
+            self.server = Server(pyros_cfg, self.reconfigure)
 
         # TODO : install shutdown hook to shutdown if detected
 
