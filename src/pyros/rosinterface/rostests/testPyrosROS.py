@@ -27,6 +27,7 @@ import dynamic_reconfigure.client as dynamic_reconfigure_client
 # useful test tools
 from pyros_setup import rostest_nose
 import unittest
+import nose
 from nose.tools import assert_true, assert_equal, timed
 
 # test node process not setup by default (rostest dont need it here)
@@ -392,7 +393,10 @@ class TestPyrosROSCache(TestPyrosROS):
                                                          remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list'),
                                                                      ('/rocon/connection_cache/diff', '/pyros_ros/connections_diff'),
                                                                      ])
-        self.connection_cache_proc = launch.launch(self.connection_cache_node)
+        try:
+            self.connection_cache_proc = launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
 
         node_api = None
         with timeout(5) as t:
