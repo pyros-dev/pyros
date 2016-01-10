@@ -55,9 +55,12 @@ def setup_module():
             logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
             raise
         rospy.set_param('/slow_node/slow_service_name', 'test_timeout_service')
-        slow_node = roslaunch.core.Node('pyros', 'string_slow_node.py', name='slow_node')
-        slow_process = launch.launch(slow_node)
-
+        slow_node = roslaunch.core.Node('pyros_test', 'string_slow_node.py', name='slow_node')
+        try:
+            slow_process = launch.launch(slow_node)
+        except roslaunch.RLException as rlexc:
+            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
+            raise
         # set required parameters - needs to match the content of *.test files for rostest to match
         rospy.set_param('/stringServiceTest/echo_service_name', 'test_service')
         rospy.set_param('/stringServiceTest/slow_service_name', 'test_timeout_service')
