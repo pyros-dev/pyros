@@ -50,6 +50,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <build_depend>rostest</build_depend>
   <test_depend>rosunit</test_depend>
   <test_depend>rostopic</test_depend>
+  <test_depend>rosnode</test_depend>
   <test_depend>pyros_test</test_depend>
 
   <!-- documentation dependencies -->
