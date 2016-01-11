@@ -10,10 +10,10 @@ import pyros_setup
 Hopefully this should endup in rosinterface.__doc__
 """
 
+
 # class to allow recursive delayed conditional import.
 # this way it can work with or without preset environment
 class _PyrosSetup(types.ModuleType):
-
 
     def __init__(self, topic_back, service_back, param_back, ros_interface, pyros_ros):
         super(_PyrosSetup, self).__init__('RosInterface', 'Dynamically generated module to interface with ROS')
@@ -26,7 +26,9 @@ class _PyrosSetup(types.ModuleType):
         # subpackages
         self.rostests = __import__("pyros.rosinterface.rostests", fromlist=["pyros.rosinterface"])
         self.tests = __import__("pyros.rosinterface.tests", fromlist=["pyros.rosinterface"])
-        self.roconinterface = __import__("pyros.rosinterface.roconinterface", fromlist=["pyros.rosinterface"])
+        # disabling rocon interface import for now to allow travis test to succeed (and since roconinterface is not working currently).
+        # Will need more work for conditional import...
+        #self.roconinterface = __import__("pyros.rosinterface.roconinterface", fromlist=["pyros.rosinterface"])
         # submodules for individual access
         self.message_conversion = __import__("pyros.rosinterface.message_conversion", fromlist=["pyros.rosinterface"])
         # TODO : we shouldnt need it...
