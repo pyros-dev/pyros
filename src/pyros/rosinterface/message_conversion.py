@@ -133,7 +133,8 @@ dump = extract_values
 def populate_instance(msg, inst):
     """ Returns an instance of the provided class, with its fields populated
     according to the values in msg """
-    return _to_inst(msg, inst._type, inst._type, inst)
+    # if we need to populate an Empty message, we return it already
+    return inst if inst is None else _to_inst(msg, inst._type, inst._type, inst)
 #load = populate_instance
 
 def _from_inst(inst, rostype):
