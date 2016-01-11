@@ -53,8 +53,11 @@ def setup_module():
         rospy.set_param('/echo_node/topic_name', 'test_topic')
         rospy.set_param('/echo_node/echo_topic_name', 'echo_test_topic')
         echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
-
-        echo_process = launch.launch(echo_node)
+        try :
+            echo_process = launch.launch(echo_node)
+        except roslaunch.RLException as rlexc:
+            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
+            raise
 
         # TODO : also use pub and sub nodes in more granular tests
 

@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 
 # Unit test import (  will emulate ROS setup if needed )
+import nose
 import time
 try:
     from pyros.rosinterface import RosInterface
@@ -45,8 +46,8 @@ def setup_module():
 
         # start required nodes - needs to match the content of *.test files for rostest to match
         global empty_srv_process, trigger_srv_process
-        empty_srv_node = roslaunch.core.Node('pyros', 'emptyService.py', name='empty_service')
-        trigger_srv_node = roslaunch.core.Node('pyros', 'triggerService.py', name='trigger_service')
+        empty_srv_node = roslaunch.core.Node('pyros_test', 'emptyService.py', name='empty_service')
+        trigger_srv_node = roslaunch.core.Node('pyros_test', 'triggerService.py', name='trigger_service')
         empty_srv_process = launch.launch(empty_srv_node)
         trigger_srv_process = launch.launch(trigger_srv_node)
 
@@ -738,7 +739,10 @@ class TestRosInterfaceCache(TestRosInterface):
     def setUp(self):
         self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
                                                          remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
-        self.connection_cache_proc = launch.launch(self.connection_cache_node)
+        try:
+            self.connection_cache_proc = launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
 
         # wait for node to be started
         node_api = None
