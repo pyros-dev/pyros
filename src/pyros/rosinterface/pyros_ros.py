@@ -212,8 +212,8 @@ class PyrosROS(PyrosBase):
     def has_rocon(self):
         return True if self.rocon_if else False
 
-    def reinit(self, services, topics, params):
-        return self.ros_if.reinit(services, topics, params)
+    def reinit(self, services, topics, params, enable_cache):
+        return self.ros_if.reinit(services, topics, params, enable_cache)
 
     def run(self):
         """
@@ -288,25 +288,29 @@ class PyrosROS(PyrosBase):
         except ValueError:
             rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
 
+        self.enable_cache = rospy.get_param('~enable_cache', False)
+
         self.enable_rocon = config.get('enable_rocon', False)
 
         rospy.logwarn("""[{name}] Interface Reconfigure Request:
     services : {services}
     topics : {topics}
     params : {params}
+    enable_cache : {enable_cache}
     enable_rocon : {enable_rocon}
         """.format(name=__name__,
                    topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
                    services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
                    params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
+                   enable_cache=config.get('enable_cache', False),
                    enable_rocon=config.get('enable_rocon', False),
                    ))
+
+        self.reinit(new_services, new_topics, new_params, self.enable_cache)
 
         if not self.rocon_if and self.enable_rocon:
             rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
             self.rocon_if = RoconInterface(self.ros_if)
-
-        self.reinit(new_services, new_topics, new_params)
 
         if self.rocon_if:
             config = self.rocon_if.reconfigure(config, level)

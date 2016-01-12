@@ -82,6 +82,19 @@ config_description = {
             'type': 'str'
         }, {
             'srcline': 262,
+            'description': 'Enable Connection Cache',
+            'max': True,
+            'cconsttype': 'const bool',
+            'ctype': 'bool',
+            'srcfile': '/opt/ros/indigo/lib/python2.7/dist-packages/dynamic_reconfigure/parameter_generator_catkin.py',
+            'name': 'enable_cache',
+            'edit_method': '',
+            'default': False,
+            'level': 0,
+            'min': False,
+            'type': 'bool'
+        }, {
+            'srcline': 262,
             'description': 'Enable Rocon',
             'max': True,
             'cconsttype': 'const bool',
