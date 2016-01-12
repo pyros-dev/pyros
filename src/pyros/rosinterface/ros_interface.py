@@ -110,7 +110,8 @@ class RosInterface(BaseInterface):
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
 
-    def reinit(self, services=None, topics=None, params=None):
+    def reinit(self, services=None, topics=None, params=None, enable_cache=False):
+        self.enable_cache = enable_cache
         # Note : None means no change ( different from [] )
         super(RosInterface, self).reinit(services, topics, params)
 
@@ -144,7 +145,7 @@ class RosInterface(BaseInterface):
                 )
 
             # we call the master only if we dont get system_state from connection cache
-            if self.connection_cache is not None:
+            if self.enable_cache and self.connection_cache is not None:
                 # this will call the master directly if the proxy didnt get anything from the cache node.
                 publishers, subscribers, services = self.connection_cache.getSystemState(silent_fallback=True)
                 topic_types = self.connection_cache.getTopicTypes(silent_fallback=True)
