@@ -144,6 +144,12 @@ class RosInterface(BaseInterface):
                     diff_sub='~connections_diff'
                 )
 
+            if self.connection_cache is not None and not self.enable_cache:
+                # removing existing connection cache proxy to force a reinit of everything
+                # to make sure we dont get a messed up system state with wrong list/diff from
+                # dynamically switching cache on and off.
+                self.connection_cache = None
+
             # we call the master only if we dont get system_state from connection cache
             if self.enable_cache and self.connection_cache is not None:
                 # this will call the master directly if the proxy didnt get anything from the cache node.
