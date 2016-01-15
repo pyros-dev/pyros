@@ -65,12 +65,13 @@ def srv_cb(req):
 
 
 class TestPyrosROS(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, enable_cache=False):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
+        self.enable_cache = enable_cache
     def tearDown(self):
-        self.interface = None
+        pass
 
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     @timed(5)
@@ -153,14 +154,14 @@ class TestPyrosROS(unittest.TestCase):
         # Starting underlying system before
         rospy.set_param('/string_pub/topic_name', '~test_str_topic')  # private topic name to not mess things up too much
         rospy.set_param('/string_pub/test_message', 'testing topic discovery')
-        string_pub_node = roslaunch.core.Node('pyros', 'string_pub_node.py', name='string_pub')
+        string_pub_node = roslaunch.core.Node('pyros_test', 'string_pub_node.py', name='string_pub')
         string_pub_process = launch.launch(string_pub_node)
         try:
             # Starting PyrosROS with preconfigured topics,
             # disabling dynamic_reconf to avoid override asynchronously on start().
             rosn = PyrosROS(dynamic_reconfigure=False)
             try:
-                rosn.ros_if.reinit(topics=['/string_pub/test_str_topic'])  # careful assuming the topic fullname here
+                rosn.reinit(topics=['/string_pub/test_str_topic'], enable_cache=self.enable_cache)  # careful assuming the topic fullname here
                 assert_true(not rosn.is_alive())
                 rosn.start()
                 assert_true(rosn.is_alive())
@@ -219,14 +220,15 @@ class TestPyrosROS(unittest.TestCase):
 
             rospy.set_param('/string_pub/topic_name', '~test_str_topic')
             rospy.set_param('/string_pub/test_message', 'testing topic discovery')
-            string_pub_node = roslaunch.core.Node('pyros', 'string_pub_node.py', name='string_pub')
+            string_pub_node = roslaunch.core.Node('pyros_test', 'string_pub_node.py', name='string_pub')
             string_pub_process = launch.launch(string_pub_node)
             try:
 
                 new_config = reinit.call(kwargs={
                     'services': [],
                     'topics': ['/string_pub/test_str_topic'],
-                    'params': []
+                    'params': [],
+                    'enable_cache': self.enable_cache
                 })
                 # What we get here is non deterministic
                 # however we can wait for topic to be detected to make sure we get it after some time
@@ -268,7 +270,7 @@ class TestPyrosROS(unittest.TestCase):
             # disabling dynamic_reconf to avoid override asynchronously on start().
             rosn = PyrosROS(dynamic_reconfigure=False)
             try:
-                rosn.ros_if.reinit(services=['/string_echo/echo_service'])  # careful assuming the service fullname here
+                rosn.reinit(services=['/string_echo/echo_service'], enable_cache=self.enable_cache)  # careful assuming the service fullname here
                 assert_true(not rosn.is_alive())
                 rosn.start()
                 assert_true(rosn.is_alive())
@@ -336,7 +338,8 @@ class TestPyrosROS(unittest.TestCase):
                 new_config = reinit.call(kwargs={
                     'services': ['/string_echo/echo_service'],
                     'topics': [],
-                    'params': []
+                    'params': [],
+                    'enable_cache': self.enable_cache,
                 })
                 # What we get here is non deterministic
                 # however we can wait for topic to be detected to make sure we get it after some time
@@ -405,7 +408,7 @@ class TestPyrosROSCache(TestPyrosROS):
 
         assert node_api is not None  # make sure the connection cache node is started before moving on.
 
-        super(TestPyrosROSCache, self).setUp()
+        super(TestPyrosROSCache, self).setUp(enable_cache=True)
 
     def tearDown(self):
         super(TestPyrosROSCache, self).tearDown()
