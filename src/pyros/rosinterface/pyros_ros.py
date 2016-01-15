@@ -53,6 +53,7 @@ class PyrosROS(PyrosBase):
 
         self.enable_cache = False
         self.ros_if = None
+        self.ros_if_params = None   # for delayed reinit()
 
         self.enable_rocon = _ROCON_AVAILABLE
         self.rocon_if = None
@@ -212,8 +213,11 @@ class PyrosROS(PyrosBase):
     def has_rocon(self):
         return True if self.rocon_if else False
 
-    def reinit(self, services, topics, params, enable_cache):
-        return self.ros_if.reinit(services, topics, params, enable_cache)
+    def reinit(self, services=None, topics=None, params=None, enable_cache=None):
+        # this needs to be available just after __init__, however we need the ros_if to be present
+        self.ros_if_params = (services, topics, params, enable_cache)
+        if self.ros_if:
+            self.ros_if.reinit(*self.ros_if_params)
 
     def run(self):
         """
@@ -222,7 +226,7 @@ class PyrosROS(PyrosBase):
         # Environment should be setup here if needed ( we re in another process ).
         sys.modules["pyros_setup"] = pyros_setup.delayed_import_auto(distro='indigo', base_path=self.base_path)
 
-        # master has to be running here or we just dont wait for ever
+        # master has to be running here or we just wait for ever
         m, _ = pyros_setup.get_master(spawn=False)
         while not m.is_online():
             time.sleep(0.5)
@@ -232,6 +236,9 @@ class PyrosROS(PyrosBase):
 
         self.enable_cache = rospy.get_param('~enable_cache', False)
         self.ros_if = RosInterface(enable_cache=self.enable_cache)
+
+        if self.ros_if_params:
+            self.ros_if.reinit(*self.ros_if_params)
 
         if self.enable_rocon:
 
