@@ -75,11 +75,11 @@ class PyrosBase(zmp.Node):
         Running in a zmp.Node process, providing zmp.services
         """
 
-        logging.debug("mock running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
+        logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
         super(PyrosBase, self).run()
 
-        logging.debug("mock shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
+        logging.debug("pyros node shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
     def update(self, timedelta):
         """

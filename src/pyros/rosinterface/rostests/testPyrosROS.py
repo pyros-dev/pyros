@@ -64,6 +64,24 @@ def srv_cb(req):
     return req.request
 
 
+class timeout(object):
+    """
+    Small useful timeout class
+    """
+    def __init__(self, seconds):
+        self.seconds = seconds
+
+    def __enter__(self):
+        self.die_after = time.time() + self.seconds
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    @property
+    def timed_out(self):
+        return time.time() > self.die_after
+
 class TestPyrosROS(unittest.TestCase):
     def setUp(self, enable_cache=False):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
@@ -282,15 +300,14 @@ class TestPyrosROS(unittest.TestCase):
                 assert_equal(len(services.providers), 1)
                 assert_true(rosn.name in [p[0] for p in services.providers])
 
-                start = time.time()
-                timeout = 15  # should be enough to let the node start (?)
                 res = services.call()
                 # What we get here is non deterministic
                 # however we can wait for service to be detected to make sure we get it after some time
 
-                while time.time() - start < timeout and not '/string_echo/echo_service' in res.keys():
-                    rospy.rostime.wallsleep(1)
-                    res = services.call()
+                with timeout(5) as t:
+                    while not t.timed_out and not '/string_echo/echo_service' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = services.call()
 
                 assert_true('/string_echo/echo_service' in res.keys())  # echo_service has been created, detected and exposed
             finally:
@@ -344,12 +361,12 @@ class TestPyrosROS(unittest.TestCase):
                 # What we get here is non deterministic
                 # however we can wait for topic to be detected to make sure we get it after some time
 
-                start = time.time()
-                timeout = 15  # should be enough to let the node start (?)
                 res = services.call()
-                while time.time() - start < timeout and not '/string_echo/echo_service' in res.keys():
-                    rospy.rostime.wallsleep(1)
-                    res = services.call()
+
+                with timeout(5) as t:
+                    while not t.timed_out and not '/string_echo/echo_service' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = services.call()
 
                 assert_true('/string_echo/echo_service' in res.keys())  # test_topic has been created, detected and exposed
 
@@ -368,25 +385,6 @@ class TestPyrosROS(unittest.TestCase):
 # TODO : test the update() is actually throttled (careful about cache behavior : no throttling)
 
 # TODO : Test appearing / disappearing ROS topics / services
-
-
-class timeout(object):
-    """
-    Small useful timeout class
-    """
-    def __init__(self, seconds):
-        self.seconds = seconds
-
-    def __enter__(self):
-        self.die_after = time.time() + self.seconds
-        return self
-
-    def __exit__(self, type, value, traceback):
-        pass
-
-    @property
-    def timed_out(self):
-        return time.time() > self.die_after
 
 
 # Testing with Connection Cache
