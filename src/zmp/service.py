@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import contextlib
 import time
 from collections import namedtuple
 import zmq
@@ -27,10 +28,32 @@ from .exceptions import UnknownResponseTypeException
 services_lock = manager.Lock()
 services = manager.dict()
 
+
+@contextlib.contextmanager
+def service_provider_cm(node_name, svc_address, node_providers):
+    # advertising services
+    services_lock.acquire()
+    for svc_name, svc_endpoint in node_providers.iteritems():
+        #print('-> Providing {0} with {1}'.format(svc_name, svc_endpoint))
+        # needs reassigning to propagate update to manager
+        services[svc_name] = (services[svc_name] if svc_name in services else []) + [(node_name, svc_address)]
+    services_lock.release()
+
+    yield
+
+    # concealing services
+    services_lock.acquire()
+    for svc_name, svc_endpoint in node_providers.iteritems():
+        #print('-> Unproviding {0}'.format(svc_name))
+        services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != node_name]
+    services_lock.release()
+
+
 class ServiceCallTimeout(Exception):
     pass
 
-#TODO : make this pickleable so we can move it around ( and dynamically rebuild the socket connection )
+
+# TODO : make this pickleable so we can move it around ( and dynamically rebuild the socket connection )
 class Service(object):
 
     @staticmethod
@@ -66,9 +89,10 @@ class Service(object):
 
     def __init__(self, name, providers=None):
         self.name = name
-        self.providers = providers  # TODO : make a provide just a list of node names, and have connection URLs somewhere else...
+        self.providers = providers
+        # TODO : make a provide just a list of node names, and have connection URLs somewhere else...
 
-    #TODO : implement async_call ( and return future )
+    # TODO : implement async_call ( and return future )
     def call(self, args=None, kwargs=None, node=None, send_timeout=1000, recv_timeout=5000, zmq_ctx=None):
         """
         Calls a service on a node with req as arguments. if node is None, a node is chosen by zmq.
