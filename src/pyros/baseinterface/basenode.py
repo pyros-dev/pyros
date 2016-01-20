@@ -20,8 +20,13 @@ class PyrosBase(zmp.Node):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name=None):
-        super(PyrosBase, self).__init__(name or 'pyros')
+    def __init__(self, name=None, context_manager=None):
+        """
+        :param name: name of the node
+        :param context_manager: a context manager to enter when starting, and exit when the node stops
+        :return:
+        """
+        super(PyrosBase, self).__init__(name or 'pyros', context_manager=context_manager)
 
         self.last_update = 0
         self.update_interval = 1  # seconds to wait between each update
@@ -80,6 +85,15 @@ class PyrosBase(zmp.Node):
         super(PyrosBase, self).run()
 
         logging.debug("pyros node shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
+
+    def shutdown(self, join=True):
+        """
+        Clean shutdown of the node.
+        :param join: optionally wait for the process to end (default : True)
+        :return: None
+        """
+
+        super(PyrosBase, self).shutdown(join)
 
     def update(self, timedelta):
         """
