@@ -301,13 +301,18 @@ class RosInterface(BaseInterface):
         if self.enable_cache:
             if self.connection_cache is None:  # Building Connection Cache proxy if needed
                 # connectioncache proxy if available (remap the topics if necessary instead of passing params)
-                self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
-                    list_sub='~connections_list',
-                    handle_actions=False,
-                    user_callback=self._proxy_cb,
-                    diff_opt=False,  # TODO : Change to True and fix all tests
-                    diff_sub='~connections_diff'
-                )
+                try:
+                    self.connection_cache = rocon_python_comms.ConnectionCacheProxy(
+                        list_sub='~connections_list',
+                        handle_actions=False,
+                        user_callback=self._proxy_cb,
+                        diff_opt=False,  # TODO : Change to True and fix all tests
+                        diff_sub='~connections_diff'
+                    )
+                except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
+                    # timeout initializing : disabling the feature but we should be LOUD about it
+                    rospy.logerr("FAILED during initialization of Connection Cache Proxy. Disabling.")
+                    self.enable_cache = False
 
             # determining params diff despite lack of API
             params = set(rospy.get_param_names())
@@ -342,9 +347,11 @@ class RosInterface(BaseInterface):
                             cb_ss = self.cb_ss.get_nowait()
                             cb_ss_dt = self.cb_ss_dt.get_nowait()
 
-                            # if there was no change but we got a callback, it means it s the first and we need to set the whole list
+                            # if there was no change but we got a callback,
+                            # it means it s the first and we need to set the whole list
                             if cb_ss_dt.added is None and cb_ss_dt.removed is None:
-                                # we need to break here already and reset ( and the previous diff we got dont matter any longer)
+                                # we need to break here already and reset
+                                # and the previous diff we got dont matter any longer
 
                                 for k, v in cb_ss.services.iteritems():
                                     added_services[k] = added_services.get(k, set()) | v.nodes
