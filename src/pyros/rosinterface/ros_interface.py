@@ -304,7 +304,7 @@ class RosInterface(BaseInterface):
                         list_sub='~connections_list',
                         handle_actions=False,
                         user_callback=self._proxy_cb,
-                        diff_opt=False,  # TODO : Change to True and fix all tests
+                        diff_opt=True,
                         diff_sub='~connections_diff'
                     )
                 except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
