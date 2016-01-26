@@ -12,6 +12,65 @@ from functools import partial
 DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
 
+# Utility methods to work with regexes
+def cap_match_string(match):
+    """
+    Attach beginning of line and end of line characters to the given string.
+    Ensures that raw topics like /test do not match other topics containing
+    the same string (e.g. /items/test would result in a regex match at char 7)
+    regex goes through each position in the string to find matches - this
+    forces it to consider only the first position
+    :param match: a regex
+    :return:
+    """
+    return '^' + match + '$'
+
+
+def find_first_regex_match(key, regex_candidates):
+    """
+    find the first regex that match with the key
+    :param key: a key to try to match against multiple regex
+    :param match_candidates: a list of regexes to check if they match the key
+    :return: the first candidate found
+    """
+    for cand in regex_candidates:
+        try:
+            pattern = re.compile(cap_match_string(cand))
+            if pattern.match(key):
+                return cand
+        except:
+            logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(cand))
+
+    return None
+
+
+def regex_match_sublist(regex, match_candidates):
+    """
+    Filter the match_candidates list to return only the candidate that match the regex
+    :param regex: a regex used to filter the list of candidates
+    :param match_candidates: the list of candidates
+    :return: the filtered list of only the candidates that match the regex
+    """
+    matches = []
+    try:
+        pattern = re.compile(cap_match_string(regex))
+        matches = [cand for cand in match_candidates if pattern.match(cand)]
+    except:
+        logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(regex))
+    return matches
+
+
+def regexes_match_sublist(regexes, match_candidates):
+    """
+    Filter the match_candidates list to return only the candidate that match the regex
+    :param regexes: a list of regex used to filter the list of candidates
+    :param match_candidates: the list of candidates
+    :return: the filtered list of only the candidates that match the regex
+    """
+
+    return [match for sublist in [regex_match_sublist(rgx, match_candidates) for rgx in regexes] for match in sublist]
+
+
 class BaseInterface(object):
 
     # This is a local cache of the system state because we don't want to ask everytime.
@@ -33,64 +92,7 @@ class BaseInterface(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    @staticmethod
-    def cap_match_string(match):
-        """
-        Attach beginning of line and end of line characters to the given string.
-        Ensures that raw topics like /test do not match other topics containing
-        the same string (e.g. /items/test would result in a regex match at char 7)
-        regex goes through each position in the string to find matches - this
-        forces it to consider only the first position
-        :param match: a regex
-        :return:
-        """
-        return '^' + match + '$'
-        
-    @staticmethod
-    def find_first_regex_match(key, regex_candidates):
-        """
-        find the first regex that match with the key
-        :param key: a key to try to match against multiple regex
-        :param match_candidates: a list of regexes to check if they match the key
-        :return: the first candidate found
-        """
-        for cand in regex_candidates:
-            try:
-                pattern = re.compile(BaseInterface.cap_match_string(cand))
-                if pattern.match(key):
-                    return cand
-            except:
-                logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(cand))
-
-        return None
-
-    @staticmethod
-    def regex_match_sublist(regex, match_candidates):
-        """
-        Filter the match_candidates list to return only the candidate that match the regex
-        :param regex: a regex used to filter the list of candidates
-        :param match_candidates: the list of candidates
-        :return: the filtered list of only the candidates that match the regex
-        """
-        matches = []
-        try:
-            pattern = re.compile(BaseInterface.cap_match_string(regex))
-            matches = [cand for cand in match_candidates if pattern.match(cand)]
-        except:
-            logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(regex))
-        return matches
-
-    @staticmethod
-    def regexes_match_sublist(regexes, match_candidates):
-        """
-        Filter the match_candidates list to return only the candidate that match the regex
-        :param regexes: a list of regex used to filter the list of candidates
-        :param match_candidates: the list of candidates
-        :return: the filtered list of only the candidates that match the regex
-        """
-
-        return [match for sublist in [BaseInterface.regex_match_sublist(rgx, match_candidates) for rgx in regexes] for match in sublist]
-
+    # staticmethod because we do not need the class here.
     @staticmethod
     def _update_transients(add_names, remove_names, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
@@ -130,8 +132,8 @@ class BaseInterface(object):
 
         return DiffTuple(added, removed)
 
-    @staticmethod
-    def _expose_transients_regex(regexes, transient_desc, regex_set, resolved_dict,
+    @classmethod
+    def _expose_transients_regex(cls, regexes, transient_desc, regex_set, resolved_dict,
                             last_got_set, get_list_func, type_resolve_func,
                             class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
@@ -165,7 +167,7 @@ class BaseInterface(object):
             logging.info('[{name}] Withholding {desc} regex : {regex}'.format(name=__name__, desc=transient_desc, regex=tst_regex))
             regex_set.remove(tst_regex)
 
-        return BaseInterface._transient_change_detect(
+        return cls._transient_change_detect(
                                 transient_desc,
                                 regex_set,
                                 resolved_dict,
@@ -179,8 +181,8 @@ class BaseInterface(object):
                              )
 
 
-    @staticmethod
-    def _transient_change_detect(transient_desc, regex_set, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    @classmethod
+    def _transient_change_detect(cls, transient_desc, regex_set, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
         This function also applies changes due to regex_set updates if needed
@@ -190,7 +192,7 @@ class BaseInterface(object):
         transient_detected = set(get_list_func())
         tst_gone = last_got_set - transient_detected
 
-        dt = BaseInterface._transient_change_diff(
+        dt = cls._transient_change_diff(
                     transient_detected,  # we start interfacing with new matches, but we also need to update old matches that match regex now
                     tst_gone,
                     transient_desc,
@@ -209,19 +211,19 @@ class BaseInterface(object):
 
         return dt
 
-    @staticmethod
-    def _transient_change_diff(transient_appeared, transient_gone, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    @classmethod
+    def _transient_change_diff(cls, transient_appeared, transient_gone, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to process a change in the status of the system (if we already have a the diff)
         This function also applies changes due to regex_set updates if needed
         _transient_change_diff -> _update_transients
         """
 
-        to_add = set([m for m in BaseInterface.regexes_match_sublist(regex_set, transient_appeared)])
-        lost_matches = set([n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None])
+        to_add = set([m for m in regexes_match_sublist(regex_set, transient_appeared)])
+        lost_matches = set([n for n in resolved_dict.keys() if find_first_regex_match(n, regex_set) is None])
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
-        return BaseInterface._update_transients(
+        return cls._update_transients(
                     to_add,
                     to_remove,
                     transient_desc,
@@ -318,7 +320,7 @@ class BaseInterface(object):
 
         # Building an interface dynamically based on the generic functional implementation
         # use is mostly internal ( and child classes )
-        self.update_services = partial(BaseInterface._update_transients,
+        self.update_services = partial(self._update_transients,
                                        transient_desc="service",
                                        regex_set=self.services_args,
                                        resolved_dict=self.services,
@@ -331,7 +333,7 @@ class BaseInterface(object):
         Adds / Removes services from the list of Services exposed
         """
 
-        self.expose_services = partial(BaseInterface._expose_transients_regex,
+        self.expose_services = partial(self._expose_transients_regex,
                                        transient_desc="service",
                                        regex_set=self.services_args,
                                        resolved_dict=self.services,
@@ -344,7 +346,7 @@ class BaseInterface(object):
         self.expose_services.__doc__ = """
         """
 
-        self.services_change_detect = partial(BaseInterface._transient_change_detect,
+        self.services_change_detect = partial(self._transient_change_detect,
                                               transient_desc="service",
                                               regex_set=self.services_args,
                                               resolved_dict=self.services,
@@ -356,7 +358,7 @@ class BaseInterface(object):
                                               )
         self.services_change_detect.__doc__ = """
         """
-        self.services_change_diff = partial(BaseInterface._transient_change_diff,
+        self.services_change_diff = partial(self._transient_change_diff,
                                             transient_desc="service",
                                             regex_set=self.services_args,
                                             resolved_dict=self.services,
@@ -367,7 +369,7 @@ class BaseInterface(object):
         self.services_change_diff.__doc__ = """
         """
 
-        self.update_topics = partial(BaseInterface._update_transients,
+        self.update_topics = partial(self._update_transients,
                                      transient_desc="topic",
                                      regex_set=self.topics_args,
                                      resolved_dict=self.topics,
@@ -380,7 +382,7 @@ class BaseInterface(object):
         Adds / Removes topics from the list of Topics exposed
         """
 
-        self.expose_topics = partial(BaseInterface._expose_transients_regex,
+        self.expose_topics = partial(self._expose_transients_regex,
                                      transient_desc="topic",
                                      regex_set=self.topics_args,
                                      resolved_dict=self.topics,
@@ -391,7 +393,7 @@ class BaseInterface(object):
                                      class_build_func=self.TopicMaker,
                                      )
 
-        self.topics_change_detect = partial(BaseInterface._transient_change_detect,
+        self.topics_change_detect = partial(self._transient_change_detect,
                                             transient_desc="topic",
                                             regex_set=self.topics_args,
                                             resolved_dict=self.topics,
@@ -401,7 +403,7 @@ class BaseInterface(object):
                                             class_clean_func=self.TopicCleaner,
                                             class_build_func=self.TopicMaker,
                                             )
-        self.topics_change_diff = partial(BaseInterface._transient_change_diff,
+        self.topics_change_diff = partial(self._transient_change_diff,
                                           transient_desc="topic",
                                           regex_set=self.topics_args,
                                           resolved_dict=self.topics,
@@ -410,7 +412,7 @@ class BaseInterface(object):
                                           class_build_func=self.TopicMaker,
                                           )
 
-        self.update_params = partial(BaseInterface._update_transients,
+        self.update_params = partial(self._update_transients,
                                      transient_desc="param",
                                      regex_set=self.params_args,
                                      resolved_dict=self.params,
@@ -423,7 +425,7 @@ class BaseInterface(object):
         Adds / Removes topics from the list of Topics exposed
         """
 
-        self.expose_params = partial(BaseInterface._expose_transients_regex,
+        self.expose_params = partial(self._expose_transients_regex,
                                      transient_desc="param",
                                      regex_set=self.params_args,
                                      resolved_dict=self.params,
@@ -434,7 +436,7 @@ class BaseInterface(object):
                                      class_build_func=self.ParamMaker,
                                      )
 
-        self.params_change_detect = partial(BaseInterface._transient_change_detect,
+        self.params_change_detect = partial(self._transient_change_detect,
                                             transient_desc="param",
                                             regex_set=self.params_args,
                                             resolved_dict=self.params,
@@ -445,7 +447,7 @@ class BaseInterface(object):
                                             class_build_func=self.ParamMaker,
                                             )
 
-        self.params_change_diff = partial(BaseInterface._transient_change_diff,
+        self.params_change_diff = partial(self._transient_change_diff,
                                           transient_desc="param",
                                           regex_set=self.params_args,
                                           resolved_dict=self.params,
