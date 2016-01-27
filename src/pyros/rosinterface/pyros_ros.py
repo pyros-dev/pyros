@@ -267,6 +267,14 @@ class PyrosROS(PyrosBase):
         except KeyboardInterrupt:
             rospy.logwarn('PyrosROS node stopped by keyboad interrupt')
 
+    def shutdown(self, join=True):
+        """
+        Clean shutdown of the node.
+        :param join: optionally wait for the process to end (default : True)
+        :return: None
+        """
+        super(PyrosROS, self).shutdown(join)
+
     def update_throttled(self):
         """
         Update function to call from a looping thread.
