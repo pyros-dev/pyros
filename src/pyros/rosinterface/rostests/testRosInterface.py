@@ -4,16 +4,19 @@ from __future__ import absolute_import
 # Unit test import (  will emulate ROS setup if needed )
 import nose
 import time
+
+
+
 try:
-    from pyros.rosinterface import RosInterface
-    from pyros.rosinterface import TopicBack
+    from pyros.baseinterface import DiffTuple
+    from pyros.rosinterface import RosInterface, TopicBack
 except ImportError as exc:
     import os
     import pyros.rosinterface
     import sys
     sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
-    from pyros.rosinterface import RosInterface
-    from pyros.rosinterface import TopicBack
+    from pyros.baseinterface import DiffTuple
+    from pyros.rosinterface import RosInterface, TopicBack
 
 import rospy
 import roslaunch
@@ -76,11 +79,11 @@ def srv_cb(req):
 
 
 class TestRosInterface(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, enable_cache=False):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
-        self.interface = RosInterface()
+        self.interface = RosInterface(enable_cache)
 
     def tearDown(self):
         self.interface = None
@@ -220,16 +223,20 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
         nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
-        dt = self.interface.update()
-        self.assertEqual(dt.added, [])  # nothing added (not exposed)
-        self.assertEqual(dt.removed, [])  # nothing removed
+        with timeout(5) as t:
+            while not t.timed_out and topicname not in self.interface.topics_available:
+                dt = self.interface.update()
+                self.assertEqual(dt.added, [])  # nothing added (not exposed)
+                self.assertEqual(dt.removed, [])  # nothing removed
         # TODO : do we need a test with subscriber ?
 
-        # every added topic should be in the list of args
+        # topic should be in the list of args yet (not exposed)
         self.assertTrue(topicname not in self.interface.topics_args)
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
+        # Here we are sure the internal state has topic_name registered
+        # will be exposed right away
         dt = self.interface.expose_topics([topicname])
         self.assertTrue(topicname in dt.added)  # detected and added
         self.assertEqual(dt.removed, [])  # nothing removed
@@ -309,7 +316,12 @@ class TestRosInterface(unittest.TestCase):
             # it coming online before expose call.
             nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
 
-            dt = self.interface.update()
+            with timeout(5) as t:
+                dt = DiffTuple([], [])
+                while not t.timed_out and topicname not in dt.added:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.removed, [])  # nothing removed
+
             self.assertTrue(topicname in dt.added)  # detected
             self.assertEqual(dt.removed, [])  # nothing removed
             # TODO : do we need a test with subscriber ?
@@ -329,9 +341,14 @@ class TestRosInterface(unittest.TestCase):
             self.assertTrue(topicname in self.interface.topics.keys())
             # Note the Topic implementation should take care of possible errors in this case
 
-            dt = self.interface.update()
+            with timeout(5) as t:
+                dt = DiffTuple([], [])
+                while not t.timed_out and topicname not in dt.removed:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.added, [])  # nothing added
+
             self.assertTrue(topicname in dt.removed)  # detected lost
-            self.assertEqual(dt.added, [])  # nothing added
+
             # every exposed topic should remain in the list of args ( in case regex match another topic )
             self.assertTrue(topicname in self.interface.topics_args)
             # make sure the topic backend should NOT be there any longer
@@ -436,12 +453,10 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
         # NOTE : We need to wait to make sure the tests nodes are started...
-        from pyros.baseinterface import DiffTuple
-        start = time.time()
-        timeout = 15
-        dt = DiffTuple([], [])
-        while (not dt or servicename not in dt[0]) and time.time() - start < timeout:
-            dt = self.interface.update()
+        with timeout(5) as t:
+            while not t.timed_out and servicename not in dt[0]:
+                dt = self.interface.update()
+
         # TODO : improve that by providing an easier interface for it.
 
         # every exposed service should remain in the list of args ( in case regex match another service )
@@ -474,16 +489,21 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            dt = self.interface.update()
-            self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
-            self.assertEqual(dt.removed, [])  # nothing removed
+            with timeout(5) as t:
+                while not t.timed_out and nonexistent_srv.resolved_name not in self.interface.services_available:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
+                    self.assertEqual(dt.removed, [])  # nothing removed
 
             # every added service should be in the list of args
             self.assertTrue(servicename not in self.interface.services_args)
             # the backend should not have been created
             self.assertTrue(servicename not in self.interface.services.keys())
 
+            # here we are sure the interface knows the service is available
+            # it will be exposed right now
             self.interface.expose_services([servicename])
+
             # every exposed service should remain in the list of args ( in case regex match another service )
             self.assertTrue(servicename in self.interface.services_args)
             # make sure the service backend has been created
@@ -529,9 +549,13 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            dt = self.interface.update()
+            with timeout(5) as t:
+                dt = DiffTuple([], [])
+                while not t.timed_out and nonexistent_srv.resolved_name not in dt.added:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.removed, [])  # nothing removed
+
             self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
-            self.assertEqual(dt.removed, [])  # nothing removed
             # every exposed service should remain in the list of args ( in case regex match another service )
             self.assertTrue(servicename in self.interface.services_args)
             # make sure the service backend has been created
@@ -640,8 +664,12 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename in self.interface.services.keys())
         # Note the service implementation should take care of possible errors in this case
 
-        dt = self.interface.update()
-        self.assertEqual(dt.added, [])  # nothing added
+        # wait here until service actually disappear from cache proxy
+        with timeout(5) as t:
+            while not t.timed_out and nonexistent_srv.resolved_name not in dt.removed:
+                dt = self.interface.update()
+                self.assertEqual(dt.added, [])  # nothing added
+
         self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
         # every exposed service should remain in the list of args ( in case regex match another service )
         self.assertTrue(servicename in self.interface.services_args)
@@ -738,7 +766,10 @@ class timeout(object):
 class TestRosInterfaceCache(TestRosInterface):
     def setUp(self):
         self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
-                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
+                                                         remap_args=[('~list', rospy.resolve_name('~connections_list')),
+                                                                     ('~diff', rospy.resolve_name('~connections_diff'))])
+        # Easier to remap the node topic to the proxy ones, instead of the opposite, since there is no dynamic remapping.
+        # However for normal usecase, remapping the proxy handles is preferable.
         try:
             self.connection_cache_proc = launch.launch(self.connection_cache_node)
         except roslaunch.RLException as rlexc:
@@ -752,7 +783,7 @@ class TestRosInterfaceCache(TestRosInterface):
 
         assert node_api is not None  # make sure the connection cache node is started before moving on.
 
-        super(TestRosInterfaceCache, self).setUp()
+        super(TestRosInterfaceCache, self).setUp(enable_cache=True)
 
     def tearDown(self):
         super(TestRosInterfaceCache, self).tearDown()

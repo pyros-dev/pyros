@@ -121,6 +121,7 @@ class BaseInterface(object):
                             class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Exposes a list of transients regexes. resolved transients not matching the regexes will be removed.
+        _expose_transients_regex -> _transient_change_detect -> _transient_change_diff -> _update_transients
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
         :param regexes: the list of regex to filter the transient to add
         :param regex_set: the list of regex already existing
@@ -167,18 +168,15 @@ class BaseInterface(object):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
         This function also applies changes due to regex_set updates if needed
+        _transient_change_detect -> _transient_change_diff -> _update_transients
         """
 
         transient_detected = set(get_list_func())
-        new_matches = set([m for m in BaseInterface.regexes_match_sublist(regex_set, transient_detected)])
-        to_add = new_matches   # we start interfacing with new matches
-        lost_matches = set([n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None])
-        lost_tsts = last_got_set - transient_detected
-        to_remove = lost_tsts | lost_matches  # we stop interfacing with lost transient OR lost matches
+        tst_gone = last_got_set - transient_detected
 
-        dt = BaseInterface._update_transients(
-                    to_add,
-                    to_remove,
+        dt = BaseInterface._transient_change_diff(
+                    transient_detected,  # we start interfacing with new matches, but we also need to update old matches that match regex now
+                    tst_gone,
                     transient_desc,
                     regex_set,
                     resolved_dict,
@@ -190,10 +188,35 @@ class BaseInterface(object):
                  )
 
         last_got_set.update(transient_detected)
-        if lost_tsts:
-            last_got_set.difference_update(lost_tsts)
+        if tst_gone:
+            last_got_set.difference_update(tst_gone)
 
         return dt
+
+    @staticmethod
+    def _transient_change_diff(transient_appeared, transient_gone, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+        """
+        This should be called when we want to process a change in the status of the system (if we already have a the diff)
+        This function also applies changes due to regex_set updates if needed
+        _transient_change_diff -> _update_transients
+        """
+
+        to_add = set([m for m in BaseInterface.regexes_match_sublist(regex_set, transient_appeared)])
+        lost_matches = set([n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None])
+        to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
+
+        return BaseInterface._update_transients(
+                    to_add,
+                    to_remove,
+                    transient_desc,
+                    regex_set,
+                    resolved_dict,
+                    type_resolve_func,
+                    class_clean_func,
+                    class_build_func,
+                    *class_build_args,
+                    **class_build_kwargs
+                 )
 
     # Abstract methods to override for services ("RPC / request / call type" communication channel)
     @abc.abstractmethod
@@ -317,6 +340,16 @@ class BaseInterface(object):
                                               )
         self.services_change_detect.__doc__ = """
         """
+        self.services_change_diff = partial(BaseInterface._transient_change_diff,
+                                            transient_desc="service",
+                                            regex_set=self.services_args,
+                                            resolved_dict=self.services,
+                                            type_resolve_func=self.service_type_resolver,
+                                            class_clean_func=self.ServiceCleaner,
+                                            class_build_func=self.ServiceMaker,
+                                            )
+        self.services_change_diff.__doc__ = """
+        """
 
         self.update_topics = partial(BaseInterface._update_transients,
                                      transient_desc="topic",
@@ -352,6 +385,14 @@ class BaseInterface(object):
                                             class_clean_func=self.TopicCleaner,
                                             class_build_func=self.TopicMaker,
                                             )
+        self.topics_change_diff = partial(BaseInterface._transient_change_diff,
+                                          transient_desc="topic",
+                                          regex_set=self.topics_args,
+                                          resolved_dict=self.topics,
+                                          type_resolve_func=self.topic_type_resolver,
+                                          class_clean_func=self.TopicCleaner,
+                                          class_build_func=self.TopicMaker,
+                                          )
 
         self.update_params = partial(BaseInterface._update_transients,
                                      transient_desc="param",
@@ -388,6 +429,15 @@ class BaseInterface(object):
                                             class_build_func=self.ParamMaker,
                                             )
 
+        self.params_change_diff = partial(BaseInterface._transient_change_diff,
+                                          transient_desc="param",
+                                          regex_set=self.params_args,
+                                          resolved_dict=self.params,
+                                          type_resolve_func=self.param_type_resolver,
+                                          class_clean_func=self.ParamCleaner,
+                                          class_build_func=self.ParamMaker,
+                                          )
+
         self.reinit(services, topics, params)
 
         # First update() will re-detect previously found names, but when trying to update, no duplicates should happen.
@@ -420,10 +470,10 @@ class BaseInterface(object):
             removed=sdt.removed+tdt.removed+pdt.removed
         )
 
-    def update_on_diff(self, service_dt, topics_dt, params_dt):
+    def update_on_diff(self, services_dt, topics_dt, params_dt):
 
-        sdt = self.update_services(add_names=[m for m in BaseInterface.regexes_match_sublist(self.services_args, service_dt.added)],
-                                   remove_names=service_dt.removed
+        sdt = self.update_services(add_names=[m for m in BaseInterface.regexes_match_sublist(self.services_args, services_dt.added)],
+                                   remove_names=services_dt.removed
                                    )
         tdt = self.update_topics(add_names=[m for m in BaseInterface.regexes_match_sublist(self.topics_args, topics_dt.added)],
                                  remove_names=topics_dt.removed
