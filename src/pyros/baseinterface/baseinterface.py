@@ -219,8 +219,8 @@ class BaseInterface(object):
         _transient_change_diff -> _update_transients
         """
 
-        to_add = set([m for m in regexes_match_sublist(regex_set, transient_appeared)])
-        lost_matches = set([n for n in resolved_dict.keys() if find_first_regex_match(n, regex_set) is None])
+        to_add = {m for m in regexes_match_sublist(regex_set, transient_appeared)}
+        lost_matches = {n for n in resolved_dict.keys() if find_first_regex_match(n, regex_set) is None}
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
         return cls._update_transients(
@@ -476,13 +476,13 @@ class BaseInterface(object):
 
     def update_on_diff(self, services_dt, topics_dt, params_dt):
 
-        sdt = self.update_services(add_names=[m for m in BaseInterface.regexes_match_sublist(self.services_args, services_dt.added)],
+        sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
                                    remove_names=services_dt.removed
                                    )
-        tdt = self.update_topics(add_names=[m for m in BaseInterface.regexes_match_sublist(self.topics_args, topics_dt.added)],
+        tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
                                  remove_names=topics_dt.removed
                                  )
-        pdt = self.update_params(add_names=[m for m in BaseInterface.regexes_match_sublist(self.params_args, params_dt.added)],
+        pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
                                  remove_names=params_dt.removed
                                  )
 

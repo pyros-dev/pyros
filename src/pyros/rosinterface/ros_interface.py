@@ -262,10 +262,40 @@ class RosInterface(BaseInterface):
         filtered_added_publishers, filtered_added_subscribers = self._filter_out_pyros_topics(publishers_dt.added, subscribers_dt.added)
         filtered_removed_publishers, filtered_removed_subscribers = self._filter_out_pyros_topics(publishers_dt.removed, subscribers_dt.removed)
 
+        # collapsing add / remove pairs with the help of nodes multiplicity
+        # here to avoid more complicated side effects later on
+        added_pubs = {pub[0]: pub[1] for pub in filtered_added_publishers}
+        added_subs = {sub[0]: sub[1] for sub in filtered_added_subscribers}
+        removed_pubs = {pub[0]: pub[1] for pub in filtered_removed_publishers}
+        removed_subs = {sub[0]: sub[1] for sub in filtered_removed_subscribers}
+
+        for apn, ap in added_pubs.iteritems():
+            for rpn, rp in removed_pubs.iteritems():
+                if rp in ap:  # remove nodes that are added and removed -> no change seen
+                    ap.remove(rp)
+                    removed_pubs[rpn].remove(rp)
+
+        for rpn, rp in removed_pubs.iteritems():
+            for apn, ap in added_pubs.iteritems():
+                if ap in rp:  # remove nodes that are removed and added -> no change seen
+                    rp.remove(ap)
+                    added_pubs[apn].remove(ap)
+
         # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
+        # Need to be careful if pub and sub are added/removed at same time : only one topic added/removed
+        added_topics = {pub[0]: pub[1] for pub in filtered_added_publishers}
+        removed_topics = {pub[0]: pub[1] for pub in filtered_removed_publishers}
+
+        for t in filtered_added_subscribers:
+            added_topics[t[0]] = added_topics.get(t[0], []) + t[1]
+        for t in filtered_removed_subscribers:
+            removed_topics[t[0]] = removed_topics.get(t[0], []) + t[1]
+
+        # TODO : improve here to make sure of nodes unicity after this collapsing step
+
         topics_dt = DiffTuple(
-            added=filtered_added_publishers + filtered_added_subscribers,
-            removed=filtered_removed_publishers + filtered_removed_subscribers
+            added=[[k, v] for k, v in added_topics.iteritems()],
+            removed=[[k, v] for k, v in removed_topics.iteritems()]
         )
 
         with self.topics_available_lock:
@@ -320,8 +350,30 @@ class RosInterface(BaseInterface):
             )
             params_dt = self.compute_params(params_dt)
 
+            if_topics = {}
+            for par in params:
+                if par.endswith(TopicBack.IF_TOPIC_PARAM):
+                    # extract process name from param name ( removing extra slash )
+                    pname = par[:- len('/' + TopicBack.IF_TOPIC_PARAM)]
+                    if_topics[pname] = rospy.get_param(par, [])
+
+            # preparing differences for what we can detect only from update loop
+            early_topics_dt = DiffTuple([], [])
+
+            # We need to check here if there are any interface topic only satisfying themselves
+            # in order to drop it (otherwise the cache node wont detect it and wont trigger a diff)
+            # CAREFUL : match self._filter_out_pyros_topics() behavior
+            for i, t in self.topics.iteritems():
+                if (i in if_topics.get(rospy.get_name(), []) and  # if we interface to this topic and
+                    t.pub_instance_count[t.name] == 1 and  # we have only one publisher connection and
+                    t.sub_instance_count[t.name] == 1  # one subscriber connection
+                ):  # then it means this topic has actually disappeared from the system we interface with
+                    early_topics_dt.removed.append(i)  # we add it to the list of difference already found
+                    # because the cache will still see it and not include it in diff
+                    # we ll let the usual update_on_diff get rid of it the usual way
+
             # If we have a callback setup we process the diff we got since last time
-            if (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
+            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
 
                 # This will be set if we need to ignore current state, and reset it from list
                 reset = False
@@ -388,17 +440,17 @@ class RosInterface(BaseInterface):
 
                                 pubset = {(name, chan.type) for name, chan in cb_ss_dt.added.publishers.iteritems()}
                                 subset = {(name, chan.type) for name, chan in cb_ss_dt.added.subscribers.iteritems()}
-                                added_topic_types + [list(t) for t in (pubset | subset)]
+                                added_topic_types += [list(t) for t in (pubset | subset)]
 
                                 pubset = {(name, chan.type) for name, chan in cb_ss_dt.removed.publishers.iteritems()}
                                 subset = {(name, chan.type) for name, chan in cb_ss_dt.removed.subscribers.iteritems()}
-                                removed_topic_types + [list(t) for t in (pubset | subset)]
+                                removed_topic_types += [list(t) for t in (pubset | subset)]
 
                                 svcset = {(name, chan.type) for name, chan in cb_ss_dt.added.services.iteritems()}
-                                added_service_types + [list(t) for t in svcset]
+                                added_service_types += [list(t) for t in svcset]
 
                                 svcset = {(name, chan.type) for name, chan in cb_ss_dt.removed.services.iteritems()}
-                                removed_service_types + [list(t) for t in svcset]
+                                removed_service_types += [list(t) for t in svcset]
 
                         except Queue.Empty as exc:
                             # we re done here
@@ -448,7 +500,7 @@ class RosInterface(BaseInterface):
                     # update_on_diff wants only names
                     return super(RosInterface, self).update_on_diff(
                             DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
-                            DiffTuple([t[0] for t in topics_dt.added], [t[0] for t in topics_dt.removed]),
+                            DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
                             DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
                     )
             else:

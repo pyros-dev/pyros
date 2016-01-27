@@ -24,7 +24,7 @@ import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
-from pyros.rosinterface.rostests import timeout
+from pyros.rosinterface.rostests import Timeout
 
 # useful test tools
 from pyros_setup import rostest_nose
@@ -113,6 +113,13 @@ class TestRosInterface(unittest.TestCase):
         # make sure the topic backend has been created
         self.assertTrue(topicname in self.interface.topics.keys())
 
+        # cleaning up
+        self.interface.expose_topics([])
+        # every added topic should be in the list of args
+        self.assertTrue(topicname not in self.interface.topics_args)
+        # topic backend has not been created since the update didn't run yet
+        self.assertTrue(topicname not in self.interface.topics.keys())
+
     def test_topic_appear_update_expose(self):
         """
         Test topic exposing functionality for a topic which already exists in
@@ -137,8 +144,8 @@ class TestRosInterface(unittest.TestCase):
 
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
-        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        with timeout(5) as t:
+        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+        with Timeout(100) as t:
             while not t.timed_out and nonexistent_pub.resolved_name not in self.interface.topics_available:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
@@ -158,7 +165,23 @@ class TestRosInterface(unittest.TestCase):
         # make sure the topic backend has been created
         self.assertTrue(topicname in self.interface.topics.keys())
 
-        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        # removing publisher
+        TopicBack._remove_pub(nonexistent_pub)  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+
+        # and update should be enough to cleanup
+        with Timeout(100) as t:
+            while not t.timed_out and not topicname in dt.removed:
+                dt = self.interface.update()
+                self.assertEqual(dt.added, [])  # nothing added
+
+        self.assertTrue(not t.timed_out)
+        self.assertTrue(topicname in dt.removed)
+        self.assertTrue(topicname not in self.interface.topics_available)
+
+        # every exposed topic should still be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # the backend should not be there any longer
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
     def test_topic_expose_appear_update(self):
         """
@@ -195,7 +218,7 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try updating again, simulating
         # it coming online after expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
-        with timeout(5) as t:
+        with Timeout(10) as t:
             while not t.timed_out and topicname not in dt.added:
                 dt = self.interface.update()
                 self.assertEqual(dt.removed, [])  # nothing removed
@@ -235,7 +258,7 @@ class TestRosInterface(unittest.TestCase):
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
         nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
-        with timeout(5) as t:
+        with Timeout(5) as t:
             while not t.timed_out and topicname not in self.interface.topics_available:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed)
@@ -300,8 +323,6 @@ class TestRosInterface(unittest.TestCase):
         :return:
         """
 
-        #TODO : test disappear ( how ? https://github.com/ros/ros_comm/issues/111 )
-
         topicname = '/test/nonexistent4'
         # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
@@ -329,7 +350,7 @@ class TestRosInterface(unittest.TestCase):
             # it coming online before expose call.
             nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
 
-            with timeout(5) as t:
+            with Timeout(100) as t:
                 dt = DiffTuple([], [])
                 while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                     dt = self.interface.update()
@@ -354,7 +375,7 @@ class TestRosInterface(unittest.TestCase):
             self.assertTrue(topicname in self.interface.topics.keys())
             # Note the Topic implementation should take care of possible errors in this case
 
-            with timeout(5) as t:
+            with Timeout(100) as t:
                 dt = DiffTuple([], [])
                 while not t.timed_out and topicname not in dt.removed:
                     dt = self.interface.update()
@@ -370,6 +391,16 @@ class TestRosInterface(unittest.TestCase):
         appear_disappear()
 
         # test that coming back actually also works
+
+        # Note : for the cache version we need update to run in between to make sure the cache callback for dropped
+        # interface doesnt interfere with the new topic coming up.
+        # TODO fix this problem (cache node / interface update not spinning fast enough to detect the change)
+        # HOW ?
+        # -> cache node (or proxy??) with possibility to mask topics + node to not trigger change ???
+        # -> splitting subscribers and publishers will make it better to not confuse what goes up/down ???
+        time.sleep(2)
+        dt = self.interface.update()
+
         appear_disappear()
 
         self.interface.expose_topics([])
@@ -419,7 +450,7 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
 
-        with timeout(5) as t:
+        with Timeout(5) as t:
             dt = DiffTuple([], [])
             while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                 dt = self.interface.update()
@@ -473,7 +504,7 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
         # NOTE : We need to wait to make sure the tests nodes are started...
-        with timeout(5) as t:
+        with Timeout(5) as t:
             while not t.timed_out and servicename not in dt[0]:
                 dt = self.interface.update()
 
@@ -509,7 +540,7 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            with timeout(5) as t:
+            with Timeout(5) as t:
                 while not t.timed_out and nonexistent_srv.resolved_name not in self.interface.services_available:
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
@@ -569,7 +600,7 @@ class TestRosInterface(unittest.TestCase):
         # it coming online after expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            with timeout(5) as t:
+            with Timeout(5) as t:
                 dt = DiffTuple([], [])
                 while not t.timed_out and nonexistent_srv.resolved_name not in dt.added:
                     dt = self.interface.update()
@@ -685,7 +716,7 @@ class TestRosInterface(unittest.TestCase):
         # Note the service implementation should take care of possible errors in this case
 
         # wait here until service actually disappear from cache proxy
-        with timeout(5) as t:
+        with Timeout(5) as t:
             while not t.timed_out and nonexistent_srv.resolved_name not in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added

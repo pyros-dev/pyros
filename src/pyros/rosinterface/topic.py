@@ -43,6 +43,9 @@ class TopicBack(object):
     # a solution that works multiprocess
     IF_TOPIC_PARAM = 'pyros_if_topics'
 
+    # TODO: maybe contextmanager to make sure unregister always happens if we create it ?
+    # Should be fine since hte interface is in loop...
+    # this might help keep track of the interface created pub/sub, and help keep things tidy...
 
     @staticmethod
     def _create_pub(name, rostype, *args, **kwargs):
