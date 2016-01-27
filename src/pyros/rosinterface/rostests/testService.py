@@ -5,17 +5,22 @@ import sys
 import logging
 
 # Unit test import
-from pyros.rosinterface import ServiceBack
+try:
+    from pyros.rosinterface import ServiceBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import ServiceBack
 
 # ROS imports should now work from ROS or from python (with or without ROS env setup - emulated if needed)
 import rospy
 import roslaunch
 import rosservice
-from std_msgs.msg import String, Empty
-from pyros.srv import StringEchoService
 
 #useful test tools
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import inspect
 import unittest
 import nose
@@ -43,12 +48,19 @@ def setup_module():
         global pub_process, echo_process, slow_process
 
         rospy.set_param('/echo_node/echo_service_name', 'test_service')
-        echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='echo_node')
-        echo_process = launch.launch(echo_node)
+        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
+        try:
+            echo_process = launch.launch(echo_node)
+        except roslaunch.RLException as rlexc:
+            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
+            raise
         rospy.set_param('/slow_node/slow_service_name', 'test_timeout_service')
-        slow_node = roslaunch.core.Node('pyros', 'string_slow_node.py', name='slow_node')
-        slow_process = launch.launch(slow_node)
-
+        slow_node = roslaunch.core.Node('pyros_test', 'string_slow_node.py', name='slow_node')
+        try:
+            slow_process = launch.launch(slow_node)
+        except roslaunch.RLException as rlexc:
+            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
+            raise
         # set required parameters - needs to match the content of *.test files for rostest to match
         rospy.set_param('/stringServiceTest/echo_service_name', 'test_service')
         rospy.set_param('/stringServiceTest/slow_service_name', 'test_timeout_service')

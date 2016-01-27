@@ -1,58 +1,62 @@
 from __future__ import absolute_import
 
-import rospy
+import collections
 import time
 
-from .ros_interface import RosInterface
-try:
-    from .roconinterface.rocon_interface import RoconInterface
-    _ROCON_AVAILABLE = True
-except ImportError, e:
-    import logging
-    logging.warn("Error: could not import RoconInterface - disabling. {0!s}".format(e))
-    _ROCON_AVAILABLE = False
+# ROS Environment should already be setup before importing this
+# But beware master might not be started yet
+import pyros_setup
+import rospy
+import sys
 
-import zmp
+from .ros_interface import RosInterface
+
+# TODO : fix import to work dynamically here
+#from .roconinterface.rocon_interface import RoconInterface
+
 from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
 
 from pyros.baseinterface import PyrosBase
 from dynamic_reconfigure.server import Server
-from pyros.cfg import PyrosConfig
+from . import pyros_cfg
 import ast
-import json
 import os
 import logging
 import unicodedata
 
 # TODO : move cfg, srv, and other ROS specific stuff in the same rosinterface module ?
+# TODO : get rid of cfg, srv and other things that require ROS build system, so that we can have pyros as pure python package ?
 
-import pyros.srv as srv
 from . import message_conversion as msgconv
+from .topic import TopicBack
 
 
 class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, dynamic_reconfigure=True):
-        super(PyrosROS, self).__init__(name=name or 'pyros-ros')
+    def __init__(self, name=None, argv=None, dynamic_reconfigure=True, base_path=None):
+        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.dynamic_reconfigure = dynamic_reconfigure
-        enable_rocon = rospy.get_param('~enable_rocon', False)
-        self.enable_rocon = enable_rocon
+        self.base_path = base_path  # used for setup in actual separate process dynamically
+        try:
+            from .roconinterface.rocon_interface import RoconInterface
+            _ROCON_AVAILABLE = True
+        except ImportError, e:
+            import logging
+            logging.warn("Error: could not import RoconInterface - disabling. {0!s}".format(e))
+            _ROCON_AVAILABLE = False
 
-        self.ros_if = RosInterface()
+        self.enable_cache = False
+        self.ros_if = None
+        self.ros_if_params = None   # for delayed reinit()
 
-        if _ROCON_AVAILABLE and self.enable_rocon:
-
-            rospy.logerr("ENABLE_ROCON IS TRUE IN INIT!!")
-            self.rocon_if = RoconInterface(self.ros_if)
-            pass
-        else:
-            self.rocon_if = None
+        self.enable_rocon = _ROCON_AVAILABLE
+        self.rocon_if = None
 
         # def start_rapp(req):  # Keep this minimal
         #     rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
@@ -209,13 +213,39 @@ class PyrosROS(PyrosBase):
     def has_rocon(self):
         return True if self.rocon_if else False
 
-    def reinit(self, services, topics, params):
-        return self.ros_if.reinit(services, topics, params)
+    def reinit(self, services=None, topics=None, params=None, enable_cache=None):
+        # this needs to be available just after __init__, however we need the ros_if to be present
+        self.ros_if_params = (services, topics, params, enable_cache)
+        if self.ros_if:
+            self.ros_if.reinit(*self.ros_if_params)
 
     def run(self):
         """
         Running in a zmp.Node process, providing zmp.services
         """
+        # Environment should be setup here if needed ( we re in another process ).
+        sys.modules["pyros_setup"] = pyros_setup.delayed_import_auto(distro='indigo', base_path=self.base_path)
+
+        # master has to be running here or we just wait for ever
+        m, _ = pyros_setup.get_master(spawn=False)
+        while not m.is_online():
+            time.sleep(0.5)
+
+        enable_rocon = rospy.get_param('~enable_rocon', False)
+        self.enable_rocon = self.enable_rocon and enable_rocon
+
+        self.enable_cache = rospy.get_param('~enable_cache', False)
+        self.ros_if = RosInterface(enable_cache=self.enable_cache)
+
+        if self.ros_if_params:
+            self.ros_if.reinit(*self.ros_if_params)
+
+        if self.enable_rocon:
+
+            rospy.logerr("ENABLE_ROCON IS TRUE !!")
+            self.rocon_if = RoconInterface(self.ros_if)
+            pass
+
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
@@ -223,9 +253,9 @@ class PyrosROS(PyrosBase):
 
         if self.dynamic_reconfigure:
             # Create a dynamic reconfigure server ( needs to be done after node_init )
-            self.server = Server(PyrosConfig, self.reconfigure)
+            self.server = Server(pyros_cfg, self.reconfigure)
 
-        #TODO : install shutdown hook to shutdown if detected
+        # TODO : install shutdown hook to shutdown if detected
 
         try:
             logging.debug("zmp[{name}] running, pid[{pid}]".format(name=__name__, pid=os.getpid()))
@@ -241,8 +271,6 @@ class PyrosROS(PyrosBase):
         """
         Update function to call from a looping thread.
         """
-        # TODO : add time tracking, desired rate versus actual rate -> readjust.
-        #print("[{name}] {node} UPDATE {t}".format(name=__name__, node=self.name, t=time.time()))
         self.ros_if.update()
 
     # Create a callback function for the dynamic reconfigure server.
@@ -267,25 +295,29 @@ class PyrosROS(PyrosBase):
         except ValueError:
             rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
 
+        self.enable_cache = rospy.get_param('~enable_cache', False)
+
         self.enable_rocon = config.get('enable_rocon', False)
 
         rospy.logwarn("""[{name}] Interface Reconfigure Request:
     services : {services}
     topics : {topics}
     params : {params}
+    enable_cache : {enable_cache}
     enable_rocon : {enable_rocon}
         """.format(name=__name__,
                    topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
                    services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
                    params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
+                   enable_cache=config.get('enable_cache', False),
                    enable_rocon=config.get('enable_rocon', False),
                    ))
+
+        self.reinit(new_services, new_topics, new_params, self.enable_cache)
 
         if not self.rocon_if and self.enable_rocon:
             rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
             self.rocon_if = RoconInterface(self.ros_if)
-
-        self.reinit(new_services, new_topics, new_params)
 
         if self.rocon_if:
             config = self.rocon_if.reconfigure(config, level)

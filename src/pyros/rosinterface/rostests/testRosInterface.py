@@ -2,20 +2,31 @@
 from __future__ import absolute_import
 
 # Unit test import (  will emulate ROS setup if needed )
+import nose
 import time
-from pyros.rosinterface import RosInterface
-from pyros.rosinterface import TopicBack
+try:
+    from pyros.rosinterface import RosInterface
+    from pyros.rosinterface import TopicBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import RosInterface
+    from pyros.rosinterface import TopicBack
 
 import rospy
 import roslaunch
+import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
 
 # useful test tools
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import unittest
 
+launch = None
 # test node process not setup by default (rostest dont need it here)
 empty_srv_process = None
 trigger_srv_process = None
@@ -29,13 +40,14 @@ def setup_module():
         rostest_nose.rostest_nose_setup_module()
 
         # Start roslaunch
+        global launch
         launch = roslaunch.scriptapi.ROSLaunch()
         launch.start()
 
         # start required nodes - needs to match the content of *.test files for rostest to match
         global empty_srv_process, trigger_srv_process
-        empty_srv_node = roslaunch.core.Node('pyros', 'emptyService.py', name='empty_service')
-        trigger_srv_node = roslaunch.core.Node('pyros', 'triggerService.py', name='trigger_service')
+        empty_srv_node = roslaunch.core.Node('pyros_test', 'emptyService.py', name='empty_service')
+        trigger_srv_node = roslaunch.core.Node('pyros_test', 'triggerService.py', name='trigger_service')
         empty_srv_process = launch.launch(empty_srv_node)
         trigger_srv_process = launch.launch(trigger_srv_node)
 
@@ -703,9 +715,60 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services.keys())
 
 
+class timeout(object):
+    """
+    Small useful timeout class
+    """
+    def __init__(self, seconds):
+        self.seconds = seconds
+
+    def __enter__(self):
+        self.die_after = time.time() + self.seconds
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+    @property
+    def timed_out(self):
+        return time.time() > self.die_after
 
 
+# Testing with Connection Cache
+class TestRosInterfaceCache(TestRosInterface):
+    def setUp(self):
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+                                                         remap_args=[('/rocon/connection_cache/list', '/pyros_ros/connections_list')])
+        try:
+            self.connection_cache_proc = launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
 
+        # wait for node to be started
+        node_api = None
+        with timeout(5) as t:
+            while not t.timed_out and node_api is None:
+                node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
+
+        assert node_api is not None  # make sure the connection cache node is started before moving on.
+
+        super(TestRosInterfaceCache, self).setUp()
+
+    def tearDown(self):
+        super(TestRosInterfaceCache, self).tearDown()
+
+        self.connection_cache_proc.stop()
+        while self.connection_cache_proc.is_alive():
+            time.sleep(0.2)  # waiting for cache node to die
+        assert not self.connection_cache_proc.is_alive()
+        time.sleep(1)  # TODO : investigate : we shouldnt need this
+
+
+    # explicitely added here only needed to help the debugger.
+    # This will fail because of https://github.com/ros/ros_comm/issues/111
+    # The topic from previous test is still registered on master...
+    def test_topic_expose_appear_update(self):
+        super(TestRosInterfaceCache, self).test_topic_expose_appear_update()
 
         
 if __name__ == '__main__':

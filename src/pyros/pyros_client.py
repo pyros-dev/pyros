@@ -12,7 +12,6 @@ Required for multiprocess communication.
 
 import zmp
 from .exceptions import PyrosException
-from .pyros_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.

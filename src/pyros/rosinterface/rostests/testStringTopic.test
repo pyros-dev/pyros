@@ -2,7 +2,7 @@
   <arg name="topic_name" default="test_topic"/>
   <arg name="echo_topic_name" default="echo_test_topic"/>
 
-  <node name="echo_node" pkg="pyros" type="string_echo_node.py" output="screen">
+  <node name="echo_node" pkg="pyros_test" type="echo.py" output="screen">
     <param name="topic_name" value="$(arg topic_name)" type="str"/>
     <param name="echo_topic_name" value="$(arg echo_topic_name)" type="str"/>
   </node>

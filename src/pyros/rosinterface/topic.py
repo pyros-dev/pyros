@@ -2,25 +2,12 @@ from __future__ import absolute_import
 
 import time
 
-from . import ros_setup
-
-try:
-    import roslib
-    import rospy
-    from rospy.service import ServiceManager
-    import rosservice, rostopic
-    import actionlib_msgs.msg
-except ImportError:
-    ros_setup.ROS_emulate_setup()
-    import roslib
-    import rospy
-    from rospy.service import ServiceManager
-    import rosservice, rostopic
-    import actionlib_msgs.msg
+import roslib
+import rospy
 
 from importlib import import_module
 from collections import deque, OrderedDict
-import zmp
+
 
 from .message_conversion import get_msg, get_msg_dict
 
