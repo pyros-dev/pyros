@@ -143,6 +143,9 @@ class PyrosROS(PyrosBase):
             rqst = self.msg_build(name)
             msgconv.populate_instance(rqst_content, rqst)
 
+            # FIXME : if the service is not exposed this returns None.
+            # Cost a lot time to find the reason since client code doesnt check the answer.
+            # Maybe returning error is better ?
             if self.ros_if and name in self.ros_if.services.keys():
                 resp = self.ros_if.services.get(name, None).call(rqst)
                 resp_content = msgconv.extract_values(resp)
