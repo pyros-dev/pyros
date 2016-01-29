@@ -67,7 +67,7 @@ class RoconInterface(object):
 
     def reconfigure(self, config, level):
 
-        rospy.logwarn("""Reconfigure Request: \rapps_namespaces : {rapps_namespaces}""".format(**config))
+        rospy.loginfo("""Reconfigure Request: \rapps_namespaces : {rapps_namespaces}""".format(**config))
         if _ROCON:
             new_rapps = ast.literal_eval(config["rapps_namespaces"])
             self.expose_rapps(new_rapps)
@@ -75,7 +75,7 @@ class RoconInterface(object):
             pass
 
         #LATER
-        rospy.logwarn("""Reconfigure Request: \ninteractions : {interactions}""".format(**config))
+        rospy.loginfo("""Reconfigure Request: \ninteractions : {interactions}""".format(**config))
         if _ROCON:
             new_interactions = ast.literal_eval(config["interactions"])
             self.expose_interactions(new_interactions)
