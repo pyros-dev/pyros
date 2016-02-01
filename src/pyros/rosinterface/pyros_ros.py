@@ -191,7 +191,7 @@ class PyrosROS(PyrosBase):
             self.rocon_if.request_interaction(name)
 
         return None
-            
+
     def interactions(self):
         if self.rocon_if:
             ir = self.rocon_if.interactions
@@ -210,7 +210,7 @@ class PyrosROS(PyrosBase):
                 rapp_dict[rapp] = NamespaceInfo(name=rapp.name)
 
             return rapp_dict
-                
+
         return {}
 
     def has_rocon(self):
@@ -310,7 +310,7 @@ class PyrosROS(PyrosBase):
 
         self.enable_rocon = config.get('enable_rocon', False)
 
-        rospy.logwarn("""[{name}] Interface Reconfigure Request:
+        rospy.loginfo("""[{name}] Interface Reconfigure Request:
     services : {services}
     topics : {topics}
     params : {params}
