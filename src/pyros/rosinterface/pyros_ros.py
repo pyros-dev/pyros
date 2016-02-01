@@ -252,7 +252,7 @@ class PyrosROS(PyrosBase):
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
-        rospy.logwarn('PyrosROS {name} node started with args : {argv}'.format(name=self.name, argv=self.str_argv))
+        rospy.loginfo('PyrosROS {name} node started with args : {argv}'.format(name=self.name, argv=self.str_argv))
 
         if self.dynamic_reconfigure:
             # Create a dynamic reconfigure server ( needs to be done after node_init )
