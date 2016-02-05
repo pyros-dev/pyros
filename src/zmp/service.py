@@ -148,6 +148,7 @@ class Service(object):
         else:
             raise ServiceCallTimeout("Can not send request through ZMQ socket.")
 
+        # TODO : exception if service disappeared in the mean time...
 
 # convenience
 discover = Service.discover

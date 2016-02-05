@@ -146,8 +146,10 @@ class PyrosClient(object):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         if _msg_content is not None:
+            # logging.warn("injecting {msg} into {topic}".format(msg=_msg_content, topic=topic_name))
             res = self.topic_svc.call(args=(topic_name, _msg_content,))
         else:  # default kwargs is {}
+            # logging.warn("injecting {msg} into {topic}".format(msg=kwargs, topic=topic_name))
             res = self.topic_svc.call(args=(topic_name, kwargs,))
 
         return res is None  # check if message has been consumed
