@@ -35,7 +35,7 @@ if not rosgraph.masterapi.is_online():
 launch = roslaunch.scriptapi.ROSLaunch()
 launch.start()
 
-rosn = PyrosROS(dynamic_reconfigure=False)
+rosn = PyrosROS()
 
 
 def update_loop():

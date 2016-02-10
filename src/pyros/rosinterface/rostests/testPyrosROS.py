@@ -92,7 +92,7 @@ class TestPyrosROS(object):
     # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
     @nose.tools.timed(5)
     def test_rosnode_creation_termination(self):
-        rosn = PyrosROS(dynamic_reconfigure=False)
+        rosn = PyrosROS()
         nose.tools.assert_true(not rosn.is_alive())
         try:
             rosn.start()
@@ -107,7 +107,7 @@ class TestPyrosROS(object):
 
     @nose.tools.timed(5)
     def test_rosnode_provide_services(self):  # Here we check that this node actually provides all the services
-        rosn = PyrosROS(dynamic_reconfigure=False)
+        rosn = PyrosROS()
         nose.tools.assert_true(not rosn.is_alive())
         try:
             rosn.start()
@@ -185,7 +185,7 @@ class TestPyrosROS(object):
         try:
             # Starting PyrosROS with preconfigured topics,
             # disabling dynamic_reconf to avoid override asynchronously on start().
-            rosn = PyrosROS(dynamic_reconfigure=False)
+            rosn = PyrosROS()
             nose.tools.assert_true(not rosn.is_alive())
             try:
                 rosn.reinit(topics=['/string_pub/test_str_topic'], enable_cache=self.enable_cache)  # careful assuming the topic fullname here
@@ -226,7 +226,7 @@ class TestPyrosROS(object):
             nose.tools.assert_true(not string_pub_process.is_alive())
 
     def test_rosnode_topics_reinit(self):  # Here we check that this node actually provides all the services
-        rosn = PyrosROS(dynamic_reconfigure=False)
+        rosn = PyrosROS()
         try:
             nose.tools.assert_true(not rosn.is_alive())
             rosn.start()
@@ -303,7 +303,7 @@ class TestPyrosROS(object):
         try:
             # Starting PyrosROS with preconfigured services,
             # disabling dynamic_reconf to avoid override asynchronously on start().
-            rosn = PyrosROS(dynamic_reconfigure=False)
+            rosn = PyrosROS()
             try:
                 rosn.reinit(services=['/string_echo/echo_service'], enable_cache=self.enable_cache)  # careful assuming the service fullname here
                 nose.tools.assert_true(not rosn.is_alive())
@@ -342,7 +342,7 @@ class TestPyrosROS(object):
         nose.tools.assert_true(not string_echo_process.is_alive())
 
     def test_rosnode_services_reinit(self):  # Here we check that this node actually provides all the services
-        rosn = PyrosROS(dynamic_reconfigure=False)
+        rosn = PyrosROS()
         try:
             nose.tools.assert_true(not rosn.is_alive())
             rosn.start()

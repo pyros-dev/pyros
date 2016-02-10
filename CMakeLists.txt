@@ -5,14 +5,10 @@ project(pyros)
 find_package(catkin REQUIRED COMPONENTS
     roslint
     rospy
-    actionlib_msgs
-    dynamic_reconfigure
     std_msgs
     message_generation
 )
 catkin_python_setup()
-generate_dynamic_reconfigure_options(cfg/Pyros.cfg)
-#include_directories(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
 
 add_service_files(DIRECTORY srv
     FILES
@@ -21,11 +17,6 @@ add_service_files(DIRECTORY srv
     StringEchoService.srv
 )
 generate_messages(DEPENDENCIES std_msgs)
-
-#add_custom_target(pyros)  # dummy target
-# make sure configure headers are built before any node using them
-#add_dependencies(pyros ${${PROJECT_NAME}_EXPORTED_TARGETS})
-#add_dependencies(pyros ${PROJECT_NAME}_gencfg)
 
 catkin_package( CATKIN_DEPENDS message_runtime std_msgs)
 
@@ -39,17 +30,6 @@ roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
 set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/srv")
 set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/srv")
-
-if(NOT EXISTS "${link}" AND EXISTS "${path}")
-    message(STATUS "linking catkin generated classes from ${path} to source space in ${link}")
-    execute_process(
-      # Note : return code is broken in 2.8 (trusty version) https://cmake.org/Bug/view.php?id=14928
-      COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink" "${path}" "${link}"
-    )
-endif()
-
-set(link "${CMAKE_CURRENT_SOURCE_DIR}/src/pyros/cfg")
-set(path "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_PYTHON_DESTINATION}/cfg")
 
 if(NOT EXISTS "${link}" AND EXISTS "${path}")
     message(STATUS "linking catkin generated classes from ${path} to source space in ${link}")

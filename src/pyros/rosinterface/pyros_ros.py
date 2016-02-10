@@ -12,8 +12,6 @@ import sys
 from .ros_interface import RosInterface
 
 from pyros.baseinterface import PyrosBase
-from dynamic_reconfigure.server import Server
-from . import pyros_cfg
 import ast
 import os
 import logging
@@ -30,13 +28,12 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, dynamic_reconfigure=True, base_path=None):
+    def __init__(self, name=None, argv=None, base_path=None):
         super(PyrosROS, self).__init__(name=name or 'pyros_ros')
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
-        self.dynamic_reconfigure = dynamic_reconfigure
         self.base_path = base_path  # used for setup in actual separate process dynamically
 
         self.enable_cache = False
@@ -160,10 +157,6 @@ class PyrosROS(PyrosBase):
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
         rospy.loginfo('PyrosROS {name} node started with args : {argv}'.format(name=self.name, argv=self.str_argv))
 
-        if self.dynamic_reconfigure:
-            # Create a dynamic reconfigure server ( needs to be done after node_init )
-            self.server = Server(pyros_cfg, self.reconfigure)
-
         # TODO : install shutdown hook to shutdown if detected
 
         try:
@@ -189,47 +182,6 @@ class PyrosROS(PyrosBase):
         Update function to call from a looping thread.
         """
         self.ros_if.update()
-
-    # Create a callback function for the dynamic reconfigure server.
-    def reconfigure(self, config, level):
-
-        new_services = None
-        new_topics = None
-        new_params = None
-        try:
-            # convert new services to a set and then back to a list to ensure uniqueness
-            new_services = list(set(ast.literal_eval(config["services"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {services} containing malformed service strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new topics to a set and then back to a list to ensure uniqueness
-            new_topics = list(set(ast.literal_eval(config["topics"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {topics} containing malformed topic strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new params to a set and then back to a list to ensure uniqueness
-            new_params = list(set(ast.literal_eval(config["params"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
-
-        self.enable_cache = rospy.get_param('~enable_cache', False)
-
-        rospy.loginfo("""[{name}] Interface Reconfigure Request:
-    services : {services}
-    topics : {topics}
-    params : {params}
-    enable_cache : {enable_cache}
-        """.format(name=__name__,
-                   topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
-                   services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
-                   params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
-                   enable_cache=config.get('enable_cache', False),
-                   ))
-
-        self.reinit(new_services, new_topics, new_params, self.enable_cache)
-
-        return config
-
 
 
 PyrosBase.register(PyrosROS)
