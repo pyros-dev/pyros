@@ -22,7 +22,6 @@ except ImportError:
     rocon_python_comms = None
 
 
-
 class RosInterface(BaseInterface):
     """
     RosInterface.

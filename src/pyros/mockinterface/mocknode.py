@@ -9,7 +9,6 @@ import time
 import zmp
 # python protocol should be usable without ROS.
 from pyros.baseinterface import PyrosBase
-from ..pyros_prtcl import MsgBuild, Topic, Service, Param, ServiceList, ServiceInfo, TopicList, TopicInfo, ParamList, ParamInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
 from .mockinterface import MockInterface
 
 

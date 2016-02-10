@@ -8,10 +8,6 @@ import time
 import abc
 
 import zmp
-# python protocol should be usable without ROS.
-from ..pyros_prtcl import MsgBuild, Topic, Service, Param, ServiceList, ServiceInfo, TopicList, TopicInfo, ParamList, ParamInfo, Interaction, Interactions, InteractionInfo, Namespaces, NamespaceInfo, Rocon
-from .baseinterface import BaseInterface
-
 
 # TODO : service interface for mock to be able to dynamically trigger services / topics / params appearing & disappearing
 class PyrosBase(zmp.Node):

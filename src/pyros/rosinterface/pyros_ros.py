@@ -11,11 +11,6 @@ import sys
 
 from .ros_interface import RosInterface
 
-# TODO : fix import to work dynamically here
-#from .roconinterface.rocon_interface import RoconInterface
-
-from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
-
 from pyros.baseinterface import PyrosBase
 from dynamic_reconfigure.server import Server
 from . import pyros_cfg
@@ -43,60 +38,10 @@ class PyrosROS(PyrosBase):
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.dynamic_reconfigure = dynamic_reconfigure
         self.base_path = base_path  # used for setup in actual separate process dynamically
-        try:
-            from .roconinterface.rocon_interface import RoconInterface
-            _ROCON_AVAILABLE = True
-        except ImportError, e:
-            import logging
-            logging.warn("Error: could not import RoconInterface - disabling. {0!s}".format(e))
-            _ROCON_AVAILABLE = False
 
         self.enable_cache = False
         self.ros_if = None
         self.ros_if_params = None   # for delayed reinit()
-
-        self.enable_rocon = _ROCON_AVAILABLE
-        self.rocon_if = None
-
-        # def start_rapp(req):  # Keep this minimal
-        #     rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
-        #         rapp=req.rapp_name
-        #     ))
-        #     #normalizing names... ( somewhere else ?)
-        #     #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
-        #     #service is raw str
-        #     if req.rapp_name[0] == '/':
-        #         req.rapp_name = req.rapp_name[1:]
-        #
-        #     if self.rocon_if:
-        #         #TMP
-        #         if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
-        #             self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
-        #
-        #     res = True
-        #
-        #     return srv.StartRappResponse(res)
-        #
-        # def stop_rapp(req):  # Keep this minimal
-        #     rospy.logwarn("""Requesting Rapp Stop: """)
-        #
-        #     if self.rocon_if:
-        #         #TMP
-        #         self.rocon_if.stop_rapp()
-        #
-        #     res = {"stopped": True}
-        #     output_data = json.dumps(res)
-        #     return srv.StopRappResponse(output_data)
-
-        #self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
-        #self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
-
-        #self.provides(self.interactions)
-        #self.provides(self.namespaces)
-        #self.provides(self.interaction)
-        #self.provides(self.has_rocon)
-
-        ####
 
     # TODO: get rid of this to need one less client-node call
     # we need make the message type visible to client,
@@ -186,36 +131,6 @@ class PyrosROS(PyrosBase):
                 params_dict[p] = pinst.asdict()
         return params_dict
 
-    def interaction(self, name):
-        if self.rocon_if and name in self.rocon_if.interactions:
-            self.rocon_if.request_interaction(name)
-
-        return None
-
-    def interactions(self):
-        if self.rocon_if:
-            ir = self.rocon_if.interactions
-            inter_dict = {}
-            for intr in ir:
-                inter_dict[intr] = InteractionInfo(name=intr.name, display_name=intr.display_name)
-
-            return inter_dict
-        return {}
-
-    def namespaces(self):
-        if self.rocon_if:
-            ns = self.rocon_if.rapps_namespaces
-            rapp_dict = {}
-            for rapp in ns:
-                rapp_dict[rapp] = NamespaceInfo(name=rapp.name)
-
-            return rapp_dict
-
-        return {}
-
-    def has_rocon(self):
-        return True if self.rocon_if else False
-
     def reinit(self, services=None, topics=None, params=None, enable_cache=None):
         # this needs to be available just after __init__, however we need the ros_if to be present
         self.ros_if_params = (services, topics, params, enable_cache)
@@ -234,20 +149,11 @@ class PyrosROS(PyrosBase):
         while not m.is_online():
             time.sleep(0.5)
 
-        enable_rocon = rospy.get_param('~enable_rocon', False)
-        self.enable_rocon = self.enable_rocon and enable_rocon
-
         self.enable_cache = rospy.get_param('~enable_cache', False)
         self.ros_if = RosInterface(enable_cache=self.enable_cache)
 
         if self.ros_if_params:
             self.ros_if.reinit(*self.ros_if_params)
-
-        if self.enable_rocon:
-
-            rospy.logerr("ENABLE_ROCON IS TRUE !!")
-            self.rocon_if = RoconInterface(self.ros_if)
-            pass
 
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
@@ -308,30 +214,19 @@ class PyrosROS(PyrosBase):
 
         self.enable_cache = rospy.get_param('~enable_cache', False)
 
-        self.enable_rocon = config.get('enable_rocon', False)
-
         rospy.loginfo("""[{name}] Interface Reconfigure Request:
     services : {services}
     topics : {topics}
     params : {params}
     enable_cache : {enable_cache}
-    enable_rocon : {enable_rocon}
         """.format(name=__name__,
                    topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
                    services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
                    params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
                    enable_cache=config.get('enable_cache', False),
-                   enable_rocon=config.get('enable_rocon', False),
                    ))
 
         self.reinit(new_services, new_topics, new_params, self.enable_cache)
-
-        if not self.rocon_if and self.enable_rocon:
-            rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
-            self.rocon_if = RoconInterface(self.ros_if)
-
-        if self.rocon_if:
-            config = self.rocon_if.reconfigure(config, level)
 
         return config
 
