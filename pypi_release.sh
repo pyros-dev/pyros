@@ -1,5 +1,7 @@
 #!/bin/sh
 
+#TODO : maybe follow https://github.com/mitsuhiko/werkzeug/blob/master/scripts/make-release.py
+
 #TODO : find ~/.pypirc and extract repository
 if [ $# -lt 1 ]; then
     echo "Usage : $0 <pypi|testpypi>"
