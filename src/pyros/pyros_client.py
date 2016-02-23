@@ -12,7 +12,6 @@ Required for multiprocess communication.
 
 import zmp
 from .exceptions import PyrosException
-from .pyros_prtcl import MsgBuild, Topic, Service, Param, ParamList, ParamInfo, ServiceList, ServiceInfo, TopicList, TopicInfo, Namespaces, NamespaceInfo, Interactions, InteractionInfo, Rocon
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.
@@ -147,8 +146,10 @@ class PyrosClient(object):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         if _msg_content is not None:
+            # logging.warn("injecting {msg} into {topic}".format(msg=_msg_content, topic=topic_name))
             res = self.topic_svc.call(args=(topic_name, _msg_content,))
         else:  # default kwargs is {}
+            # logging.warn("injecting {msg} into {topic}".format(msg=kwargs, topic=topic_name))
             res = self.topic_svc.call(args=(topic_name, kwargs,))
 
         return res is None  # check if message has been consumed

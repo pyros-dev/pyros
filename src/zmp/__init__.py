@@ -14,9 +14,7 @@ from __future__ import absolute_import
 from .exceptions import UnknownServiceException, UnknownRequestTypeException, UnknownResponseTypeException
 from .master import manager
 from .node import Node, current_node
-from .service import Service, services, discover
-
-
+from .service import Service, services, discover, ServiceCallTimeout
 
 
 topics = manager.list()
@@ -26,5 +24,5 @@ params = manager.list()
 __all__ = [
     'UnknownServiceException', 'UnknownRequestTypeException', 'UnknownResponseTypeException',
     'Node', 'nodes', 'current_node',
-    'Service', 'services', 'discover',
+    'Service', 'services', 'discover', 'ServiceCallTimeout'
 ]

@@ -13,6 +13,7 @@ import zmq
 import socket
 import logging
 import pickle
+import contextlib
 #import dill as pickle
 
 # allowing pickling of exceptions to transfer it
@@ -91,7 +92,7 @@ except ImportError:
 from .master import manager
 from .exceptions import UnknownServiceException, UnknownRequestTypeException
 from .message import ServiceRequest, ServiceRequest_dictparse, ServiceResponse, ServiceException
-from .service import services, services_lock
+from .service import service_provider_cm
 #from .service import RequestMsg, ResponseMsg, ErrorMsg  # only to access message types
 
 current_node = multiprocessing.current_process
@@ -101,27 +102,60 @@ nodes_lock = manager.Lock()
 nodes = manager.dict()
 
 
+@contextlib.contextmanager
+def dummy_cm():
+    yield None
+
+
+@contextlib.contextmanager
+def node_cm(node_name, svc_address):
+    # advertise itself
+    nodes_lock.acquire()
+    nodes[node_name] = {'service_conn': svc_address}
+    nodes_lock.release()
+
+    yield
+
+    # concealing itself
+    nodes_lock.acquire()
+    nodes[node_name] = {}
+    nodes_lock.release()
+
+
 # TODO : Nodelet ( thread, with fast intraprocess zmq comm - entity system design /vs/threadpool ?)
 # CAREFUL here : multiprocessing documentation specifies that a process object can be started only once...
 class Node(multiprocessing.Process):
 
     EndPoint = namedtuple("EndPoint", "self func")
 
-    def __init__(self, name='node', socket_bind=None):
+    def __init__(self, name='node', socket_bind=None, context_manager=None):
         """
         Initializes a Process
         :param name: Name of the node
-        :param zmqbind: the string describing how to bind the ZMQ socket ( IPC, TCP, etc. )
+        :param socket_bind: the string describing how to bind the ZMQ socket ( IPC, TCP, etc. )
+        :param context_manager: a context_manager to be used with run (in a with statement)
         :return:
         """
         # TODO check name unicity
         super(Node, self).__init__(name=name)
+        self.context_manager = context_manager or dummy_cm  # TODO: extend to list if possible ( available for python >3.1 only )
         self.exit = multiprocessing.Event()
         self.listeners = {}
         self._providers = {}
         self.tmpdir = tempfile.mkdtemp(prefix='zmp-' + self.name + '-')
         # if no socket is specified the services of this node will be available only through IPC
         self._svc_address = socket_bind if socket_bind else 'ipc://' + self.tmpdir + '/services.pipe'
+
+    def __enter__(self):
+        # __enter__ is called only if we pass this instance to with statement ( after __init__ )
+        # start only if needed (so that we can hook up a context manager to a running node) :
+        if self._popen is None:
+            self.start()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        # make sure we cleanup when we exit
+        self.shutdown()
 
     def provides(self, svc_callback, service_name=None):
         service_name = service_name or svc_callback.__name__
@@ -162,88 +196,69 @@ class Node(multiprocessing.Process):
         poller = zmq.Poller()
         poller.register(svc_socket, zmq.POLLIN)
 
-        global services, services_lock
-        # advertising services
-        services_lock.acquire()
-        for svc_name, svc_endpoint in self._providers.iteritems():
-            #print('-> Providing {0} with {1}'.format(svc_name, svc_endpoint))
-            # needs reassigning to propagate update to manager
-            services[svc_name] = (services[svc_name] if svc_name in services else []) + [(self.name, self._svc_address)]
-        services_lock.release()
+        # Initializing all context managers
+        with service_provider_cm(
+                    self.name, self._svc_address, self._providers
+                ), node_cm(self.name, self._svc_address), self.context_manager() as cm:
 
-        # advertise itself
-        nodes_lock.acquire()
-        nodes[self.name] = {'service_conn': self._svc_address}
-        nodes_lock.release()
+            # Starting the clock
+            start = time.time()
 
-        # Starting the clock
-        start = time.time()
+            # loop listening to connection
+            while not self.exit.is_set():
 
-        # loop listening to connection
-        while not self.exit.is_set():
-
-            # blocking. messages are received ASAP. timeout only determine update/shutdown speed.
-            socks = dict(poller.poll(timeout=100))
-            if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
-                req = None
-                try:
-                    req_unparsed = svc_socket.recv()
-                    req = ServiceRequest_dictparse(req_unparsed)
-                    if isinstance(req, ServiceRequest):
-                        if req.service and req.service in self._providers.keys():
-
-                            args = pickle.loads(req.args) if req.args else ()
-                            # add 'self' if providers[req.service] is a bound method.
-                            if self._providers[req.service].self:
-                                args = (self, ) + args
-                            kwargs = pickle.loads(req.kwargs) if req.kwargs else {}
-
-                            resp = self._providers[req.service].func(*args, **kwargs)
-                            svc_socket.send(ServiceResponse(
-                                service=req.service,
-                                response=pickle.dumps(resp),
-                            ).serialize())
-
-                        else:
-                            raise UnknownServiceException("Unknown Service {0}".format(req.service))
-                    else:  # should not happen : dictparse would fail before reaching here...
-                        raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
-                except Exception:  # we transmit back all errors, and keep spinning...
-                    exctype, excvalue, tb = sys.exc_info()
-                    # trying to make a pickleable traceback
+                # blocking. messages are received ASAP. timeout only determine update/shutdown speed.
+                socks = dict(poller.poll(timeout=100))
+                if svc_socket in socks and socks[svc_socket] == zmq.POLLIN:
+                    req = None
                     try:
-                        ftb = Traceback(tb)
-                    except TypeError as exc:
-                        ftb = "Traceback manipulation error: {exc}. Verify that python-tblib is installed.".format(exc=exc)
+                        req_unparsed = svc_socket.recv()
+                        req = ServiceRequest_dictparse(req_unparsed)
+                        if isinstance(req, ServiceRequest):
+                            if req.service and req.service in self._providers.keys():
 
-                    # sending back that exception with traceback
-                    svc_socket.send(ServiceResponse(
-                        service=req.service,
-                        exception=ServiceException(
-                            exc_type=pickle.dumps(exctype),
-                            exc_value=pickle.dumps(excvalue),
-                            traceback=pickle.dumps(ftb),
-                        )
-                    ).serialize())
+                                args = pickle.loads(req.args) if req.args else ()
+                                # add 'self' if providers[req.service] is a bound method.
+                                if self._providers[req.service].self:
+                                    args = (self, ) + args
+                                kwargs = pickle.loads(req.kwargs) if req.kwargs else {}
 
-            # time is ticking
-            now = time.time()
-            timedelta = now - start
-            start = now
+                                resp = self._providers[req.service].func(*args, **kwargs)
+                                svc_socket.send(ServiceResponse(
+                                    service=req.service,
+                                    response=pickle.dumps(resp),
+                                ).serialize())
 
-            self.update(timedelta)
+                            else:
+                                raise UnknownServiceException("Unknown Service {0}".format(req.service))
+                        else:  # should not happen : dictparse would fail before reaching here...
+                            raise UnknownRequestTypeException("Unknown Request Type {0}".format(type(req.request)))
+                    except Exception:  # we transmit back all errors, and keep spinning...
+                        exctype, excvalue, tb = sys.exc_info()
+                        # trying to make a pickleable traceback
+                        try:
+                            ftb = Traceback(tb)
+                        except TypeError as exc:
+                            ftb = "Traceback manipulation error: {exc}. Verify that python-tblib is installed.".format(exc=exc)
 
-        # concealing services
-        services_lock.acquire()
-        for svc_name, svc_endpoint in self._providers.iteritems():
-            #print('-> Unproviding {0}'.format(svc_name))
-            services[svc_name] = [(n, a) for (n, a) in services[svc_name] if n != self.name]
-        services_lock.release()
+                        # sending back that exception with traceback
+                        svc_socket.send(ServiceResponse(
+                            service=req.service,
+                            exception=ServiceException(
+                                exc_type=pickle.dumps(exctype),
+                                exc_value=pickle.dumps(excvalue),
+                                traceback=pickle.dumps(ftb),
+                            )
+                        ).serialize())
 
-        # concealing itself
-        nodes_lock.acquire()
-        nodes[self.name] = {}
-        nodes_lock.release()
+                # time is ticking
+                now = time.time()
+                timedelta = now - start
+                start = now
+
+                self.update(timedelta)
+
+        # all context managers are destroyed properly here
 
     def update(self, timedelta):
         """

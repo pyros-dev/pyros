@@ -1,7 +1,7 @@
 <launch>
   <arg name="service_name" default="test_service"/>
 
-  <node name="echo_node" pkg="pyros" type="string_echo_node.py" output="screen">
+  <node name="echo_node" pkg="pyros_test" type="echo.py" output="screen">
     <param name="echo_service_name" value="$(arg service_name)" type="str"/>
   </node>
 

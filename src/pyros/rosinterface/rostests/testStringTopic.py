@@ -6,7 +6,14 @@ import sys
 
 # Unit test import ( will emulate ROS setup if needed )
 import time
-from pyros.rosinterface.topic import TopicBack
+try:
+    from pyros.rosinterface import TopicBack
+except ImportError as exc:
+    import os
+    import pyros.rosinterface
+    import sys
+    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
+    from pyros.rosinterface import TopicBack
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
@@ -16,7 +23,7 @@ from std_msgs.msg import String, Empty
 
 import pyros
 
-from . import rostest_nose
+from pyros_setup import rostest_nose
 import logging
 import inspect
 import unittest
@@ -45,9 +52,12 @@ def setup_module():
 
         rospy.set_param('/echo_node/topic_name', 'test_topic')
         rospy.set_param('/echo_node/echo_topic_name', 'echo_test_topic')
-        echo_node = roslaunch.core.Node('pyros', 'string_echo_node.py', name='echo_node')
-
-        echo_process = launch.launch(echo_node)
+        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
+        try :
+            echo_process = launch.launch(echo_node)
+        except roslaunch.RLException as rlexc:
+            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
+            raise
 
         # TODO : also use pub and sub nodes in more granular tests
 

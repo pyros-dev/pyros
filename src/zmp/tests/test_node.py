@@ -73,6 +73,22 @@ def test_node_creation_double_termination():
     n1.shutdown()
     assert_false(n1.is_alive())
 
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+@timed(5)
+def test_node_as_context_manager():
+    with zmp.Node() as n1:  # this will __init__ and __enter__
+        assert_true(n1.is_alive())
+    assert_true(not n1.is_alive())
+
+# @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
+@timed(5)
+def test_node_running_as_context_manager():
+    n1 = zmp.Node()
+    n1.start()
+    with n1:  # hooking to an already started node
+        assert_true(n1.is_alive())
+    assert_true(not n1.is_alive())
+
 
 def test_update_rate():
     """
