@@ -23,10 +23,11 @@ except ImportError:
 
 
 class RosInterface(BaseInterface):
+
     """
     RosInterface.
     """
-    def __init__(self, enable_cache=False, services=None, topics=None, params=None):
+    def __init__(self, services=None, topics=None, params=None, enable_cache=False):
         self.enable_cache = enable_cache
         if self.enable_cache and rocon_python_comms is None:
             rospy.logerr("Connection Cache enabled for RosInterface, but rocon_python_comms not found. Disabling.")
@@ -38,19 +39,21 @@ class RosInterface(BaseInterface):
             self.cb_ss_dt = Queue.Queue()
 
         # This is run before init_node(). Only do things here that do not need the node to be initialized.
-        # Current mock implementation of services, topics and params
-        self.services_available_lock = threading.Lock()  # writer lock (because we have subscribers on another thread)
-        with self.services_available_lock:
-            self.services_available = set()
-            self.services_available_type = {}
-        self.topics_available_lock = threading.Lock()
-        with self.topics_available_lock:
-            self.topics_available = set()
-            self.topics_available_type = {}
-        self.params_available_lock = threading.Lock()
-        with self.params_available_lock:
-            self.params_available = set()
-            self.params_available_type = {}
+
+        if enable_cache is not None:
+            self.enable_cache = enable_cache
+        # Note : None means no change ( different from [] )
+        rospy.loginfo("""[{name}] ROS Interface initialized with:
+ -    services : {services}
+ -    topics : {topics}
+ -    params : {params}
+ -    enable_cache : {enable_cache}
+ -        """.format(name=__name__,
+                     topics="\n" + "- ".rjust(10) + "\n\t- ".join(topics) if topics else [],
+                     services="\n" + "- ".rjust(10) + "\n\t- ".join(services) if services else [],
+                     params="\n" + "- ".rjust(10) + "\n\t- ".join(params) if params else [],
+                     enable_cache=enable_cache)
+        )
 
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
         super(RosInterface, self).__init__(services or [], topics or [], params or [])
@@ -62,6 +65,7 @@ class RosInterface(BaseInterface):
 
         # Setting our list of interfaced topic right when we start
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
+
 
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
@@ -105,6 +109,7 @@ class RosInterface(BaseInterface):
 
     def TopicCleaner(self, topic):  # the topic class implementation
         return topic.cleanup()
+
     # PARAMS
     def get_param_list(self):  # function returning all params available on the system
         return self.params_available
@@ -122,12 +127,6 @@ class RosInterface(BaseInterface):
 
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
-
-    def reinit(self, services=None, topics=None, params=None, enable_cache=None):
-        if enable_cache is not None:
-            self.enable_cache = enable_cache
-        # Note : None means no change ( different from [] )
-        super(RosInterface, self).reinit(services, topics, params)
 
     def _filter_out_pyros_topics(self, publishers, subscribers):
         """

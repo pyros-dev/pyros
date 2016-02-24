@@ -162,12 +162,12 @@ class TestPyrosROS(object):
             nose.tools.assert_equal(len(params.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in params.providers])
 
-            print("Discovering reinit Service...")
-            reinit = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
-            nose.tools.assert_true(reinit is not None)
-            print("reinit providers : {svc}".format(svc=reinit.providers))
-            nose.tools.assert_equal(len(reinit.providers), 1)
-            nose.tools.assert_true(rosn.name in [p[0] for p in reinit.providers])
+            print("Discovering setup Service...")
+            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(setup is not None)
+            print("setup providers : {svc}".format(svc=setup.providers))
+            nose.tools.assert_equal(len(setup.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in setup.providers])
         finally:
             # finishing PyrosROS process
             if rosn is not None and rosn.is_alive():
@@ -185,10 +185,8 @@ class TestPyrosROS(object):
         try:
             # Starting PyrosROS with preconfigured topics,
             # disabling dynamic_reconf to avoid override asynchronously on start().
-            rosn = PyrosROS()
-            nose.tools.assert_true(not rosn.is_alive())
+            rosn = PyrosROS(kwargs={'topics': ['/string_pub/test_str_topic'], 'enable_cache': self.enable_cache})  # careful assuming the topic fullname here
             try:
-                rosn.reinit(topics=['/string_pub/test_str_topic'], enable_cache=self.enable_cache)  # careful assuming the topic fullname here
                 nose.tools.assert_true(not rosn.is_alive())
                 rosn.start()
                 nose.tools.assert_true(rosn.is_alive())
@@ -225,7 +223,7 @@ class TestPyrosROS(object):
 
             nose.tools.assert_true(not string_pub_process.is_alive())
 
-    def test_rosnode_topics_reinit(self):  # Here we check that this node actually provides all the services
+    def test_rosnode_topics_setup(self):  # Here we check that this node actually provides all the services
         rosn = PyrosROS()
         try:
             nose.tools.assert_true(not rosn.is_alive())
@@ -242,12 +240,12 @@ class TestPyrosROS(object):
             res = topics.call()
             nose.tools.assert_true('test_topic' not in res.keys())  # test_topic has not been created, detected or exposed
 
-            print("Discovering reinit Service...")
-            reinit = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
-            nose.tools.assert_true(reinit is not None)
-            print("reinit providers : {svc}".format(svc=reinit.providers))
-            nose.tools.assert_equal(len(reinit.providers), 1)
-            nose.tools.assert_true(rosn.name in [p[0] for p in reinit.providers])
+            print("Discovering setup Service...")
+            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(setup is not None)
+            print("setup providers : {svc}".format(svc=setup.providers))
+            nose.tools.assert_equal(len(setup.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in setup.providers])
 
             rospy.set_param('/string_pub/topic_name', '~test_str_topic')
             rospy.set_param('/string_pub/test_message', 'testing topic discovery')
@@ -255,7 +253,7 @@ class TestPyrosROS(object):
             string_pub_process = self.launch.launch(string_pub_node)
             try:
 
-                new_config = reinit.call(kwargs={
+                new_config = setup.call(kwargs={
                     'services': [],
                     'topics': ['/string_pub/test_str_topic'],
                     'params': [],
@@ -301,11 +299,9 @@ class TestPyrosROS(object):
             logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
             raise
         try:
-            # Starting PyrosROS with preconfigured services,
-            # disabling dynamic_reconf to avoid override asynchronously on start().
-            rosn = PyrosROS()
+            # Starting PyrosROS with preconfigured services
+            rosn = PyrosROS(kwargs={'services': ['/string_echo/echo_service'], 'enable_cache': self.enable_cache})  # careful assuming the service fullname here
             try:
-                rosn.reinit(services=['/string_echo/echo_service'], enable_cache=self.enable_cache)  # careful assuming the service fullname here
                 nose.tools.assert_true(not rosn.is_alive())
                 rosn.start()
                 nose.tools.assert_true(rosn.is_alive())
@@ -341,7 +337,7 @@ class TestPyrosROS(object):
 
         nose.tools.assert_true(not string_echo_process.is_alive())
 
-    def test_rosnode_services_reinit(self):  # Here we check that this node actually provides all the services
+    def test_rosnode_services_setup(self):  # Here we check that this node actually provides all the services
         rosn = PyrosROS()
         try:
             nose.tools.assert_true(not rosn.is_alive())
@@ -358,12 +354,12 @@ class TestPyrosROS(object):
             res = services.call()
             nose.tools.assert_true('echo_service' not in res.keys())  # test_topic has not been created, detected or exposed
 
-            print("Discovering reinit Service...")
-            reinit = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
-            nose.tools.assert_true(reinit is not None)
-            print("reinit providers : {svc}".format(svc=reinit.providers))
-            nose.tools.assert_equal(len(reinit.providers), 1)
-            nose.tools.assert_true(rosn.name in [p[0] for p in reinit.providers])
+            print("Discovering setup Service...")
+            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(setup is not None)
+            print("setup providers : {svc}".format(svc=setup.providers))
+            nose.tools.assert_equal(len(setup.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in setup.providers])
 
             rospy.set_param('/string_echo/topic_name', '~topic')  # private names to not mess things up too much
             rospy.set_param('/string_echo/echo_topic_name', '~echo_topic')
@@ -373,7 +369,7 @@ class TestPyrosROS(object):
             string_echo_process = self.launch.launch(string_echo_node)
             try:
 
-                new_config = reinit.call(kwargs={
+                new_config = setup.call(kwargs={
                     'services': ['/string_echo/echo_service'],
                     'topics': [],
                     'params': [],

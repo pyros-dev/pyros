@@ -28,17 +28,13 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, base_path=None):
-        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
+    def __init__(self, name=None, argv=None, base_path=None, args=None, kwargs=None):
+        super(PyrosROS, self).__init__(name=name or 'pyros_ros', interface_class=RosInterface, args=args or (), kwargs=kwargs or {})
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
         self.base_path = base_path  # used for setup in actual separate process dynamically
-
-        self.enable_cache = False
-        self.ros_if = None
-        self.ros_if_params = None   # for delayed reinit()
 
     # TODO: get rid of this to need one less client-node call
     # we need make the message type visible to client,
@@ -46,12 +42,12 @@ class PyrosROS(PyrosBase):
     # dynamically right when calling the service.
     def msg_build(self, connec_name):
         msg = None
-        if self.ros_if:
-            if connec_name in self.ros_if.topics.keys():
-                input_msg_type = self.ros_if.topics.get(connec_name, None).rostype
+        if self.interface:
+            if connec_name in self.interface.topics.keys():
+                input_msg_type = self.interface.topics.get(connec_name, None).rostype
                 msg = input_msg_type()
-            elif connec_name in self.ros_if.services.keys():
-                input_msg_type = self.ros_if.services.get(connec_name, None).rostype_req
+            elif connec_name in self.interface.services.keys():
+                input_msg_type = self.interface.services.get(connec_name, None).rostype_req
                 msg = input_msg_type()
         return msg
 
@@ -59,13 +55,13 @@ class PyrosROS(PyrosBase):
     def topic(self, name, msg_content=None):
         try:
             msg = self.msg_build(name)
-            if self.ros_if and name in self.ros_if.topics.keys():
+            if self.interface and name in self.interface.topics.keys():
                 if msg_content is not None:
                     msgconv.populate_instance(msg_content, msg)
-                    self.ros_if.topics.get(name, None).publish(msg)
+                    self.interface.topics.get(name, None).publish(msg)
                     msg = None  # consuming the message
                 else:
-                    res = self.ros_if.topics.get(name, None).get(consume=False)
+                    res = self.interface.topics.get(name, None).get(consume=False)
                     msg = msgconv.extract_values(res) if res else res
             return msg
         except msgconv.FieldTypeMismatchException, e:
@@ -74,8 +70,8 @@ class PyrosROS(PyrosBase):
 
     def topics(self):
         topics_dict = {}
-        if self.ros_if:
-            for t, tinst in self.ros_if.topics.iteritems():
+        if self.interface:
+            for t, tinst in self.interface.topics.iteritems():
                 topics_dict[t] = tinst.asdict()
         return topics_dict
 
@@ -88,8 +84,8 @@ class PyrosROS(PyrosBase):
             # FIXME : if the service is not exposed this returns None.
             # Cost a lot time to find the reason since client code doesnt check the answer.
             # Maybe returning error is better ?
-            if self.ros_if and name in self.ros_if.services.keys():
-                resp = self.ros_if.services.get(name, None).call(rqst)
+            if self.interface and name in self.interface.services.keys():
+                resp = self.interface.services.get(name, None).call(rqst)
                 resp_content = msgconv.extract_values(resp)
             return resp_content
 
@@ -107,32 +103,44 @@ class PyrosROS(PyrosBase):
 
     def services(self):
         services_dict = {}
-        if self.ros_if:
-            for s, sinst in self.ros_if.services.iteritems():
+        if self.interface:
+            for s, sinst in self.interface.services.iteritems():
                 services_dict[s] = sinst.asdict()
         return services_dict
 
     def param(self, name, value=None):
-        if self.ros_if and name in self.ros_if.params.keys():
+        if self.interface and name in self.interface.params.keys():
             if value is not None:
-                self.ros_if.params.get(name, None).set(value)
+                self.interface.params.get(name, None).set(value)
                 value = None  # consuming the message
             else:
-                value = self.ros_if.params.get(name, None).get()
+                value = self.interface.params.get(name, None).get()
         return value
 
     def params(self):
         params_dict = {}
-        if self.ros_if:
-            for p, pinst in self.ros_if.params.iteritems():
+        if self.interface:
+            for p, pinst in self.interface.params.iteritems():
                 params_dict[p] = pinst.asdict()
         return params_dict
 
-    def reinit(self, services=None, topics=None, params=None, enable_cache=None):
-        # this needs to be available just after __init__, however we need the ros_if to be present
-        self.ros_if_params = (services, topics, params, enable_cache)
-        if self.ros_if:
-            self.ros_if.reinit(*self.ros_if_params)
+    def setup(self, *args, **kwargs):
+        """
+        Dynamically reset the interface to expose the services / topics / params whose names are passed as args
+        :param services:
+        :param topics:
+        :param params:
+        :param enable_cache
+        :return:
+        """
+
+        # we add params from ros args to kwargs if it is not there yet
+        kwargs.setdefault('services', list(set(ast.literal_eval(rospy.get_param('~services', "[]")))))
+        kwargs.setdefault('topics', list(set(ast.literal_eval(rospy.get_param('~topics', "[]")))))
+        kwargs.setdefault('params', list(set(ast.literal_eval(rospy.get_param('~params', "[]")))))
+        kwargs.setdefault('enable_cache', rospy.get_param('~enable_cache', False))
+
+        super(PyrosROS, self).setup(*args, **kwargs)
 
     def run(self):
         """
@@ -146,12 +154,6 @@ class PyrosROS(PyrosBase):
         while not m.is_online():
             time.sleep(0.5)
 
-        self.enable_cache = rospy.get_param('~enable_cache', False)
-        self.ros_if = RosInterface(enable_cache=self.enable_cache)
-
-        if self.ros_if_params:
-            self.ros_if.reinit(*self.ros_if_params)
-
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
@@ -160,14 +162,11 @@ class PyrosROS(PyrosBase):
         # TODO : install shutdown hook to shutdown if detected
 
         try:
-            logging.debug("zmp[{name}] running, pid[{pid}]".format(name=__name__, pid=os.getpid()))
-
-            super(PyrosROS, self).run()
-
-            logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=__name__, pid=os.getpid()))
+            # this spins with regular frequency
+            super(PyrosROS, self).run()  # we override parent run to add one argument to ros interface
 
         except KeyboardInterrupt:
-            rospy.logwarn('PyrosROS node stopped by keyboad interrupt')
+            rospy.logwarn('PyrosROS node stopped by keyboard interrupt')
 
     def shutdown(self, join=True):
         """
@@ -176,12 +175,6 @@ class PyrosROS(PyrosBase):
         :return: None
         """
         super(PyrosROS, self).shutdown(join)
-
-    def update_throttled(self):
-        """
-        Update function to call from a looping thread.
-        """
-        self.ros_if.update()
 
 
 PyrosBase.register(PyrosROS)

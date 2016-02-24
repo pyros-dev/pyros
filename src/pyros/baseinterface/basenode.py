@@ -9,20 +9,22 @@ import abc
 
 import zmp
 
-# TODO : service interface for mock to be able to dynamically trigger services / topics / params appearing & disappearing
+from . import BaseInterface
+
+
 class PyrosBase(zmp.Node):
     """
     Mock Interface in pure python ( No ROS needed ).
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name=None, context_manager=None):
+    def __init__(self, name=None, interface_class=BaseInterface, context_manager=None, args=None, kwargs=None):
         """
         :param name: name of the node
         :param context_manager: a context manager to enter when starting, and exit when the node stops
         :return:
         """
-        super(PyrosBase, self).__init__(name or 'pyros', context_manager=context_manager)
+        super(PyrosBase, self).__init__(name or 'pyros', context_manager=context_manager, args=args or (), kwargs=kwargs or {})
 
         self.last_update = 0
         self.update_interval = 1  # seconds to wait between each update
@@ -34,8 +36,12 @@ class PyrosBase(zmp.Node):
         self.provides(self.services)
         self.provides(self.param)
         self.provides(self.params)
-        self.provides(self.reinit)
-        pass
+        self.provides(self.setup)
+
+        # TODO : maybe assert callable, or class here ? Goal is to avoid late error on run()...
+        self.interface_class = interface_class
+        self.interface = None  # delayed interface creation
+        # interface should be created in child process only to maintain isolation.
 
     # These should match the design of PyrosClient and Protocol so we are consistent between pipe and python API
     @abc.abstractmethod
@@ -68,15 +74,37 @@ class PyrosBase(zmp.Node):
         return
 
     @abc.abstractmethod
-    def reinit(self):
-        return
+    def setup(self, *args, **kwargs):
+        """
+        Dynamically reset the interface to expose the services / topics / params whose names are passed as args
+        :param services:
+        :param topics:
+        :param params:
+        :return:
+        """
 
+        # priority for arguments in setup() call :
+        # 1. setup ( args ) if called directly by service -> override any other args
+        # 2. process ( _args ) if passed from parent process -> override environment provided args
+        # 3. others ( like ros args or config args coming from file etc. )
+        # TODO : replace rosargs by config file ??? -> goal is simplicity from user perspective.
+
+        self.interface = self.interface_class(*args, **kwargs)
+
+    # TODO : change this running interface to have a delegate zmp node ( instead of motherclass )
+    # Maybe this will help when passing custom argument from child classes to child processes...
     def run(self):
         """
         Running in a zmp.Node process, providing zmp.services
         """
 
         logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
+
+        # Initialization ( here in child )
+        # None passed in argument means empty list ( different than reinit meaning )
+
+        # getting preset params from parent process memory
+        self.setup(*self._args, **self._kwargs)
 
         super(PyrosBase, self).run()
 
@@ -104,7 +132,8 @@ class PyrosBase(zmp.Node):
     def update_throttled(self):
         """
         An update method that is only run every self.update_interval
+        It updates the interface state
         :return:
         """
-        pass
+        self.interface.update()
 
