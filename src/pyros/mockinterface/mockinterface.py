@@ -76,7 +76,7 @@ class MockInterface(BaseInterface):
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
 
-    def update(self, system_state=None):
+    def update(self):
         with self.topics_available_lock:
             self.topics_available = topics_available_remote
             self.topics_available_type = topics_available_type_remote

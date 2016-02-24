@@ -81,12 +81,12 @@ def test_node_creation_args():
     ns = multiprocessing.Manager().Namespace()
     ns.arg = 42
 
-    class Test_Arg_Node(zmp.Node):
+    class TestArgNode(zmp.Node):
         def run(self):
             # TODO : find a more obvious way to pass parameters to the child process
             ns.arg -= self._args[0]
 
-    n1 = Test_Arg_Node(args=(ns.arg,))
+    n1 = TestArgNode(args=(ns.arg,))
     assert_false(n1.is_alive())
     n1.start()
     assert_true(n1.is_alive())
@@ -102,12 +102,12 @@ def test_node_creation_kwargs():
     ns = multiprocessing.Manager().Namespace()
     ns.kwarg = 42
 
-    class Test_KWArg_Node(zmp.Node):
+    class TestKWArgNode(zmp.Node):
         def run(self):
             # TODO : find a more obvious way to pass parameters to the child process
             ns.kwarg -= self._kwargs['intval']
 
-    n1 = Test_KWArg_Node(kwargs={'intval': ns.kwarg, })
+    n1 = TestKWArgNode(kwargs={'intval': ns.kwarg, })
     assert_false(n1.is_alive())
     n1.start()
     assert_true(n1.is_alive())
