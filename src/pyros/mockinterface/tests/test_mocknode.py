@@ -8,7 +8,13 @@ import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'src')))
 
-from pyros.mockinterface import PyrosMock
+from pyros.mockinterface.mocksystem import (
+    mock_service_remote, mock_topic_remote, mock_param_remote,
+    services_available_remote, services_available_type_remote,
+    topics_available_remote, topics_available_type_remote,
+    params_available_remote, params_available_type_remote,
+)
+from pyros.mockinterface import PyrosMock, MockInterface
 from pyros.mockinterface.mocktopic import statusecho_topic, MockTopic
 import zmp
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
@@ -27,6 +33,7 @@ def test_mocknode_creation_termination():
         mockn.shutdown()
         assert_false(mockn.is_alive())
 
+
 @timed(5)
 def test_mocknode_provide_services():  # Here we check that this node actually provides all the services
     mockn = PyrosMock()
@@ -39,6 +46,7 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
     assert_true(hasattr(mockn, 'services'))
     assert_true(hasattr(mockn, 'param'))
     assert_true(hasattr(mockn, 'params'))
+    assert_true(hasattr(mockn, 'setup'))
 
     mockn.start()
     try:
@@ -79,8 +87,8 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
         assert_false(param_list is None)
         assert_equal(len(param_list.providers), 1)
 
-        print("Discovering reinit Service...")
-        param_list = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
+        print("Discovering setup Service...")
+        param_list = zmp.discover("setup", 5)  # we wait a bit to let it time to start
         assert_false(param_list is None)
         assert_equal(len(param_list.providers), 1)
     finally:
@@ -89,32 +97,50 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
 
 
 def test_mocknode_topics_detect():  # Here we check that this node actually detects a topic
-    mockn = PyrosMock()
+    mockn = PyrosMock(kwargs={
+        'services': [],
+        'topics': ['test_topic'],
+        'params': []
+    })
     assert_false(mockn.is_alive())
 
     assert_true(hasattr(mockn, 'topics'))
-    # create a topic on that mock interface
-    mockn.mock_if.mock_topic_appear('test_topic', statusecho_topic)
-    mockn.reinit(services=[], topics=['test_topic'], params=[])
+
+    # starting the node
     mockn.start()
+
+    # checking interface is still None here ( instantiated in child only )
+    assert_true(mockn.interface is None)
+
+    # Services are initialized in run() method of zmp.Node, after interface has been initialized
     try:
         assert_true(mockn.is_alive())
 
-        print("Discovering topics Service...")
-        topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
-        assert_false(topics is None)
-        assert_equal(len(topics.providers), 1)
+        with mock_topic_remote('test_topic', statusecho_topic):
 
-        res = topics.call()
-        assert_true('test_topic' in res)  # topic not detected since not in list of exposed topics
+            # asserting the mock system has done its job from our point of view at least
+            assert_true('test_topic' in topics_available_remote)
+            assert_equal(topics_available_type_remote['test_topic'], statusecho_topic)
 
+            # Getting topics list from child process
+            print("Discovering topics Service...")
+            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
+
+            time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
+
+            res = topics.call(recv_timeout=6000000)
+            # the mock system should have done its job from the other process perspective too
+            # via multiprocess manager list
+            assert_true('test_topic' in res)  # topic detected since in list of exposed topics
 
     finally:
         mockn.shutdown()
         assert_false(mockn.is_alive())
 
 
-def test_mocknode_topics_detect_reinit():  # Here we check that this node actually detects a topic upon reinit
+def test_mocknode_topics_detect_setup():  # Here we check that this node actually detects a topic upon setup
     mockn = PyrosMock()
     assert_false(mockn.is_alive())
 
@@ -124,33 +150,27 @@ def test_mocknode_topics_detect_reinit():  # Here we check that this node actual
     try:
         assert_true(mockn.is_alive())
 
-        print("Discovering mock_topic_appear Service...")
-        mock_topic_appear = zmp.discover("mock_topic_appear", 5)  # we wait a bit to let it time to start
-        assert_false(mock_topic_appear is None)
-        assert_equal(len(mock_topic_appear.providers), 1)
+        with mock_topic_remote('test_topic', statusecho_topic):
 
-        # create a topic on that mock process
-        mock_topic_appear.call(args=('test_topic', statusecho_topic))
+            print("Discovering topics Service...")
+            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
 
-        print("Discovering topics Service...")
-        topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
-        assert_false(topics is None)
-        assert_equal(len(topics.providers), 1)
+            res = topics.call()
+            assert_true(not 'test_topic' in res)  # topic not detected since not in list of exposed topics
 
-        res = topics.call()
-        assert_true(not 'test_topic' in res)  # topic not detected since not in list of exposed topics
+            print("Discovering setup Service...")
+            setup = zmp.discover("setup", 3)  # we wait a bit to let it time to start
+            assert_false(setup is None)
+            assert_equal(len(setup.providers), 1)
 
-        print("Discovering reinit Service...")
-        reinit = zmp.discover("reinit", 5)  # we wait a bit to let it time to start
-        assert_false(reinit is None)
-        assert_equal(len(reinit.providers), 1)
+            setup.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
 
-        reinit.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
+            time.sleep(mockn.update_interval + 1)  # waiting for update to kick in
 
-        time.sleep(mockn.update_interval + 1)  # waiting for update to kick in
-
-        res = topics.call()
-        assert_true('test_topic' in res)
+            res = topics.call()
+            assert_true('test_topic' in res)
     finally:
         mockn.shutdown()
         assert_false(mockn.is_alive())
@@ -171,35 +191,29 @@ def test_mocknode_topics_detect_throttled():
     try:
         assert_true(mockn.is_alive())
 
-        print("Discovering mock_topic_appear Service...")
-        mock_topic_appear = zmp.discover("mock_topic_appear", 3)  # we wait a bit to let it time to start
-        assert_false(mock_topic_appear is None)
-        assert_equal(len(mock_topic_appear.providers), 1)
+        print("Discovering setup Service...")
+        setup = zmp.discover("setup", 3)  # we wait a bit to let it time to start
+        assert_false(setup is None)
+        assert_equal(len(setup.providers), 1)
 
-        print("Discovering topics Service...")
-        topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
-        assert_false(topics is None)
-        assert_equal(len(topics.providers), 1)
+        setup.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
 
-        print("Discovering reinit Service...")
-        reinit = zmp.discover("reinit", 3)  # we wait a bit to let it time to start
-        assert_false(reinit is None)
-        assert_equal(len(reinit.providers), 1)
+        with mock_topic_remote('test_topic', statusecho_topic):
 
-        reinit.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
+            print("Discovering topics Service...")
+            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
 
-        # create a topic on that mock process
-        mock_topic_appear.call(args=('test_topic', statusecho_topic))
+            # topic is very likely not detected yet ( we didn't wait after creating and exposing it )
+            res = topics.call()
+            assert_true(not 'test_topic' in res)
 
-        # topic is very likely not detected yet ( we didn't wait after creating and exposing it )
-        res = topics.call()
-        assert_true(not 'test_topic' in res)
+            time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
 
-        time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
-
-        # topic has to be detected now
-        res = topics.call()
-        assert_true('test_topic' in res)
+            # topic has to be detected now
+            res = topics.call()
+            assert_true('test_topic' in res)
 
     finally:  # to make sure we clean up on failure
         mockn.shutdown()

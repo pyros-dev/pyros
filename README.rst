@@ -88,6 +88,19 @@ Coming up soon
 
 => If you want to build a binary package depending on pyros, you should rely on the pip dependency mechanism and embed the appropriate version into your deb (virtual env embedded).
 
+Roadmap
+-------
+
+We should do what we can to catch up on IoT platforms design.
+Although Pyros focus on pure python design, another package depending on it should enable ROS systems to connect as device to these IoT platforms.
+
+Currently Rostful provide HTTP connection to your robot.
+For example another project could provide MQTT connection to your robot, following amazon choice of using MQTT (OASIS Standard).
+
+IoT platforms design :
+
+- Amazon :  http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
+
 Will NOT do in pyros
 --------------------
 - Support for Actions (http://wiki.ros.org/actionlib) in pyros itself.

@@ -10,7 +10,7 @@ from pyros.pyros_client import PyrosClient
 
 
 def testPyrosMockCtx():
-    with pyros_ctx(mock=True) as ctx:
+    with pyros_ctx(mock_node=True) as ctx:
         assert isinstance(ctx.client, PyrosClient)
 
     # TODO : assert the context manager does his job ( HOW ? )
@@ -23,7 +23,7 @@ def testPyrosROSCtx():
 
     assert master.is_online()
 
-    with pyros_ctx(mock=False, base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')) as ctx:
+    with pyros_ctx(mock_node=False, base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')) as ctx:
 
         assert isinstance(ctx.client, PyrosClient)
 

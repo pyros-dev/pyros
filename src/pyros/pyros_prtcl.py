@@ -43,11 +43,4 @@ ParamInfo = namedtuple('ParamInfo', 'name fullname')
 
 Error = namedtuple('Error', 'pid message traceback')
 
-Namespaces = namedtuple('Namespaces', 'namespace_dict')
-NamespaceInfo = namedtuple('NamespaceInfo', 'name')
 
-Interaction = namedtuple('Interaction', 'interaction')
-Interactions = namedtuple('Interactions', 'interaction_dict')
-InteractionInfo = namedtuple('InteractionInfo', 'name display_name')
-
-Rocon = namedtuple('Rocon', 'has_rocon')

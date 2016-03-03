@@ -128,7 +128,8 @@ class Node(multiprocessing.Process):
 
     EndPoint = namedtuple("EndPoint", "self func")
 
-    def __init__(self, name='node', socket_bind=None, context_manager=None):
+    # TODO : allow just passing target to be able to make a Node from a simple function, and also via decorator...
+    def __init__(self, name='node', socket_bind=None, context_manager=None, args=None, kwargs=None):
         """
         Initializes a Process
         :param name: Name of the node
@@ -137,7 +138,7 @@ class Node(multiprocessing.Process):
         :return:
         """
         # TODO check name unicity
-        super(Node, self).__init__(name=name)
+        super(Node, self).__init__(name=name, args=args or (), kwargs=kwargs or {})
         self.context_manager = context_manager or dummy_cm  # TODO: extend to list if possible ( available for python >3.1 only )
         self.exit = multiprocessing.Event()
         self.listeners = {}
@@ -183,6 +184,7 @@ class Node(multiprocessing.Process):
         else:
             super(Node, self).start()
 
+    # TODO : Implement a way to redirect stdout/stderr, or even forward to parent ?
     def run(self):
 
         #print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
