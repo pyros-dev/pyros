@@ -45,6 +45,8 @@ PyrosException.register(PyrosServiceTimeout)
 # without having to have all the ROS environment installed and setup, and running extra processing
 # just for unit testing...
 class PyrosClient(object):
+    # TODO : improve ZMP to return the socket_bind address to point to the exact IPC/socket channel.
+    # And pass it here, instead of assuming node name is unique...
     def __init__(self, node_name=None):
         # Link to only one Server
         self.node_name = node_name

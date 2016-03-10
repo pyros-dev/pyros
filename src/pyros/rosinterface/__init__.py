@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import os
 import types
-import pyros_setup
 
 """
 Hopefully this should endup in rosinterface.__doc__
@@ -39,19 +38,20 @@ class _PyrosSetup(types.ModuleType):
         distro = distro or 'indigo'
         try:
             import rospy  # early except to prevent unintentional workaround in all modules here
-            from .topic import TopicBack
-            from .service import ServiceBack
-            from .param import ParamBack
-            from .ros_interface import RosInterface
-            from .pyros_ros import PyrosROS
+            from pyros.rosinterface.topic import TopicBack
+            from pyros.rosinterface.service import ServiceBack
+            from pyros.rosinterface.param import ParamBack
+            from pyros.rosinterface.ros_interface import RosInterface
+            from pyros.rosinterface.pyros_ros import PyrosROS
         except ImportError:
+            import pyros_setup
             pyros_setup.delayed_import(distro, *workspaces)
             import rospy
-            from .topic import TopicBack
-            from .service import ServiceBack
-            from .param import ParamBack
-            from .ros_interface import RosInterface
-            from .pyros_ros import PyrosROS
+            from pyros.rosinterface.topic import TopicBack
+            from pyros.rosinterface.service import ServiceBack
+            from pyros.rosinterface.param import ParamBack
+            from pyros.rosinterface.ros_interface import RosInterface
+            from pyros.rosinterface.pyros_ros import PyrosROS
 
         # we return a relay of imported names, accessible the same way a direct import would be.
         return _PyrosSetup(TopicBack, ServiceBack, ParamBack, RosInterface, PyrosROS)
@@ -68,21 +68,22 @@ class _PyrosSetup(types.ModuleType):
 
         try:
             import rospy  # early except to prevent unintentional workaround in all modules here
-            from .topic import TopicBack
-            from .service import ServiceBack
-            from .param import ParamBack
-            from .ros_interface import RosInterface
-            from .pyros_ros import PyrosROS
+            from pyros.rosinterface.topic import TopicBack
+            from pyros.rosinterface.service import ServiceBack
+            from pyros.rosinterface.param import ParamBack
+            from pyros.rosinterface.ros_interface import RosInterface
+            from pyros.rosinterface.pyros_ros import PyrosROS
         except ImportError:
+            import pyros_setup
             pyros_setup.delayed_import_auto(distro, base_path)
-            from .topic import TopicBack
-            from .service import ServiceBack
-            from .param import ParamBack
-            from .ros_interface import RosInterface
-            from .pyros_ros import PyrosROS
+            from pyros.rosinterface.topic import TopicBack  # apparently this makes it more robust for celeros import from beat process...
+            from pyros.rosinterface.service import ServiceBack
+            from pyros.rosinterface.param import ParamBack
+            from pyros.rosinterface.ros_interface import RosInterface
+            from pyros.rosinterface.pyros_ros import PyrosROS
 
         # we return a relay of imported names, accessible the same way a direct import would be.
-        return _PyrosSetup(TopicBack, ServiceBack, ParamBack, RosInterface, PyrosROS)
+        return _PyrosSetup(TopicBack, ServiceBack, ParamBack, RosInterface, PyrosROS)  # not supported by import from celeros beat process... improvement needee in pyros setup ?
 
 delayed_import = _PyrosSetup.delayed_import
 delayed_import_auto = _PyrosSetup.delayed_import_auto

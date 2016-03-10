@@ -102,16 +102,16 @@ PyrosException.register(NonexistentFieldException)
 
 class FieldTypeMismatchException(Exception):
     def __init__(self, roottype, fields, expected_type, found_type):
-        super(FieldTypeMismatchException, self).__init__(self.roottype, self.fields, self.expected_type, self.found_type)
+        super(FieldTypeMismatchException, self).__init__(roottype, fields, expected_type, found_type)
         self.roottype = roottype
         self.fields = fields
         self.expected_type = expected_type
         self.found_type = found_type
 
-        if roottype == expected_type:
-            self.excmsg = "Expected a JSON object for type {0!s} but received a {1!s}".format(roottype, found_type)
+        if self.roottype == self.expected_type:
+            self.excmsg = "Expected a JSON object for type {0!s} but received a {1!s}".format(self.roottype, self.found_type)
         else:
-            self.excmsg = "{0!s} message requires a {1!s} for field {2!s}, but got a {3!s}".format(roottype, expected_type, '.'.join(fields), found_type)
+            self.excmsg = "{0!s} message requires a {1!s} for field {2!s}, but got a {3!s}".format(self.roottype, self.expected_type, '.'.join(fields), self.found_type)
 
     @property
     def message(self):

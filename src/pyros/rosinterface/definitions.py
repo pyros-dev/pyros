@@ -16,16 +16,18 @@ def get_all_msg_types(msg, skip_this=False, type_set=None):
         type_set = get_all_msg_types(load_type(slot_type), type_set=type_set)
     return type_set
 
+
 def get_msg_definitions(msg, skip_this=False):
     type_set = get_all_msg_types(msg, skip_this=skip_this)
 
     msg_dfns = []
     for msg_type in type_set:
-        dfn = deffile.ROSStyleDefinition('msg',type_str(msg_type),['msg'])
+        dfn = deffile.ROSStyleDefinition('msg', type_str(msg_type), ['msg'])
         for field_name, field_type in zip(msg_type.__slots__, msg_type._slot_types):
             dfn.segment(0).append((field_name, field_type))
         msg_dfns.append(dfn)
     return msg_dfns
+
 
 def get_definitions(services=None, topics=None, actions=None):
     if services is None:
@@ -40,7 +42,7 @@ def get_definitions(services=None, topics=None, actions=None):
 
     type_set = set()
     for service in services:
-        dfn = deffile.ROSStyleDefinition('srv',service.rostype_name,['request', 'response'])
+        dfn = deffile.ROSStyleDefinition('srv', service.rostype_name, ['request', 'response'])
         for field_name, field_type in zip(service.rostype_req.__slots__, service.rostype_req._slot_types):
             dfn.segment(0).append((field_name, field_type))
             type_set = get_all_msg_types(service.rostype_req, skip_this=True, type_set=type_set)
@@ -50,7 +52,7 @@ def get_definitions(services=None, topics=None, actions=None):
         service_dfns.append(dfn)
 
     for action in actions:
-        dfn = deffile.ROSStyleDefinition('action',action.rostype_name,['goal', 'result', 'feedback'])
+        dfn = deffile.ROSStyleDefinition('action', action.rostype_name, ['goal', 'result', 'feedback'])
         for field_name, field_type in zip(action.rostype_goal.__slots__, action.rostype_goal._slot_types):
             dfn.segment(0).append((field_name, field_type))
             type_set = get_all_msg_types(action.rostype_goal, skip_this=True, type_set=type_set)
@@ -72,6 +74,7 @@ def get_definitions(services=None, topics=None, actions=None):
         msg_dfns.append(dfn)
 
     return msg_dfns + service_dfns + action_dfns
+
 
 def manifest(services, topics, actions, full=False):
     dfile = deffile.DefFile()
@@ -112,6 +115,7 @@ def manifest(services, topics, actions, full=False):
 
     return dfile
 
+
 def describe_service(service_name, service, full=False):
     dfile = deffile.DefFile()
     dfile.manifest.def_type = 'Service'
@@ -123,6 +127,7 @@ def describe_service(service_name, service, full=False):
         [dfile.add_definition(dfn) for dfn in dfns]
 
     return dfile
+
 
 def describe_topic(topic_name, topic, full=False):
     dfile = deffile.DefFile()
