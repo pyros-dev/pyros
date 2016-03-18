@@ -185,6 +185,7 @@ class Node(multiprocessing.Process):
             super(Node, self).start()
 
     # TODO : Implement a way to redirect stdout/stderr, or even forward to parent ?
+    # cf http://ryanjoneil.github.io/posts/2014-02-14-capturing-stdout-in-a-python-child-process.html
     def run(self):
 
         #print('Starting {node} [{pid}] => {address}'.format(node=self.name, pid=self.pid, address=self._svc_address))
