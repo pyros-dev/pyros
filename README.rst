@@ -1,6 +1,10 @@
 Pyros
 =====
 
+.. image:: https://badges.gitter.im/asmodehn/pyros.svg
+   :alt: Join the chat at https://gitter.im/asmodehn/pyros
+   :target: https://gitter.im/asmodehn/pyros?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 .. image:: https://travis-ci.org/asmodehn/pyros.svg?branch=indigo-devel
     :target: https://travis-ci.org/asmodehn/pyros
 
