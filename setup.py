@@ -30,7 +30,7 @@ setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
-        'pyros_setup',
+        'pyros_setup>=0.1.0',
     ],
     zip_safe=False,  # TODO testing...
 )

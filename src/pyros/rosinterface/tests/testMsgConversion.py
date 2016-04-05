@@ -1,13 +1,24 @@
 from __future__ import absolute_import
 
-import pickle
-import sys
 import os
+import sys
+import pickle
 
-#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
 # Unit test import
-from pyros.rosinterface import message_conversion as msgconv
+try:
+    from pyros.rosinterface import message_conversion as msgconv
+except ImportError as ie:
+    import pyros.rosinterface
+    #
+    pyros.rosinterface.delayed_import_new(instance_relative_config=False, root_path=current_path).configure_from_pyfile('testing.cfg').activate()
+    from pyros.rosinterface import message_conversion as msgconv
+
 # ROS imports should now work from ROS or from python ( even without ROS env setup)
 import rospy
 
