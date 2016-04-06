@@ -1,16 +1,26 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import os
+import sys
+import pickle
+
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
+
+
 # Unit test import (  will emulate ROS setup if needed )
 import nose
-import time
-
 
 
 try:
     from pyros.baseinterface import DiffTuple
     from pyros.rosinterface import RosInterface, TopicBack
-except ImportError as exc:
+except ImportError as exc:  # note this is not needed anymore since rosinterface does the pyros_setup configuration using internal object
     import os
     import pyros.rosinterface
     import sys
@@ -77,11 +87,6 @@ class TestRosInterface(unittest.TestCase):
         trigger_srv_node = roslaunch.core.Node('pyros_test', 'triggerService.py', name='trigger_service')
         TestRosInterface.empty_srv_process = TestRosInterface.launch.launch(empty_srv_node)
         TestRosInterface.trigger_srv_process = TestRosInterface.launch.launch(trigger_srv_node)
-
-        # we still need a node to interact with topics
-        rospy.init_node('ros_interface_test', anonymous=True, disable_signals=True)
-        # CAREFUL : this should be done only once per PROCESS
-        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
 
     @classmethod
     def teardown_class(cls):
@@ -769,7 +774,10 @@ class TestRosInterfaceNoCache(TestRosInterface):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
-        self.interface = RosInterface(enable_cache=False)
+        self.interface = RosInterface('test_rosinterface', enable_cache=False)
+
+        # CAREFUL : this is doing a rospy.init_node, and it should be done only once per PROCESS
+        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
 
     def tearDown(self):
         self.interface = None

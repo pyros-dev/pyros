@@ -27,7 +27,14 @@ class RosInterface(BaseInterface):
     """
     RosInterface.
     """
-    def __init__(self, services=None, topics=None, params=None, enable_cache=False):
+    def __init__(self, node_name, services=None, topics=None, params=None, enable_cache=False, argv=None):
+        # This runs in a child process (managed by PyrosROS) and as a normal ros node)
+        # First thing to do : initialize the ros node and disable signals to avoid overriding callers behavior
+        rospy.init_node(node_name, argv=argv, disable_signals=True)
+        rospy.loginfo('RosInterface {name} node started with args : {argv}'.format(name=node_name, argv=argv))
+        # note on dynamic update (config reload, etc.) this is reinitialized
+        # rospy.init_node supports being reinitialized with the exact same arguments
+
         self.enable_cache = enable_cache
         if self.enable_cache and rocon_python_comms is None:
             rospy.logerr("Connection Cache enabled for RosInterface, but rocon_python_comms not found. Disabling.")
@@ -38,22 +45,29 @@ class RosInterface(BaseInterface):
             self.cb_ss = Queue.Queue()
             self.cb_ss_dt = Queue.Queue()
 
-        # This is run before init_node(). Only do things here that do not need the node to be initialized.
+        # we add params from ROS environment, if we get something there (bwcompat behavior)
+        services = services or []
+        topics = topics or []
+        params = params or []
+        services += list(set(ast.literal_eval(rospy.get_param('~services', "[]"))))
+        topics += list(set(ast.literal_eval(rospy.get_param('~topics', "[]"))))
+        params += list(set(ast.literal_eval(rospy.get_param('~params', "[]"))))
+        enable_cache = rospy.get_param('~enable_cache', enable_cache)
 
         if enable_cache is not None:
             self.enable_cache = enable_cache
         # Note : None means no change ( different from [] )
         rospy.loginfo("""[{name}] ROS Interface initialized with:
- -    services : {services}
- -    topics : {topics}
- -    params : {params}
- -    enable_cache : {enable_cache}
- -        """.format(name=__name__,
-                     topics="\n" + "- ".rjust(10) + "\n\t- ".join(topics) if topics else [],
-                     services="\n" + "- ".rjust(10) + "\n\t- ".join(services) if services else [],
-                     params="\n" + "- ".rjust(10) + "\n\t- ".join(params) if params else [],
-                     enable_cache=enable_cache)
-        )
+        -    services : {services}
+        -    topics : {topics}
+        -    params : {params}
+        -    enable_cache : {enable_cache}
+        -        """.format(name=__name__,
+                            topics="\n" + "- ".rjust(10) + "\n\t- ".join(topics) if topics else [],
+                            services="\n" + "- ".rjust(10) + "\n\t- ".join(services) if services else [],
+                            params="\n" + "- ".rjust(10) + "\n\t- ".join(params) if params else [],
+                            enable_cache=enable_cache)
+                      )
 
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
         super(RosInterface, self).__init__(services or [], topics or [], params or [])
@@ -61,11 +75,12 @@ class RosInterface(BaseInterface):
         # connecting to the master via proxy object
         self._master = rospy.get_master()
 
-        self.connection_cache = None  # if enabled, connection cache needs to be inited after node_init -> not in interface.__init__()
+        #: If enabled, connection cache proxy will be setup in update() to allow dynamic update via config.
+        # TODO : double check : maybe useless now since we completely reinit the interface for dynamic update...
+        self.connection_cache = None
 
         # Setting our list of interfaced topic right when we start
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
-
 
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES

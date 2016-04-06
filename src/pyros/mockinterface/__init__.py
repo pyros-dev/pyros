@@ -10,11 +10,7 @@
 #
 from __future__ import absolute_import
 
-from .mocktopic import MockTopic, statusecho_topic
-from .mockservice import MockService, statusecho_service
-from .mockparam import MockParam
 from .mockinterface import MockInterface, mock_service, mock_topic, mock_param
-
 from .mockmessage import (
     extract_values,
     populate_instance,
@@ -22,8 +18,9 @@ from .mockmessage import (
     NonexistentFieldException,
     StatusMsg,
 )
-
-from .mocknode import PyrosMock
+from .mockparam import MockParam
+from .mockservice import MockService, statusecho_service
+from .mocktopic import MockTopic, statusecho_topic
 
 
 # TODO : We should probably use mock library for this and test against it...
@@ -41,5 +38,4 @@ __all__ = [
     'statusecho_topic',
     'statusecho_service',
     'MockInterface',
-    'PyrosMock',
 ]

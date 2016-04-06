@@ -29,4 +29,3 @@ class timeout(object):
 
 # reused fixtures:
 from .testRosInterface import TestRosInterface
-from .testPyrosROS import TestPyrosROS

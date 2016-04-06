@@ -7,7 +7,7 @@ import rospy
 from importlib import import_module
 from collections import OrderedDict
 
-from .message_conversion import get_msg, get_msg_dict
+from .message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException, NonexistentFieldException
 
 
 # outputs message structure as string (useful ?)
@@ -65,17 +65,31 @@ class ServiceBack(object):
             'srvtype': self.srvtype,
         })
 
-    def call(self, rosreq = None):
-#       rosreq = self.rostype_req()
-#       if use_ros:
-#           rosreq.deserialize(req)
-#       else:
-#           msgconv.populate_instance(req, rosreq)
+    def call(self, rosreq_content = None):
+        try:
+            rqst = self.rostype_req()
+            populate_instance(rosreq_content, rqst)
 
-        fields = []
-        if rosreq:
-            for slot in rosreq.__slots__:
-                fields.append(getattr(rosreq, slot))
-            fields = tuple(fields)
+            fields = []
+            if rosreq_content:
+                for slot in rqst.__slots__:
+                    fields.append(getattr(rqst, slot))
+                fields = tuple(fields)
 
-        return self.proxy(*fields)
+            resp = self.proxy(*fields)
+            resp_content = extract_values(resp)
+
+            return resp_content
+
+        except rospy.ServiceException as e:
+            rospy.logerr("[{name}] : service exception {e}".format(name=__name__, e=e))
+            raise
+
+        except FieldTypeMismatchException as e:
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=__name__, e=e))
+            raise
+        except NonexistentFieldException as e:
+            rospy.logerr("[{name}] : non existent field {e}".format(name=__name__, e=e))
+            raise
+
+

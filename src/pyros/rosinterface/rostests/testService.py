@@ -1,8 +1,20 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import six
 import sys
 import logging
+
+import os
+import sys
+import pickle
+
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
 # Unit test import
 try:
@@ -92,14 +104,14 @@ class TestService(unittest.TestCase):
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
         callingFunction = inspect.stack()[1][3]
-        print 'in {0!s} - {1!s}()'.format(currentTest, callingFunction)
+        print('in {0!s} - {1!s}()'.format(currentTest, callingFunction))
 
     def service_wait_type(self, service_name, retries=5, retrysleep=1):
         resolved_service_name = rospy.resolve_name(service_name)
         service_type = rosservice.get_service_type(resolved_service_name)
         retry = 0
         while not service_type and retry < 5:
-            print 'Service {service} not found. Retrying...'.format(service=resolved_service_name)
+            print('Service {service} not found. Retrying...'.format(service=resolved_service_name))
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
             service_type = rosservice.get_service_type(resolved_service_name)
@@ -139,8 +151,9 @@ class TestService(unittest.TestCase):
             self.logPoint()
 
             print("calling : {msg} on service {service}".format(msg=self.test_message, service=self.echo_service.name))
-            resp = self.echo_service.call(self.echo_service.rostype_req(self.test_message))
-            self.assertIn(resp.response, [self.test_message])
+            resp = self.echo_service.call({'request': self.test_message})
+            # Assert there is no difference
+            assert_true(len(set(six.iteritems(resp)) ^ set(six.iteritems({'response': self.test_message}))) == 0)
 
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")

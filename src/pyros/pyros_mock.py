@@ -1,15 +1,10 @@
 from __future__ import absolute_import
 
-import ast
-import json
-import os
-import logging
-import time
-
-import zmp
 # python protocol should be usable without ROS.
-from pyros.baseinterface import PyrosBase
+from .baseinterface import PyrosBase
 from .mockinterface import MockInterface
+
+from . import config
 
 
 class PyrosMock(PyrosBase):
@@ -17,11 +12,33 @@ class PyrosMock(PyrosBase):
     Mock Interface in pure python ( No ROS needed ).
 
     """
+    #: Default configuration parameters.
+    _default_config = {
+        'TOPICS': [],
+        'SERVICES': [],
+        'PARAMS': [],
+    }
 
     # TODO : we probably want to reuse the standard mock module here...
-    def __init__(self, name=None, args=None, kwargs=None):
+    def __init__(self, name=None, pyros_config=None, args=None, kwargs=None):
         name = name or 'pyros-mock'
-        super(PyrosMock, self).__init__(name, interface_class=MockInterface, args=args or (), kwargs=kwargs or {})
+
+        # No default config here for now
+
+        # TODO : use context manager here to use another process just like any resource...
+        super(PyrosMock, self).__init__(
+            name,
+            interface_class=MockInterface,
+            args=args or (),
+            kwargs=kwargs or {},
+            default_config=self._default_config,  # we pass our default config here
+        )
+
+        # overriding default config with parameter provided
+        self.config_handler.configure(config)  # configuring with our package default
+        if pyros_config:
+            self.config_handler.configure(pyros_config)  # configuring with argument passed form user
+
         self._topic_msg = {}  # storage for the echo topic
         self._param_val = {}  # storage for the test param
         self._stop_event = None  # stop_event to signal the thread for soft shutdown

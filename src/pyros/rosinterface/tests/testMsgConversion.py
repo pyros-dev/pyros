@@ -4,6 +4,7 @@ import os
 import sys
 import pickle
 
+# This is needed if running this test directly (without using nose loader)
 # prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
 # And we need our current module to be found first.
 current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -13,10 +14,8 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 # Unit test import
 try:
     from pyros.rosinterface import message_conversion as msgconv
-except ImportError as ie:
+except ImportError as ie:  # note this is not needed for dev since rosinterface does the pyros_setup configuration from internal object
     import pyros.rosinterface
-    #
-    pyros.rosinterface.delayed_import_new(instance_relative_config=False, root_path=current_path).configure_from_pyfile('testing.cfg').activate()
     from pyros.rosinterface import message_conversion as msgconv
 
 # ROS imports should now work from ROS or from python ( even without ROS env setup)
@@ -55,6 +54,8 @@ def test_msg_exception_pickle():
     assert_equal(len(pexc.fields), 2)
     assert_true("field1" in pexc.fields)
     assert_true("field2" in pexc.fields)
+
+# TODO : assert both "string" and "std_msgs/String" are convertible from&to "str" and "unicode"
 
 
 #TODO : assert exception are being thrown

@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 import sys
 import threading
 import collections
@@ -117,10 +118,10 @@ class BaseInterface(object):
                     resolved_dict[tst_name] = class_build_func(tst_name, ttype, *class_build_args, **class_build_kwargs)
                     added += [tst_name]
                     logging.info("[{name}] Interfacing with {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
-            except Exception, e:
+            except Exception as e:
                 logging.warn("[{name}] Cannot interface with {desc} {transient} : {exc}".format(name=__name__, desc=transient_desc, transient=tst_name, exc=e))
                 exc_info = sys.exc_info()
-                raise exc_info[0], exc_info[1], exc_info[2]
+                six.reraise(exc_info[0], exc_info[1], exc_info[2])
 
         for tst_name in [tst for tst in remove_names if tst in resolved_dict.keys()]:
             logging.info("[{name}] Removing {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
@@ -294,6 +295,9 @@ class BaseInterface(object):
         return
 
     def __init__(self, services, topics, params):
+        """
+        Initializes the interface instance, to expose services, topics, and params
+        """
         # Current services topics and actions exposed, i.e. those which are
         # active in the system.
         self.services = {}

@@ -9,7 +9,7 @@ from importlib import import_module
 from collections import deque, OrderedDict
 
 
-from .message_conversion import get_msg, get_msg_dict
+from .message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException
 
 
 def get_topic_msg(topic):
@@ -175,13 +175,24 @@ class TopicBack(object):
             'rostype_name': self.rostype_name,
         })
 
-    def publish(self, msg):
+    def publish(self, msg_content):
+        """
+        Publishes a message to the topic
+        :return the actual message sent if one was sent, None if message couldn't be sent.
+        """
         # enforcing correct type to make send / receive symmetric and API less magical
         # Doing message conversion visibly in code before sending into the black magic tunnel sounds like a good idea
-        if isinstance(msg, self.rostype):
-            self.pub.publish(msg)  # This should return False if publisher not fully setup yet
-            return True  # because the return spec of rospy's publish is not consistent
-        return False
+        try:
+            msg = self.rostype()
+            populate_instance(msg_content, msg)
+            if isinstance(msg, self.rostype):
+                self.pub.publish(msg)  # This should return False if publisher not fully setup yet
+                return msg  # because the return spec of rospy's publish is not consistent
+        except FieldTypeMismatchException as e:
+            rospy.logerr("[{name}] : field type mismatch {e}".format(name=__name__, e=e))
+            raise
+            # TODO : reraise a topic exception ?
+        return None
 
     def get(self, num=0, consume=False):
         if not self.msg:
@@ -196,7 +207,12 @@ class TopicBack(object):
                 #TODO : CHECK that we can survive here even if we get dropped from the topic list
         else:
             res = self.msg[0]
-
+            try:
+                res = extract_values(res)
+            except FieldTypeMismatchException as e:
+                rospy.logerr("[{name}] : field type mismatch {e}".format(name=__name__, e=e))
+                raise
+                # TODO : reraise a topic exception ?
         return res
 
     #returns the number of unread message

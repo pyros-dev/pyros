@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import logging
 import mock
-
-from .mockinterface.mocknode import PyrosMock
-from . import pyros_client
-
 from collections import namedtuple
 from contextlib import contextmanager
+
+from .pyros_mock import PyrosMock
+from .pyros_ros import PyrosROS
+from . import pyros_client, config
 
 
 # A context manager to handle server process launch and shutdown properly.
@@ -15,31 +15,20 @@ from contextlib import contextmanager
 @contextmanager
 def pyros_ctx(name='pyros',
               argv=None,  # TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
-              anonymous=True,
-              disable_signals=True,
               mock_client=False,
               mock_node=False,
-              base_path=None):
+              pyros_config=None):
+
+    pyros_config = pyros_config or config  # using internal config if no other config passed
+
     subproc = None
     if not mock_client:
         if mock_node:
             logging.warn("Setting up pyros mock node...")
             subproc = PyrosMock(name)
         else:
-            # dynamic import
-            try:
-                # this will import rosinterface and if needed simulate ROS setup
-                import sys
-                from . import rosinterface
-                sys.modules[".rosinterface"] = rosinterface.delayed_import_auto(distro='indigo', base_path=base_path)
-                from .rosinterface.pyros_ros import PyrosROS
-            except ImportError, e:
-                logging.warn("Error: Could not import PyrosROS from .rosinterface.pyros_ros {}".format(e))
-
-                # TODO : maybe turn this whole setup behavior into a context so we can cleanup easily
-
             logging.warn("Setting up pyros ROS node...")
-            subproc = PyrosROS(name, argv, base_path=base_path)
+            subproc = PyrosROS(name, argv).configure(pyros_config)
 
         client_conn = subproc.start()
 

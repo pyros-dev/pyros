@@ -1,8 +1,17 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
+import six
 
+import os
 import sys
+
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
 # Unit test import ( will emulate ROS setup if needed )
 import time
@@ -101,13 +110,13 @@ class TestStringTopic(unittest.TestCase):
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
         callingFunction = inspect.stack()[1][3]
-        print 'in {0!s} - {1!s}()'.format(currentTest, callingFunction)
+        print('in {0!s} - {1!s}()'.format(currentTest, callingFunction))
 
     def msg_extract(self, topic, retries=5, retrysleep=1):
         msg = topic.get()
         retry = 0
         while not msg and retry < retries:
-            print 'Message not extracted. Retrying...'
+            print('Message not extracted. Retrying...')
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
             msg = topic.get()
@@ -116,23 +125,19 @@ class TestStringTopic(unittest.TestCase):
         else:
             return msg
 
-    def msg_wait(self, strings, topic, retries=5, retrysleep=1):
+    def msg_wait(self, expected_msg, topic, retries=5, retrysleep=1):
         msg = self.msg_extract(topic)
-        msg = msg.data  # TODO : get rid of that
         retry = 0
-        while retry < retries and not msg in strings:
-            print 'Discarding unexpected message {0}. Retrying...'.format(msg)
+        # set XOR is a quick way to diff dict : if empty we stop (dicts are equals)
+        while retry < retries and (set(six.iteritems(msg)) ^ set(six.iteritems(expected_msg))):
+            print('Discarding unexpected message {0}. Retrying...'.format(msg))
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
             msg = self.msg_extract(topic)
-            msg = msg.data  # TODO : get rid of that
-            for s in strings:
-                if msg == s:
-                    print('msg \"{0}\" == s \"{1}\"'.format(msg, s))
-                else:
-                    print('msg \"{0}\" != s \"{1}\"'.format(msg, s))
+            print('Checking msg \"{0}\" == s \"{1}\"'.format(msg, expected_msg))
+
         if retry >= retries:
-            self.fail('No Expected message {0} arrived. Failing.'.format(strings))
+            self.fail('No Expected message {0} arrived. Failing.'.format(expected_msg))
         else:
             return msg
 
@@ -141,7 +146,7 @@ class TestStringTopic(unittest.TestCase):
         topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
         retry = 0
         while not topic_type and retry < 5:
-            print 'Topic {topic} not found. Retrying...'.format(topic=resolved_topic_name)
+            print('Topic {topic} not found. Retrying...'.format(topic=resolved_topic_name))
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
             topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
@@ -158,13 +163,13 @@ class TestStringTopic(unittest.TestCase):
         # Here we hook to the test topic in supported ways
         param_name = "/stringTopicTest/pub_topic_name"
         self.pub_topic_name = rospy.get_param(param_name, "")
-        print 'Parameter {p} has value {v}'.format(p=param_name, v=self.pub_topic_name)
+        print('Parameter {p} has value {v}'.format(p=param_name, v=self.pub_topic_name))
         if self.pub_topic_name == "":
             self.fail("{0} parameter not found".format(param_name))
 
         param_name = "/stringTopicTest/echo_topic_name"
         self.echo_topic_name = rospy.get_param(param_name, "")
-        print 'Parameter {p} has value {v}'.format(p=param_name, v=self.echo_topic_name)
+        print('Parameter {p} has value {v}'.format(p=param_name, v=self.echo_topic_name))
         if self.echo_topic_name == "":
             self.fail("{0} parameter not found".format(param_name))
 
@@ -195,11 +200,12 @@ class TestStringTopic(unittest.TestCase):
 
             # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))
-            assert_true(self.pub_topic.publish(self.pub_topic.rostype(self.test_message)))
+            assert_true(self.pub_topic.publish({'data': self.test_message}))
 
-            print("waiting for : {msg} on topic {topic}".format(msg=self.test_message, topic=self.echo_topic.name))
-            msg = self.msg_wait([self.test_message], self.echo_topic)
-            self.assertIn(msg, [self.test_message])
+            print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.echo_topic.name))
+            msg = self.msg_wait({'data': self.test_message}, self.echo_topic)
+            # We assert there is no difference
+            assert_true(len(set(six.iteritems(msg)) ^ set(six.iteritems({'data': self.test_message}))) == 0)
 
         except KeyboardInterrupt:
             self.fail("Test Interrupted !")

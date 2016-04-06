@@ -2,9 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-
 from pyros.baseinterface import BaseInterface
-
 from .mocksystem import (
     services_available_remote, services_available_type_remote,
     topics_available_remote, topics_available_type_remote,
