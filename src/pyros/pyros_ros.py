@@ -48,15 +48,6 @@ class PyrosROS(PyrosBase):
             if setup_config:
                 pyros_setup.configurable_import().configure(setup_config).activate()
 
-        # We can now import RosInterface
-        # TODO : context to make it cleaner (maybe use zmp.Node context ?)
-        from .rosinterface import RosInterface
-        # TODO : move that into the interface / child process somehow...
-
-        # TODO : make sure it is also imported for the child process (already managed by python ?)
-
-        # TODO : use context manager here to use another process just like any resource...
-
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
@@ -75,7 +66,7 @@ class PyrosROS(PyrosBase):
 
         super(PyrosROS, self).__init__(
             name=self.name,
-            interface_class=RosInterface,
+            interface_class=(__package__, '.rosinterface', 'RosInterface'),  # lazy class evaluation to delay imports
             args=args,  # we want to pass the name to the interface to init the node with that name
             kwargs=kwargs,
             instance_relative_config=True,
@@ -170,9 +161,6 @@ class PyrosROS(PyrosBase):
         """
         Running in a zmp.Node process, providing zmp.services
         """
-        # Environment should be setup here if needed ( we re in another process ).
-        # pyros_setup.configurable_import().configure().activate()
-        # sys.modules["pyros_setup"] = pyros_setup.delayed_import_auto(distro='indigo', base_path=self.base_path)
 
         # master has to be running here or we just wait for ever
         m, _ = pyros_setup.get_master(spawn=False)

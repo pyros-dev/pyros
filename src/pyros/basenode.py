@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import ast
+import importlib
 import json
 import os
 import logging
@@ -9,6 +10,7 @@ import abc
 
 import zmp
 
+from .exceptions import PyrosException
 from .baseinterface import BaseInterface
 
 import logging
@@ -26,7 +28,7 @@ class PyrosBase(zmp.Node):
 
     def __init__(self,
                  name=None,
-                 interface_class=BaseInterface,
+                 interface_class=None,
                  context_manager=None,
                  args=None,
                  kwargs=None,
@@ -37,6 +39,9 @@ class PyrosBase(zmp.Node):
         """
         :param name: name of the node
         :param interface_class: the class of the interface to instantiate (in child process)
+                OR a tuple (module_name, class_name), useful if the module should be imported only in child process
+                OR a tuple (package_name, module_name, class_name), usseful if the module name is relative
+                The interface class should be a child of BaseInterface.
         :param context_manager: a context manager to enter when starting, and exit when the node stops
         :param args: the args to pass to the setup function (that instantiate the interface class)
         :param kwargs: the kwargs to pass to the setup function (that instantiate the interface class)
@@ -72,8 +77,10 @@ class PyrosBase(zmp.Node):
         self.provides(self.params)
         self.provides(self.setup)
 
-        # TODO : maybe assert callable, or class here ? Goal is to avoid late error on run()...
-        self.interface_class = interface_class
+        if not isinstance(interface_class, tuple) and not issubclass(interface_class, BaseInterface):
+            raise PyrosException("The interface passed to the Node is neither a tuple nor a subclass of BaseInterface")
+        else:
+            self.interface_class = interface_class
         self.interface = None  # delayed interface creation
         # interface should be created in child process only to maintain isolation.
 
@@ -143,11 +150,29 @@ class PyrosBase(zmp.Node):
     def setup(self, *args, **kwargs):
         """
         Dynamically reset the interface to expose the services / topics / params whose names are passed as args
+        The interface class can be specified with a module to be dynamically imported
         :param services:
         :param topics:
         :param params:
         :return:
         """
+
+        # We can now import RosInterface and setup will be done ( we re in another process ).
+        # TODO : context to make it cleaner (maybe use zmp.Node context ?)
+        if isinstance(self.interface_class, tuple):
+            m = None
+            class_name = self.interface_class[-1]  # last element is always the class_name
+            if len(self.interface_class) >= 3:
+                # load the relative module, will raise ImportError if module cannot be loaded
+                m = importlib.import_module(self.interface_class[1], self.interface_class[0])
+            elif len(self.interface_class) == 2:
+                # load the relative module, will raise ImportError if module cannot be loaded
+                m = importlib.import_module(self.interface_class[1])
+            # get the class, will raise AttributeError if class cannot be found
+            self.interface_class = getattr(m, class_name)
+
+        if not issubclass(self.interface_class, BaseInterface):
+            raise PyrosException("The interface class is not a subclass of BaseInterface. Aborting Setup.")
 
         self.interface = self.interface_class(*args, **kwargs)
 
