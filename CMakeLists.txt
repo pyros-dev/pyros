@@ -20,18 +20,18 @@ if (CATKIN_ENABLE_TESTING)
     # Nose Tests
     ##############################################################################
 
-    #catkin_add_nosetests(src/zmp/tests)  # this makes nose hang with --with-xunit sometimes. no idea why.
+    #catkin_add_nosetests(zmp/tests)  # this makes nose hang with --with-xunit sometimes. no idea why.
     # One by one instead
-    catkin_add_nosetests(src/zmp/tests/test_message.py)
-    catkin_add_nosetests(src/zmp/tests/test_node.py)
-    catkin_add_nosetests(src/zmp/tests/test_service.py)
+    catkin_add_nosetests(zmp/tests/test_message.py)
+    catkin_add_nosetests(zmp/tests/test_node.py)
+    catkin_add_nosetests(zmp/tests/test_service.py)
 
     # Careful this will not support parallel testing, due to multiprocess environment used in tests
-    catkin_add_nosetests(src/pyros/mockinterface/tests)
+    catkin_add_nosetests(pyros/mockinterface/tests)
     # because of ROS these should be run in separate process each to avoid global side effect during tests
     # TODO : find a way to force nose to run each test isolated ?
-    #catkin_add_nosetests(src/pyros/rosinterface/tests)
-    catkin_add_nosetests(src/pyros/tests)
+    #catkin_add_nosetests(pyros/rosinterface/tests)
+    catkin_add_nosetests(pyros/tests)
 
     ##############################################################################
     # Ros Tests
@@ -41,16 +41,16 @@ if (CATKIN_ENABLE_TESTING)
 
     # These rostests need to be run one by one ( because of rospy side effects)
     # Note : using pyros-setup should fix this...
-    catkin_add_nosetests(src/pyros/rosinterface/rostests/testService.py)
-    catkin_add_nosetests(src/pyros/rosinterface/rostests/testStringTopic.py)
-    catkin_add_nosetests(src/pyros/rosinterface/rostests/testRosInterface.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/testService.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/testStringTopic.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/testRosInterface.py)
     # Running with nose because rostest fails ( not sure why yet )
 
-    # add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
-    # add_rostest(src/pyros/rosinterface/rostests/testService.test)
+    # add_rostest(pyros/rosinterface/rostests/testStringTopic.test)
+    # add_rostest(pyros/rosinterface/rostests/testService.test)
 
     # Testing rosinterface class integration in pyros
-    # add_rostest(src/pyros/rosinterface/rostests/testRosInterface.test)
+    # add_rostest(pyros/rosinterface/rostests/testRosInterface.test)
 
 
 endif()
