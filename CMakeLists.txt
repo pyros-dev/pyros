@@ -29,6 +29,7 @@ if (CATKIN_ENABLE_TESTING)
     # Careful this will not support parallel testing, due to multiprocess environment used in tests
     catkin_add_nosetests(src/pyros/mockinterface/tests)
     # because of ROS these should be run in separate process each to avoid global side effect during tests
+    # TODO : find a way to force nose to run each test isolated ?
     #catkin_add_nosetests(src/pyros/rosinterface/tests)
     catkin_add_nosetests(src/pyros/tests)
 
@@ -43,7 +44,6 @@ if (CATKIN_ENABLE_TESTING)
     catkin_add_nosetests(src/pyros/rosinterface/rostests/testService.py)
     catkin_add_nosetests(src/pyros/rosinterface/rostests/testStringTopic.py)
     catkin_add_nosetests(src/pyros/rosinterface/rostests/testRosInterface.py)
-    catkin_add_nosetests(src/pyros/rosinterface/rostests/testPyrosROS.py)
     # Running with nose because rostest fails ( not sure why yet )
 
     # add_rostest(src/pyros/rosinterface/rostests/testStringTopic.test)
