@@ -68,7 +68,7 @@ def get_definitions(services=None, topics=None, actions=None):
         type_set = get_all_msg_types(topic.rostype, type_set=type_set)
 
     for msg_type in type_set:
-        dfn = deffile.ROSStyleDefinition('msg',type_str(msg_type),['msg'])
+        dfn = deffile.ROSStyleDefinition('msg', type_str(msg_type), ['msg'])
         for field_name, field_type in zip(msg_type.__slots__, msg_type._slot_types):
             dfn.segment(0).append((field_name, field_type))
         msg_dfns.append(dfn)

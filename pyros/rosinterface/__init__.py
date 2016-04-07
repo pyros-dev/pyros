@@ -2,10 +2,6 @@
 #This python package is handling all ROS related communication for rostful-node.
 from __future__ import absolute_import
 
-import os
-import types
-import sys
-
 """
 Hopefully this should endup in rosinterface.__doc__
 """

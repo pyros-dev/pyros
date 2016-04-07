@@ -1,6 +1,6 @@
 from setuptools import setup
 
-with open('src/pyros/_version.py') as vf:
+with open('pyros/_version.py') as vf:
     exec(vf.read())
 
 setup(name='pyros',
@@ -23,10 +23,6 @@ setup(name='pyros',
         'pyros.zmpinterface',
         'pyros.zmpinterface.tests',
     ],
-    package_dir={
-        'zmp': 'src/zmp',
-        'pyros': 'src/pyros',
-    },
     entry_points={
         'console_scripts': [
             'pyros = pyros.__main__:nosemain'

@@ -5,9 +5,9 @@ import mock
 from collections import namedtuple
 from contextlib import contextmanager
 
+from . import pyros_client, config
 from .pyros_mock import PyrosMock
 from .pyros_ros import PyrosROS
-from . import pyros_client, config
 
 
 # A context manager to handle server process launch and shutdown properly.
