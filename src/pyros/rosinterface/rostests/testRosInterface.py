@@ -16,17 +16,9 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 # Unit test import (  will emulate ROS setup if needed )
 import nose
 
+from pyros.baseinterface import DiffTuple
+from pyros.rosinterface import RosInterface, TopicBack
 
-try:
-    from pyros.baseinterface import DiffTuple
-    from pyros.rosinterface import RosInterface, TopicBack
-except ImportError as exc:  # note this is not needed anymore since rosinterface does the pyros_setup configuration using internal object
-    import os
-    import pyros.rosinterface
-    import sys
-    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
-    from pyros.baseinterface import DiffTuple
-    from pyros.rosinterface import RosInterface, TopicBack
 
 import rospy
 import roslaunch

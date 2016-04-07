@@ -9,13 +9,9 @@ import abc
 
 import zmp
 
-from . import BaseInterface
+from .baseinterface import BaseInterface
 
-import importlib
 import logging
-import types
-import sys
-import six
 
 from pyros_setup import ConfigHandler
 

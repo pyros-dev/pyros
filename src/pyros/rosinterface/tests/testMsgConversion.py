@@ -12,11 +12,7 @@ current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
 # Unit test import
-try:
-    from pyros.rosinterface import message_conversion as msgconv
-except ImportError as ie:  # note this is not needed for dev since rosinterface does the pyros_setup configuration from internal object
-    import pyros.rosinterface
-    from pyros.rosinterface import message_conversion as msgconv
+from pyros.rosinterface import message_conversion as msgconv
 
 # ROS imports should now work from ROS or from python ( even without ROS env setup)
 import rospy

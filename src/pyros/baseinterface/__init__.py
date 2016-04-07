@@ -10,15 +10,13 @@
 #
 from __future__ import absolute_import
 
+from .baseinterface import BaseInterface, DiffTuple
 from .baseservice import BaseService
 from .basetopic import BaseTopic
-from .baseinterface import BaseInterface, DiffTuple
-from .basenode import PyrosBase
 
 __all__ = [
     'BaseService',
     'BaseTopic',
     'DiffTuple',
     'BaseInterface',
-    'PyrosBase',
 ]

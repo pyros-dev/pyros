@@ -10,7 +10,7 @@ import threading
 import Queue
 
 import time
-from pyros.baseinterface import BaseInterface, DiffTuple
+from ..baseinterface import BaseInterface, DiffTuple
 
 from .service import ServiceBack
 from .topic import TopicBack

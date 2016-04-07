@@ -35,7 +35,7 @@ import roslib
 import rospy
 # TODO : if possible use rospy internals
 
-from pyros import PyrosException
+from ..exceptions import PyrosException
 
 import re
 import string

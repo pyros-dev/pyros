@@ -21,18 +21,18 @@ from . import pyros_setup_config
 
 try:
     import rospy  # early except to prevent unintentional workaround in all modules here
-    from pyros.rosinterface.topic import TopicBack
-    from pyros.rosinterface.service import ServiceBack
-    from pyros.rosinterface.param import ParamBack
-    from pyros.rosinterface.ros_interface import RosInterface
+    from .topic import TopicBack
+    from .service import ServiceBack
+    from .param import ParamBack
+    from .ros_interface import RosInterface
 except ImportError:
     # This will load the pyros_setup configuration from a local object
     pyros_setup.configurable_import(instance_relative_config=False).configure(pyros_setup_config).activate()
     import rospy
-    from pyros.rosinterface.topic import TopicBack
-    from pyros.rosinterface.service import ServiceBack
-    from pyros.rosinterface.param import ParamBack
-    from pyros.rosinterface.ros_interface import RosInterface
+    from .topic import TopicBack
+    from .service import ServiceBack
+    from .param import ParamBack
+    from .ros_interface import RosInterface
 
 # BUT for pyros we want to be able to pass these as a part of pyros configuration
 # This is done by the root package modules before they import this rosinterface module

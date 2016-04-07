@@ -2,9 +2,15 @@ from __future__ import absolute_import
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-from pyros.mockinterface.mocknode import PyrosMock
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
+
+from pyros.pyros_mock import PyrosMock
 from pyros.pyros_client import PyrosClient
 
 import nose

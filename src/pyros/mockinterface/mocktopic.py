@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
-from pyros.baseinterface import BaseTopic
+from ..baseinterface import BaseTopic
 
 TopicType = namedtuple("TopicType", "msgtype")
 

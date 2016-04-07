@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 # python protocol should be usable without ROS.
-from .baseinterface import PyrosBase
+from .basenode import PyrosBase
 from .mockinterface import MockInterface
 
 from . import config

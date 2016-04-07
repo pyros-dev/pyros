@@ -2,7 +2,13 @@ from __future__ import absolute_import
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
+
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 import time
 
 from pyros.pyros_ctx_server import pyros_ctx
@@ -23,7 +29,7 @@ def testPyrosROSCtx():
 
     assert master.is_online()
 
-    with pyros_ctx(mock_node=False, base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')) as ctx:
+    with pyros_ctx(mock_node=False) as ctx:
 
         assert isinstance(ctx.client, PyrosClient)
 
