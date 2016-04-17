@@ -136,8 +136,11 @@ class PyrosClient(object):
 
         try:
             res = self.topic_svc.call(args=(topic_name, None,))
-        except zmp.service.ServiceCallTimeout, exc:
+        except zmp.service.ServiceCallTimeout as exc:
             raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+
+        # TODO : if topic_name not exposed, we get None as res.
+        # We should improve that behavior (display warning ? allow auto -dynamic- expose ?)
 
         return res
 
