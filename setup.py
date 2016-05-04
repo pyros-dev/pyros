@@ -22,6 +22,11 @@ setup(name='pyros',
     package_dir={
         'pyros': 'src/pyros',
     },
+    entry_points={
+        'console_scripts': [
+            'pyros = pyros.__main__:nosemain'
+        ]
+    },
     # this is better than using package data ( since behavior is a bit different from distutils... )
     include_package_data=True,  # use MANIFEST.in during install.
     install_requires=[
@@ -30,6 +35,10 @@ setup(name='pyros',
         'pyzmq',
         'pyzmp>=0.0.9',
         'pyros_setup',
+    ],
+    test_suite="nose.collector",
+    tests_require=[
+        'nose>=1.3.7'
     ],
     zip_safe=False,  # TODO testing...
 )
