@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src')))
 
-import zmp
+import pyzmp
 
 from pyros.mockinterface import PyrosMock
 
@@ -65,19 +65,19 @@ class TestRostfulMockProcess(object):
         self.mockInstance.shutdown()
 
     def test_msg_build(self):
-        msg_build_svc = zmp.Service.discover('msg_build', 5)
+        msg_build_svc = pyzmp.Service.discover('msg_build', 5)
         assert(msg_build_svc is not None and self.mockInstance not in msg_build_svc.providers)
         resp = msg_build_svc.call(args=('fake_connec_name',))
         assert isinstance(resp, str)
 
     def test_list_topic(self):
-        list_topic_svc = zmp.Service.discover('topics', 5)
+        list_topic_svc = pyzmp.Service.discover('topics', 5)
         assert(list_topic_svc is not None and self.mockInstance not in list_topic_svc.providers)
         resp = list_topic_svc.call()
         assert resp is not None
 
     def test_echo_topic(self):
-        topic_svc = zmp.Service.discover('topic', 5)
+        topic_svc = pyzmp.Service.discover('topic', 5)
         assert(topic_svc is not None and self.mockInstance not in topic_svc.providers)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
@@ -86,7 +86,7 @@ class TestRostfulMockProcess(object):
         assert resp == 'testing'  # message echoed
 
     def test_other_topic(self):
-        topic_svc = zmp.Service.discover('topic', 5)
+        topic_svc = pyzmp.Service.discover('topic', 5)
         assert(topic_svc is not None and self.mockInstance not in topic_svc.providers)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
@@ -95,13 +95,13 @@ class TestRostfulMockProcess(object):
         assert resp is None  # message not echoed
 
     def test_list_service(self):
-        service_svc = zmp.Service.discover('services', 5)
+        service_svc = pyzmp.Service.discover('services', 5)
         assert(service_svc is not None and self.mockInstance not in service_svc.providers)
         resp = service_svc.call()
         assert resp is not None  # message echoed
 
     def test_echo_service(self):
-        service_svc = zmp.Service.discover('service', 5)
+        service_svc = pyzmp.Service.discover('service', 5)
         assert(service_svc is not None and self.mockInstance not in service_svc.providers)
         resp = service_svc.call(args=('random_service', 'testing'))
         assert resp == 'testing'  # message echoed

@@ -3,3 +3,6 @@
 
 nose
 
+-e git://github.com/asmodehn/pyros-setup.git@cmake_buildtool#egg=pyros-setup
+-e git://github.com/asmodehn/pyzmp.git@master#egg=pyzmp
+

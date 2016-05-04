@@ -10,7 +10,7 @@ Client to rostful node, Python style.
 Required for multiprocess communication.
 """
 
-import zmp
+import pyzmp
 from .exceptions import PyrosException
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
@@ -52,49 +52,49 @@ class PyrosClient(object):
         self.node_name = node_name
 
         # Discover all Services. Wait for at least one, and make sure it s provided by our expected Server
-        self.msg_build_svc = zmp.Service.discover('msg_build', 5)
+        self.msg_build_svc = pyzmp.Service.discover('msg_build', 5)
         if self.msg_build_svc is None or (
             self.node_name is not None and
             self.node_name not in self.msg_build_svc.providers
         ):
             raise PyrosServiceNotFound('msg_build')
 
-        self.topic_svc = zmp.Service.discover('topic', 5)
+        self.topic_svc = pyzmp.Service.discover('topic', 5)
         if self.topic_svc is None or (
             self.node_name is not None and
             self.node_name not in self.topic_svc.providers
         ):
             raise PyrosServiceNotFound('topic')
 
-        self.service_svc = zmp.Service.discover('service', node_name, 5)
+        self.service_svc = pyzmp.Service.discover('service', node_name, 5)
         if self.service_svc is None or (
             self.node_name is not None and
             self.node_name not in self.service_svc.providers
         ):
             raise PyrosServiceNotFound('service')
 
-        self.param_svc = zmp.Service.discover('param', node_name, 5)
+        self.param_svc = pyzmp.Service.discover('param', node_name, 5)
         if self.param_svc is None or (
             self.node_name is not None and
             self.node_name not in self.param_svc.providers
         ):
             raise PyrosServiceNotFound('param')
 
-        self.topics_svc = zmp.Service.discover('topics', 5)
+        self.topics_svc = pyzmp.Service.discover('topics', 5)
         if self.topics_svc is None or (
             self.node_name is not None and
             self.node_name not in self.topics_svc.providers
         ):
             raise PyrosServiceNotFound('topics')
 
-        self.services_svc = zmp.Service.discover('services', 5)
+        self.services_svc = pyzmp.Service.discover('services', 5)
         if self.services_svc is None or (
             self.node_name is not None and
             self.node_name not in self.services_svc.providers
         ):
             raise PyrosServiceNotFound('services')
 
-        self.params_svc = zmp.Service.discover('params', 5)
+        self.params_svc = pyzmp.Service.discover('params', 5)
         if self.params_svc is None or (
             self.node_name is not None and
             self.node_name not in self.params_svc.providers
@@ -136,7 +136,7 @@ class PyrosClient(object):
 
         try:
             res = self.topic_svc.call(args=(topic_name, None,))
-        except zmp.service.ServiceCallTimeout, exc:
+        except pyzmp.service.ServiceCallTimeout, exc:
             raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
 
         return res
@@ -151,7 +151,7 @@ class PyrosClient(object):
                 res = self.service_svc.call(args=(service_name, _msg_content,))
             else:  # default kwargs is {}
                 res = self.service_svc.call(args=(service_name, kwargs,))
-        except zmp.service.ServiceCallTimeout, exc:
+        except pyzmp.service.ServiceCallTimeout, exc:
             raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         # A service that doesn't exist on the node will return res_content.resp_content None.
         # It should probably except...
@@ -193,14 +193,14 @@ class PyrosClient(object):
     def topics(self):
         try:
             res = self.topics_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
-        except zmp.service.ServiceCallTimeout, exc:
+        except pyzmp.service.ServiceCallTimeout, exc:
             raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         return res
         
     def services(self):
         try:
             res = self.services_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
-        except zmp.service.ServiceCallTimeout, exc:
+        except pyzmp.service.ServiceCallTimeout, exc:
             raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         return res
 

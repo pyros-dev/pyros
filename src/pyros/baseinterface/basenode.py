@@ -7,12 +7,12 @@ import logging
 import time
 import abc
 
-import zmp
+import pyzmp
 
 from . import BaseInterface
 
 
-class PyrosBase(zmp.Node):
+class PyrosBase(pyzmp.Node):
     """
     Mock Interface in pure python ( No ROS needed ).
     """
@@ -95,7 +95,7 @@ class PyrosBase(zmp.Node):
     # Maybe this will help when passing custom argument from child classes to child processes...
     def run(self):
         """
-        Running in a zmp.Node process, providing zmp.services
+        Running in a pyzmp.Node process, providing pyzmp.services
         """
 
         logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))

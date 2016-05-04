@@ -21,7 +21,7 @@ import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
-import zmp
+import pyzmp
 
 from pyros.rosinterface.rostests import timeout, TestPyrosROS
 

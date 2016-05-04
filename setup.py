@@ -8,7 +8,6 @@ setup(name='pyros',
     author_email='asmodehn@gmail.com',
     license='BSD',
     packages=[
-        'zmp',
         'pyros',
         'pyros.tests',
         'pyros.baseinterface',
@@ -21,7 +20,6 @@ setup(name='pyros',
         'pyros.zmpinterface.tests',
     ],
     package_dir={
-        'zmp': 'src/zmp',
         'pyros': 'src/pyros',
     },
     # this is better than using package data ( since behavior is a bit different from distutils... )
@@ -30,6 +28,7 @@ setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
+        'pyzmp>=0.0.9',
         'pyros_setup',
     ],
     zip_safe=False,  # TODO testing...

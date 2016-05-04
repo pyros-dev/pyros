@@ -144,7 +144,7 @@ class PyrosROS(PyrosBase):
 
     def run(self):
         """
-        Running in a zmp.Node process, providing zmp.services
+        Running in a pyzmp.Node process, providing pyzmp.services
         """
         # Environment should be setup here if needed ( we re in another process ).
         sys.modules["pyros_setup"] = pyros_setup.delayed_import_auto(distro='indigo', base_path=self.base_path)
