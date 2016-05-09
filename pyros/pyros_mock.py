@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pyzmp
 # python protocol should be usable without ROS.
 from .basenode import PyrosBase
 from .mockinterface import MockInterface
@@ -105,7 +106,7 @@ class PyrosMock(PyrosBase):
     # # The interface should not be replaced on run ( to keep mock data )
     # def run(self, services=None, topics=None, params=None):
     #     """
-    #     Running in a zmp.Node process, providing zmp.services
+    #     Running in a pyzmp.Node process, providing pyzmp.services
     #     """
     #
     #     logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))

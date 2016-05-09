@@ -1,28 +1,30 @@
 sudo: required
 dist: trusty
 language: generic
+
+# TODO : we can combine python language and test multiple python version in matrix here (2 and 3 matching platform version)
+
+env:
+  # This will trigger a usual ros catkin build to make sure it still works
+  - PURE_PYTHON=false
+  # This will trigger python build
+  - PURE_PYTHON=true
+
+# This is the same for all builds
+before_install:
+  # Install ROS. We always need it on system.
+  - bash rosutils/install_ros.sh indigo ./
+  # Install python 2.7
+  - sudo apt-get install python2.7 virtualenvwrapper -y
+  - source "/usr/share/virtualenvwrapper/virtualenvwrapper.sh"
+
 install:
-  - export CI_ROS_DISTRO=indigo
-  - echo $CI_ROS_DISTRO
-# Add ROS repositories
-  - sudo sh -c 'echo "deb http://packages.ros.org/ros-shadow-fixed/ubuntu trusty main" > /etc/apt/sources.list.d/ros-latest.list'
-  - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
-  - sudo apt-get update
-# Install and initialize rosdep
-  - sudo apt-get install python-rosdep -y
-  - sudo `which rosdep` init
-  - rosdep update
-# Use rosdep to install rostful-node's dependencies
-  - rosdep install --default-yes --from-paths ./ --rosdistro $CI_ROS_DISTRO
+  - if [ "$PURE_PYTHON" == "true" ]; then (mkvirtualenv --system-site-packages -r requirements.txt -i . -q python_2.7_ros); fi
+  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/build_devel.sh indigo && bash rosutils/build_install.sh); fi
+
 script:
-  - source /opt/ros/$CI_ROS_DISTRO/setup.bash
-  - mkdir build
-  - cd build
-  - cmake .. -DCMAKE_INSTALL_PREFIX=./install
-  - make -j1
-  - make -j1 tests
-  - make -j1 run_tests
-  - catkin_test_results .
-  - make -j1 install
+  - if [ "$PURE_PYTHON" == "true" ]; then (workon python_2.7_ros && python setup.py test); fi
+  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/test_devel.sh && bash rosutils/test_install.sh); fi
+
 notifications:
   email: false

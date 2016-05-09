@@ -27,7 +27,7 @@ import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
-import zmp
+import pyzmp
 
 from pyros.rosinterface.rostests import timeout
 
@@ -120,56 +120,56 @@ class TestPyrosROS(object):
             nose.tools.assert_true(rosn.is_alive())
 
             print("Discovering msg_build Service...")
-            msg_build = zmp.discover("msg_build", 5)  # we wait a bit to let it time to start
+            msg_build = pyzmp.discover("msg_build", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(msg_build is not None)
             print("msg_build providers : {svc}".format(svc=msg_build.providers))
             nose.tools.assert_equal(len(msg_build.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in msg_build.providers])
 
             print("Discovering topic Service...")
-            topic = zmp.discover("topic", 5)  # we wait a bit to let it time to start
+            topic = pyzmp.discover("topic", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(topic is not None)
             print("topic providers : {svc}".format(svc=topic.providers))
             nose.tools.assert_equal(len(topic.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in topic.providers])
 
             print("Discovering topics Service...")
-            topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
+            topics = pyzmp.discover("topics", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(topics is not None)
             print("topics providers : {svc}".format(svc=topics.providers))
             nose.tools.assert_equal(len(topics.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in topics.providers])
 
             print("Discovering service Service...")
-            service = zmp.discover("service", 5)  # we wait a bit to let it time to start
+            service = pyzmp.discover("service", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(service is not None)
             print("service providers : {svc}".format(svc=service.providers))
             nose.tools.assert_equal(len(service.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in service.providers])
 
             print("Discovering services Service...")
-            services = zmp.discover("services", 5)  # we wait a bit to let it time to start
+            services = pyzmp.discover("services", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(services is not None)
             print("services providers : {svc}".format(svc=services.providers))
             nose.tools.assert_equal(len(services.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in services.providers])
 
             print("Discovering param Service...")
-            param = zmp.discover("param", 5)  # we wait a bit to let it time to start
+            param = pyzmp.discover("param", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(param is not None)
             print("param providers : {svc}".format(svc=param.providers))
             nose.tools.assert_equal(len(param.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in param.providers])
 
             print("Discovering params Service...")
-            params = zmp.discover("params", 5)  # we wait a bit to let it time to start
+            params = pyzmp.discover("params", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(params is not None)
             print("params providers : {svc}".format(svc=params.providers))
             nose.tools.assert_equal(len(params.providers), 1)
             nose.tools.assert_true(rosn.name in [p[0] for p in params.providers])
 
             print("Discovering setup Service...")
-            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            setup = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(setup is not None)
             print("setup providers : {svc}".format(svc=setup.providers))
             nose.tools.assert_equal(len(setup.providers), 1)
@@ -198,7 +198,7 @@ class TestPyrosROS(object):
                 nose.tools.assert_true(rosn.is_alive())
 
                 print("Discovering topics Service...")
-                topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
+                topics = pyzmp.discover("topics", 5)  # we wait a bit to let it time to start
                 nose.tools.assert_true(topics is not None)
                 print("topics providers : {svc}".format(svc=topics.providers))
                 nose.tools.assert_equal(len(topics.providers), 1)
@@ -237,7 +237,7 @@ class TestPyrosROS(object):
             nose.tools.assert_true(rosn.is_alive())
 
             print("Discovering topics Service...")
-            topics = zmp.discover("topics", 5)  # we wait a bit to let it time to start
+            topics = pyzmp.discover("topics", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(topics is not None)
             print("topics providers : {svc}".format(svc=topics.providers))
             nose.tools.assert_equal(len(topics.providers), 1)
@@ -247,7 +247,7 @@ class TestPyrosROS(object):
             nose.tools.assert_true('test_topic' not in res.keys())  # test_topic has not been created, detected or exposed
 
             print("Discovering setup Service...")
-            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            setup = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(setup is not None)
             print("setup providers : {svc}".format(svc=setup.providers))
             nose.tools.assert_equal(len(setup.providers), 1)
@@ -313,7 +313,7 @@ class TestPyrosROS(object):
                 nose.tools.assert_true(rosn.is_alive())
 
                 print("Discovering services Service...")
-                services = zmp.discover("services", 5)  # we wait a bit to let it time to start
+                services = pyzmp.discover("services", 5)  # we wait a bit to let it time to start
                 nose.tools.assert_true(services is not None)
                 print("services providers : {svc}".format(svc=services.providers))
                 nose.tools.assert_equal(len(services.providers), 1)
@@ -351,7 +351,7 @@ class TestPyrosROS(object):
             nose.tools.assert_true(rosn.is_alive())
 
             print("Discovering services Service...")
-            services = zmp.discover("services", 5)  # we wait a bit to let it time to start
+            services = pyzmp.discover("services", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(services is not None)
             print("services providers : {svc}".format(svc=services.providers))
             nose.tools.assert_equal(len(services.providers), 1)
@@ -361,7 +361,7 @@ class TestPyrosROS(object):
             nose.tools.assert_true('echo_service' not in res.keys())  # test_topic has not been created, detected or exposed
 
             print("Discovering setup Service...")
-            setup = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+            setup = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
             nose.tools.assert_true(setup is not None)
             print("setup providers : {svc}".format(svc=setup.providers))
             nose.tools.assert_equal(len(setup.providers), 1)

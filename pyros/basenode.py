@@ -8,7 +8,7 @@ import logging
 import time
 import abc
 
-import zmp
+import pyzmp
 
 from .exceptions import PyrosException
 from .baseinterface import BaseInterface
@@ -18,7 +18,7 @@ import logging
 from pyros_setup import ConfigHandler
 
 
-class PyrosBase(zmp.Node):
+class PyrosBase(pyzmp.Node):
     """
     Base Interface in pure python ( No ROS needed ).
     Encapsulate another process for isolated execution

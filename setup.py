@@ -11,7 +11,6 @@ setup(name='pyros',
     author_email='asmodehn@gmail.com',
     license='BSD',
     packages=[
-        'zmp',
         'pyros',
         'pyros.tests',
         'pyros.baseinterface',
@@ -34,7 +33,8 @@ setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
-        'pyros-setup>=0.1.0',
+        'pyzmp>=0.0.9',
+        'pyros_setup>=0.1.0',
     ],
     test_suite="nose.collector",
     tests_require=[

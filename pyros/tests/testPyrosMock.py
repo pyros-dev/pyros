@@ -21,7 +21,7 @@ from pyros.mockinterface.mocksystem import (
 )
 from pyros import PyrosMock
 from pyros.mockinterface.mocktopic import statusecho_topic, MockTopic
-import zmp
+import pyzmp
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
 
 
@@ -58,42 +58,42 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
         assert_true(mockn.is_alive())
 
         print("Discovering msg_build Service...")
-        msg_build = zmp.discover("msg_build", 5)  # we wait a bit to let it time to start
+        msg_build = pyzmp.discover("msg_build", 5)  # we wait a bit to let it time to start
         assert_false(msg_build is None)
         assert_equal(len(msg_build.providers), 1)
 
         print("Discovering topic Service...")
-        topic = zmp.discover("topic", 5)  # we wait a bit to let it time to start
+        topic = pyzmp.discover("topic", 5)  # we wait a bit to let it time to start
         assert_false(topic is None)
         assert_equal(len(topic.providers), 1)
 
         print("Discovering topics Service...")
-        topic_list = zmp.discover("topics", 5)  # we wait a bit to let it time to start
+        topic_list = pyzmp.discover("topics", 5)  # we wait a bit to let it time to start
         assert_false(topic_list is None)
         assert_equal(len(topic_list.providers), 1)
 
         print("Discovering service Service...")
-        service = zmp.discover("service", 5)  # we wait a bit to let it time to start
+        service = pyzmp.discover("service", 5)  # we wait a bit to let it time to start
         assert_false(service is None)
         assert_equal(len(service.providers), 1)
 
         print("Discovering services Service...")
-        service_list = zmp.discover("services", 5)  # we wait a bit to let it time to start
+        service_list = pyzmp.discover("services", 5)  # we wait a bit to let it time to start
         assert_false(service_list is None)
         assert_equal(len(service_list.providers), 1)
 
         print("Discovering param Service...")
-        param = zmp.discover("param", 5)  # we wait a bit to let it time to start
+        param = pyzmp.discover("param", 5)  # we wait a bit to let it time to start
         assert_false(param is None)
         assert_equal(len(param.providers), 1)
 
         print("Discovering params Service...")
-        param_list = zmp.discover("params", 5)  # we wait a bit to let it time to start
+        param_list = pyzmp.discover("params", 5)  # we wait a bit to let it time to start
         assert_false(param_list is None)
         assert_equal(len(param_list.providers), 1)
 
         print("Discovering setup Service...")
-        param_list = zmp.discover("setup", 5)  # we wait a bit to let it time to start
+        param_list = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
         assert_false(param_list is None)
         assert_equal(len(param_list.providers), 1)
     finally:
@@ -117,7 +117,7 @@ def test_mocknode_topics_detect():  # Here we check that this node actually dete
     # checking interface is still None here ( instantiated in child only )
     assert_true(mockn.interface is None)
 
-    # Services are initialized in run() method of zmp.Node, after interface has been initialized
+    # Services are initialized in run() method of pyzmp.Node, after interface has been initialized
     try:
         assert_true(mockn.is_alive())
 
@@ -129,7 +129,7 @@ def test_mocknode_topics_detect():  # Here we check that this node actually dete
 
             # Getting topics list from child process
             print("Discovering topics Service...")
-            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
             assert_false(topics is None)
             assert_equal(len(topics.providers), 1)
 
@@ -158,7 +158,7 @@ def test_mocknode_topics_detect_setup():  # Here we check that this node actuall
         with mock_topic_remote('test_topic', statusecho_topic):
 
             print("Discovering topics Service...")
-            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
             assert_false(topics is None)
             assert_equal(len(topics.providers), 1)
 
@@ -166,7 +166,7 @@ def test_mocknode_topics_detect_setup():  # Here we check that this node actuall
             assert_true(not 'test_topic' in res)  # topic not detected since not in list of exposed topics
 
             print("Discovering setup Service...")
-            setup = zmp.discover("setup", 3)  # we wait a bit to let it time to start
+            setup = pyzmp.discover("setup", 3)  # we wait a bit to let it time to start
             assert_false(setup is None)
             assert_equal(len(setup.providers), 1)
 
@@ -197,7 +197,7 @@ def test_mocknode_topics_detect_throttled():
         assert_true(mockn.is_alive())
 
         print("Discovering setup Service...")
-        setup = zmp.discover("setup", 3)  # we wait a bit to let it time to start
+        setup = pyzmp.discover("setup", 3)  # we wait a bit to let it time to start
         assert_false(setup is None)
         assert_equal(len(setup.providers), 1)
 
@@ -206,7 +206,7 @@ def test_mocknode_topics_detect_throttled():
         with mock_topic_remote('test_topic', statusecho_topic):
 
             print("Discovering topics Service...")
-            topics = zmp.discover("topics", 3)  # we wait a bit to let it time to start
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
             assert_false(topics is None)
             assert_equal(len(topics.providers), 1)
 
@@ -281,19 +281,19 @@ class TestPyrosMockProcess(object):
         self.mockInstance.shutdown()
 
     def test_msg_build(self):
-        msg_build_svc = zmp.Service.discover('msg_build', 5)
+        msg_build_svc = pyzmp.Service.discover('msg_build', 5)
         assert(msg_build_svc is not None and self.mockInstance not in msg_build_svc.providers)
         resp = msg_build_svc.call(args=('fake_connec_name',))
         assert isinstance(resp, str)
 
     def test_list_topic(self):
-        list_topic_svc = zmp.Service.discover('topics', 5)
+        list_topic_svc = pyzmp.Service.discover('topics', 5)
         assert(list_topic_svc is not None and self.mockInstance not in list_topic_svc.providers)
         resp = list_topic_svc.call()
         assert resp is not None
 
     def test_echo_topic(self):
-        topic_svc = zmp.Service.discover('topic', 5)
+        topic_svc = pyzmp.Service.discover('topic', 5)
         assert(topic_svc is not None and self.mockInstance not in topic_svc.providers)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
@@ -302,7 +302,7 @@ class TestPyrosMockProcess(object):
         assert resp == 'testing'  # message echoed
 
     def test_other_topic(self):
-        topic_svc = zmp.Service.discover('topic', 5)
+        topic_svc = pyzmp.Service.discover('topic', 5)
         assert(topic_svc is not None and self.mockInstance not in topic_svc.providers)
         resp = topic_svc.call(args=('random_topic', 'testing'))
         assert resp is None  # message consumed
@@ -311,13 +311,13 @@ class TestPyrosMockProcess(object):
         assert resp is None  # message not echoed
 
     def test_list_service(self):
-        service_svc = zmp.Service.discover('services', 5)
+        service_svc = pyzmp.Service.discover('services', 5)
         assert(service_svc is not None and self.mockInstance not in service_svc.providers)
         resp = service_svc.call()
         assert resp is not None  # message echoed
 
     def test_echo_service(self):
-        service_svc = zmp.Service.discover('service', 5)
+        service_svc = pyzmp.Service.discover('service', 5)
         assert(service_svc is not None and self.mockInstance not in service_svc.providers)
         resp = service_svc.call(args=('random_service', 'testing'))
         assert resp == 'testing'  # message echoed

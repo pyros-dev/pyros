@@ -6,4 +6,4 @@ nose
 # adds dependency packages for development only
 # Note this will end up in the workspace. so we dont need to define it in the workspace...
 -e git+https://github.com/asmodehn/pyros-setup.git@config_refactor#egg=pyros_setup
-
+-e git+https://github.com/asmodehn/pyzmp.git@master#egg=pyzmp
