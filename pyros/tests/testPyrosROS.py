@@ -190,7 +190,6 @@ class TestPyrosROS(object):
         string_pub_process = self.launch.launch(string_pub_node)
         try:
             # Starting PyrosROS with preconfigured topics,
-            # disabling dynamic_reconf to avoid override asynchronously on start().
             rosn = PyrosROS(kwargs={'topics': ['/string_pub/test_str_topic'], 'enable_cache': self.enable_cache})  # careful assuming the topic fullname here
             try:
                 nose.tools.assert_true(not rosn.is_alive())

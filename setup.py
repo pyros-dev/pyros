@@ -35,10 +35,10 @@ setup(name='pyros',
         'pyzmq',
         'pyzmp>=0.0.9',
         'pyros_setup>=0.1.0',
+        'nose>=1.3.7',
     ],
     test_suite="nose.collector",
     tests_require=[
-        'nose>=1.3.7'
     ],
     zip_safe=False,  # TODO testing...
 )
