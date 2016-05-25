@@ -120,7 +120,7 @@ def describe_service(service_name, service, full=False):
     dfile = deffile.DefFile()
     dfile.manifest.def_type = 'Service'
     dfile.manifest['Name'] = service_name
-    dfile.manifest['Type'] = service.rostype_name
+    dfile.manifest['Type'] = service.get('rostype_name', 'Unknown')
 
     if full:
         dfns = get_definitions(services=[service])
@@ -129,13 +129,17 @@ def describe_service(service_name, service, full=False):
     return dfile
 
 
+# Interestingly this is used from rostful, to make sense of the data returned by pyros client, not from pyros itself...
+# TODO : maybe need to move it ?
+# TODO : check, maybe same with some other methods here...
 def describe_topic(topic_name, topic, full=False):
     dfile = deffile.DefFile()
     dfile.manifest.def_type = 'Topic'
     dfile.manifest['Name'] = topic_name
-    dfile.manifest['Type'] = topic.rostype_name
-    dfile.manifest['Publishes'] = get_json_bool(topic.allow_sub)
-    dfile.manifest['Subscribes'] = get_json_bool(topic.allow_pub)
+    dfile.manifest['Type'] = topic.get('rostype_name', 'Unknown')
+    # this is obsolete, now each Topic instance does both...
+    #dfile.manifest['Publishes'] = get_json_bool(topic.allow_sub)
+    #dfile.manifest['Subscribes'] = get_json_bool(topic.allow_pub)
 
     if full:
         dfns = get_definitions(topics=[topic])
