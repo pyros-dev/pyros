@@ -25,7 +25,6 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <depend version_gte="14.0.1">python-zmq</depend>
   <!-- <build_depend>python-tblib</build_depend>  Trusty version not working for us. need the submodule dep here -->
   <depend version_gte="1.5.2">python-six</depend>
-  <depend version_gte="0.1.0">pyros_setup</depend>
 
   <!-- these dependencies are only for testing -->
   <exec_depend version_gte="3.10">python-yaml</exec_depend>
