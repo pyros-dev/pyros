@@ -4,9 +4,7 @@ from __future__ import absolute_import
 import six
 import sys
 import logging
-
 import os
-import sys
 import pickle
 
 # This is needed if running this test directly (without using nose loader)
