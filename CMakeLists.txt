@@ -10,7 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_pip_requirements(${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt)
 
 # defining current package as a package that should be managed by pip (not catkin - even though we make it usable with workspaces)
-catkin_pip_package()
+catkin_pip_setup()
+catkin_package()
 
 ## Unit tests
 if (CATKIN_ENABLE_TESTING)
