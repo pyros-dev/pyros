@@ -42,13 +42,14 @@ def get_definitions(services=None, topics=None, actions=None):
 
     type_set = set()
     for service in services:
-        dfn = deffile.ROSStyleDefinition('srv', service.rostype_name, ['request', 'response'])
-        for field_name, field_type in zip(service.rostype_req.__slots__, service.rostype_req._slot_types):
+        dfn = deffile.ROSStyleDefinition('srv', service.get('rostype_name', None), ['request', 'response'])
+        service_type = load_type(service.get('rostype_name', None))
+        for field_name, field_type in service.get('srvtype',[None, None])[0].iteritems():
             dfn.segment(0).append((field_name, field_type))
-            type_set = get_all_msg_types(service.rostype_req, skip_this=True, type_set=type_set)
-        for field_name, field_type in zip(service.rostype_resp.__slots__, service.rostype_resp._slot_types):
+            type_set = get_all_msg_types(service_type._request_class, skip_this=True, type_set=type_set)
+        for field_name, field_type in service.get('srvtype',[None, None])[1].iteritems():
             dfn.segment(1).append((field_name, field_type))
-            type_set = get_all_msg_types(service.rostype_resp, skip_this=True, type_set=type_set)
+            type_set = get_all_msg_types(service_type._response_class, skip_this=True, type_set=type_set)
         service_dfns.append(dfn)
 
     for action in actions:
@@ -65,7 +66,8 @@ def get_definitions(services=None, topics=None, actions=None):
         action_dfns.append(dfn)
 
     for topic in topics:
-        type_set = get_all_msg_types(topic.rostype, type_set=type_set)
+        topic_type = load_type(topic.get('rostype_name', None))
+        type_set = get_all_msg_types(topic_type, type_set=type_set)
 
     for msg_type in type_set:
         dfn = deffile.ROSStyleDefinition('msg', type_str(msg_type), ['msg'])
@@ -120,7 +122,7 @@ def describe_service(service_name, service, full=False):
     dfile = deffile.DefFile()
     dfile.manifest.def_type = 'Service'
     dfile.manifest['Name'] = service_name
-    dfile.manifest['Type'] = service.rostype_name
+    dfile.manifest['Type'] = service.get('rostype_name', 'Unknown')
 
     if full:
         dfns = get_definitions(services=[service])
@@ -129,13 +131,17 @@ def describe_service(service_name, service, full=False):
     return dfile
 
 
+# Interestingly this is used from rostful, to make sense of the data returned by pyros client, not from pyros itself...
+# TODO : maybe need to move it ?
+# TODO : check, maybe same with some other methods here...
 def describe_topic(topic_name, topic, full=False):
     dfile = deffile.DefFile()
     dfile.manifest.def_type = 'Topic'
     dfile.manifest['Name'] = topic_name
-    dfile.manifest['Type'] = topic.rostype_name
-    dfile.manifest['Publishes'] = get_json_bool(topic.allow_sub)
-    dfile.manifest['Subscribes'] = get_json_bool(topic.allow_pub)
+    dfile.manifest['Type'] = topic.get('rostype_name', 'Unknown')
+    # this is obsolete, now each Topic instance does both...
+    #dfile.manifest['Publishes'] = get_json_bool(topic.allow_sub)
+    #dfile.manifest['Subscribes'] = get_json_bool(topic.allow_pub)
 
     if full:
         dfns = get_definitions(topics=[topic])

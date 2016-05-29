@@ -168,4 +168,4 @@ class TestService(unittest.TestCase):
 if __name__ == '__main__':
     print("ARGV : %r", sys.argv)
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
-    rostest_nose.rostest_or_nose_main('pyros', 'testStringService', TestStringService, sys.argv)
+    rostest_nose.rostest_or_nose_main('pyros', 'testService', TestService, sys.argv)

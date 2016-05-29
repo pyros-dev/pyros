@@ -18,7 +18,8 @@ def load_type(msg_type_name):
         msg_type_name = msg_type_name[:-2]
     module_name, type_name = msg_type_name.split('/')
     msg_module = import_module(module_name + '.msg')
-    if not hasattr(msg_module,type_name) and (type_name.endswith('Request') or type_name.endswith('Response')):
+    # we should try to load the full service type if not found in msg (without needing Request or Response suffix)
+    if not hasattr(msg_module,type_name):  # and (type_name.endswith('Request') or type_name.endswith('Response')):
         msg_module = import_module(module_name + '.srv')
     if not hasattr(msg_module,type_name):
         raise TypeError('Unknown ROS msg {0!s}'.format(msg_type_name))
