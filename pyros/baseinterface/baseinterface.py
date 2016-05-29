@@ -218,8 +218,8 @@ class BaseInterface(object):
         _transient_change_diff -> _update_transients
         """
 
-        to_add = set([m for m in BaseInterface.regexes_match_sublist(regex_set, transient_appeared)])
-        lost_matches = set([n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None])
+        to_add = {m for m in BaseInterface.regexes_match_sublist(regex_set, transient_appeared)}
+        lost_matches = {n for n in resolved_dict.keys() if BaseInterface.find_first_regex_match(n, regex_set) is None}
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
         return BaseInterface._update_transients(

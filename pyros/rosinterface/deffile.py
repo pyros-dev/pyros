@@ -82,7 +82,7 @@ class DefFile(object):
             return True
     
     def has_section(self, section, format=None):
-        return self.sections.has_key(_clean_string(section))
+        return _clean_string(section) in self.sections
     
     def get_section(self, section, format=None):
         sec = self.sections.get(_clean_string(section))
@@ -571,7 +571,7 @@ class DefFileParser(object):
         else:
             data = match.groupdict(None)
             data['section'] = re.sub(r'\\(?!\\)','',data.get('section',''))
-            data['dfn_type'] = data.get('dfn_type',None)
+            data['dfn_type'] = data.get('dfn_type')
         return data
     
     @classmethod

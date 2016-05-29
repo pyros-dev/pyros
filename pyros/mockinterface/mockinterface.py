@@ -39,7 +39,7 @@ class MockInterface(BaseInterface):
         return self.services_available
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
-        return self.services_available_type.get(service_name, None)
+        return self.services_available_type.get(service_name)
 
     def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
         return MockService(service_name, service_type, *args, **kwargs)
@@ -53,7 +53,7 @@ class MockInterface(BaseInterface):
         return self.topics_available
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
-        return self.topics_available_type.get(topic_name, None)
+        return self.topics_available_type.get(topic_name)
 
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return MockTopic(topic_name, topic_type, *args, **kwargs)
@@ -66,7 +66,7 @@ class MockInterface(BaseInterface):
         return self.params_available
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
-        return self.params_available_type.get(param_name, None)
+        return self.params_available_type.get(param_name)
 
     def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the param class implementation
         return MockParam(param_name, param_type, *args, **kwargs)

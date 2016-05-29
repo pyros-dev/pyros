@@ -90,10 +90,10 @@ class PyrosROS(PyrosBase):
         msg = None
         if self.interface:
             if connec_name in self.interface.topics.keys():
-                input_msg_type = self.interface.topics.get(connec_name, None).rostype
+                input_msg_type = self.interface.topics.get(connec_name).rostype
                 msg = input_msg_type()
             elif connec_name in self.interface.services.keys():
-                input_msg_type = self.interface.services.get(connec_name, None).rostype_req
+                input_msg_type = self.interface.services.get(connec_name).rostype_req
                 msg = input_msg_type()
         return msg
 
@@ -102,9 +102,9 @@ class PyrosROS(PyrosBase):
         res = None
         if self.interface and name in self.interface.topics.keys():
             if msg_content is not None:
-                self.interface.topics.get(name, None).publish(msg_content)
+                self.interface.topics.get(name).publish(msg_content)
             else:
-                res = self.interface.topics.get(name, None).get(consume=False)
+                res = self.interface.topics.get(name).get(consume=False)
         return res
 
     def topics(self):
@@ -121,7 +121,7 @@ class PyrosROS(PyrosBase):
         # Cost a lot time to find the reason since client code doesnt check the answer.
         # Maybe returning error is better ?
         if self.interface and name in self.interface.services.keys():
-            resp_content = self.interface.services.get(name, None).call(rqst_content)
+            resp_content = self.interface.services.get(name).call(rqst_content)
         return resp_content
 
     ###
@@ -136,10 +136,10 @@ class PyrosROS(PyrosBase):
     def param(self, name, value=None):
         if self.interface and name in self.interface.params.keys():
             if value is not None:
-                self.interface.params.get(name, None).set(value)
+                self.interface.params.get(name).set(value)
                 value = None  # consuming the message
             else:
-                value = self.interface.params.get(name, None).get()
+                value = self.interface.params.get(name).get()
         return value
 
     def params(self):

@@ -13,8 +13,6 @@ import pyzmp
 from .exceptions import PyrosException
 from .baseinterface import BaseInterface
 
-import logging
-
 from pyros_setup import ConfigHandler
 
 

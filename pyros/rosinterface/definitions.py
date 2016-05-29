@@ -42,8 +42,8 @@ def get_definitions(services=None, topics=None, actions=None):
 
     type_set = set()
     for service in services:
-        dfn = deffile.ROSStyleDefinition('srv', service.get('rostype_name', None), ['request', 'response'])
-        service_type = load_type(service.get('rostype_name', None))
+        dfn = deffile.ROSStyleDefinition('srv', service.get('rostype_name'), ['request', 'response'])
+        service_type = load_type(service.get('rostype_name'))
         for field_name, field_type in service.get('srvtype',[None, None])[0].iteritems():
             dfn.segment(0).append((field_name, field_type))
             type_set = get_all_msg_types(service_type._request_class, skip_this=True, type_set=type_set)
@@ -66,7 +66,7 @@ def get_definitions(services=None, topics=None, actions=None):
         action_dfns.append(dfn)
 
     for topic in topics:
-        topic_type = load_type(topic.get('rostype_name', None))
+        topic_type = load_type(topic.get('rostype_name'))
         type_set = get_all_msg_types(topic_type, type_set=type_set)
 
     for msg_type in type_set:

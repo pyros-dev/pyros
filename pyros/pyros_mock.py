@@ -59,7 +59,7 @@ class PyrosMock(PyrosBase):
             self._topic_msg[name] = msg_content
             msg = None  # consuming the message
         else:
-            msg = self._topic_msg.get(name, None)
+            msg = self._topic_msg.get(name)
         return msg
         
     def topics(self):

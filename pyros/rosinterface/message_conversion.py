@@ -160,7 +160,7 @@ def _from_inst(inst, rostype):
 
 def _from_list_inst(inst, rostype):
     # Can duck out early if the list is empty
-    if len(inst) == 0:
+    if not inst:
         return []
 
     # Remove the list indicators from the rostype
