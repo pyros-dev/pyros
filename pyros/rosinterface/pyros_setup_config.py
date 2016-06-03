@@ -7,5 +7,5 @@ import os
 # - from a ros devel workspace
 # - from a venv for development TODO
 # For installed or packaged version, a specific and clear configuration file should be provided.
-WORKSPACES = [os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'devel')]
+WORKSPACES = [os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'devel')]
 DISTRO = 'indigo'
