@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(pyros)
 
 find_package(catkin REQUIRED COMPONENTS
-    catkin_pure_python
+    catkin_pip
     rospy
 )
 
