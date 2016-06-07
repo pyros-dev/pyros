@@ -192,17 +192,17 @@ class BaseInterface(object):
         tst_gone = last_got_set - transient_detected
 
         dt = BaseInterface._transient_change_diff(
-                    transient_detected,  # we start interfacing with new matches, but we also need to update old matches that match regex now
-                    tst_gone,
-                    transient_desc,
-                    regex_set,
-                    resolved_dict,
-                    type_resolve_func,
-                    class_clean_func,
-                    class_build_func,
-                    *class_build_args,
-                    **class_build_kwargs
-                 )
+            transient_appeared=transient_detected,  # we start interfacing with new matches, but we also need to update old matches that match regex now
+            transient_gone=tst_gone,
+            transient_desc=transient_desc,
+            regex_set=regex_set,
+            resolved_dict=resolved_dict,
+            type_resolve_func=type_resolve_func,
+            class_clean_func=class_clean_func,
+            class_build_func=class_build_func,
+            *class_build_args,
+            **class_build_kwargs
+        )
 
         last_got_set.update(transient_detected)
         if tst_gone:

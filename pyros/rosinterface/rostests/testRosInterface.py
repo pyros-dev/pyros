@@ -471,11 +471,10 @@ class TestRosInterface(unittest.TestCase):
 
         # NOTE : We need to wait to make sure the tests nodes are started...
         with timeout(5) as t:
-            while not t.timed_out and servicename not in dt[0]:
+            while not t.timed_out and servicename not in dt.added:
                 dt = self.interface.update()
 
-        # TODO : improve that by providing an easier interface for it.
-
+        self.assertTrue(not t.timed_out)
         # every exposed service should remain in the list of args ( in case regex match another service )
         self.assertTrue(servicename in self.interface.services_args)
         # make sure the service backend has been created
@@ -512,6 +511,7 @@ class TestRosInterface(unittest.TestCase):
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                     self.assertEqual(dt.removed, [])  # nothing removed
 
+            self.assertTrue(not t.timed_out)
             # every added service should be in the list of args
             self.assertTrue(servicename not in self.interface.services_args)
             # the backend should not have been created
@@ -519,7 +519,9 @@ class TestRosInterface(unittest.TestCase):
 
             # here we are sure the interface knows the service is available
             # it will be exposed right now
-            self.interface.expose_services([servicename])
+            dt = self.interface.expose_services([servicename])
+            self.assertTrue(servicename in dt.added)  # servicename added
+            self.assertEqual(dt.removed, [])  # nothing removed
 
             # every exposed service should remain in the list of args ( in case regex match another service )
             self.assertTrue(servicename in self.interface.services_args)
@@ -572,6 +574,7 @@ class TestRosInterface(unittest.TestCase):
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
 
+            self.assertTrue(not t.timed_out)
             self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
             # every exposed service should remain in the list of args ( in case regex match another service )
             self.assertTrue(servicename in self.interface.services_args)
@@ -582,8 +585,8 @@ class TestRosInterface(unittest.TestCase):
 
     def test_service_withhold_update_disappear(self):
         """
-        Test service witholding functionality for a service which doesn exists anymore in
-        the ros environment. Normal usecase
+        Test service witholding functionality for a service which doesnt exists anymore in
+        the ros environment. Normal usecase.
         Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
         :return:
         """
@@ -687,6 +690,7 @@ class TestRosInterface(unittest.TestCase):
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
 
+        self.assertTrue(not t.timed_out)
         self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
         # every exposed service should remain in the list of args ( in case regex match another service )
         self.assertTrue(servicename in self.interface.services_args)

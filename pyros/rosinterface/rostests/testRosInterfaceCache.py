@@ -63,9 +63,24 @@ def srv_cb(req):
 @nose.tools.istest
 class TestRosInterfaceCache(TestRosInterface):
     def setUp(self):
-        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+
+        # first we setup our publishers and our node (used by rospy.resolve_name calls to remap topics)
+        self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
+        self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
+
+        self.interface = RosInterface('test_rosinterface_cache', enable_cache=True)
+
+        # CAREFUL : this is doing a rospy.init_node, and it should be done only once per PROCESS
+        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
+
+        # we need to speed fast enough for the tests to not fail on timeout...
+        rospy.set_param('/connection_cache/spin_freq', 2)  # 2 Hz
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py',
+                                                         name='connection_cache',
                                                          remap_args=[('~list', rospy.resolve_name('~connections_list')),
-                                                                     ('~diff', rospy.resolve_name('~connections_diff'))])
+                                                                     (
+                                                                     '~diff', rospy.resolve_name('~connections_diff'))])
+
         # Easier to remap the node topic to the proxy ones, instead of the opposite, since there is no dynamic remapping.
         # However for normal usecase, remapping the proxy handles is preferable.
         try:
@@ -83,13 +98,9 @@ class TestRosInterfaceCache(TestRosInterface):
 
         assert node_api is not None  # make sure the connection cache node is started before moving on.
 
-        self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
-        self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
-        self.interface = RosInterface('test_rosinterface_cache', enable_cache=True)
 
-        # CAREFUL : this is doing a rospy.init_node, and it should be done only once per PROCESS
-        # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
+
 
     def tearDown(self):
         self.interface = None
