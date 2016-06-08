@@ -195,6 +195,7 @@ class BaseInterface(object):
         """
 
         transient_detected = set(get_list_func())
+        #TODO : unify that last_got_set with the *_available. they are essentially the same
         tst_gone = last_got_set - transient_detected
 
         dt = cls._transient_change_diff(
