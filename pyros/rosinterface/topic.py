@@ -33,12 +33,20 @@ class TopicBack(object):
 
     # We need some kind of instance count here since system state returns only one node instance
     # as publisher for multiple publisher in this process.
-    # This is used in ros_interface update to determine
-    # if we are the only last ones publishing / subscribing to this topic ( usually the count will be just 1 )
+    #
+    # This is used in ros_interface update for added puba/subs to determine
+    # if we previously started publishing / subscribing to this topic
+    # usually the count will be just 1, but more is possible during tests
+    #
+    # This is also used in ros_interface update for removed pubs/subs to determine
+    # if we previously stopped publishing / subscribing to this topic
+    # usually the count will be just 1, but more is possible during tests
 
-    # TO have this working properly with multiple instance, we need a central place to keep that
-    pub_instance_count = {}
-    sub_instance_count = {}
+    # To have this working properly with multiple instance, we need a central place to keep that
+    pub_instance_add_count = {}
+    sub_instance_add_count = {}
+    pub_instance_rem_count = {}
+    sub_instance_rem_count = {}
 
     # a solution that works multiprocess
     IF_TOPIC_PARAM = 'pyros_if_topics'
@@ -51,11 +59,16 @@ class TopicBack(object):
         Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
         :return: the ros publisher
         """
-        # counting publisher instance per topic name
-        if name in TopicBack.pub_instance_count.keys():
-            TopicBack.pub_instance_count[name] += 1
+        # counting publisher add instance per topic name
+        if name in TopicBack.pub_instance_add_count.keys():
+            TopicBack.pub_instance_add_count[name] += 1
         else:
-            TopicBack.pub_instance_count[name] = 1
+            TopicBack.pub_instance_add_count[name] = 1
+
+        # when we add a pub in this ros node, we can reinit the removed counter (deletion has been confirmed detected already)
+        # TODO : actually verify that assumption
+        #TopicBack.pub_instance_add_count[name] -= TopicBack.pub_instance_rem_count.get(name, 0)
+        #TopicBack.pub_instance_rem_count[name] = 0
 
         return rospy.Publisher(name, rostype, *args, **kwargs)
 
@@ -65,8 +78,11 @@ class TopicBack(object):
         Removing a publisher and substracting it from the pub instance count.
         :return: None
         """
-        # counting publisher instance per topic name
-        TopicBack.pub_instance_count[pub.name] -= 1
+        # counting publisher rem instance per topic name
+        if pub.name in TopicBack.pub_instance_rem_count.keys():
+            TopicBack.pub_instance_rem_count[pub.name] += 1
+        else:
+            TopicBack.pub_instance_rem_count[pub.name] = 1
 
         # Be aware of https://github.com/ros/ros_comm/issues/111
         return pub.unregister()
@@ -79,11 +95,11 @@ class TopicBack(object):
         Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
         :return: the subscriber
         """
-        # counting subscriber instance per topic name
-        if name in TopicBack.sub_instance_count.keys():
-            TopicBack.sub_instance_count[name] += 1
+        # counting subscriber instance remove per topic name
+        if name in TopicBack.sub_instance_add_count.keys():
+            TopicBack.sub_instance_add_count[name] += 1
         else:
-            TopicBack.sub_instance_count[name] = 1
+            TopicBack.sub_instance_add_count[name] = 1
 
         return rospy.Subscriber(name, rostype, topic_callback, *args, **kwargs)
 
@@ -94,11 +110,96 @@ class TopicBack(object):
         Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
         :return: None
         """
-        # counting publisher instance per topic name
-        TopicBack.sub_instance_count[sub.name] -= 1
+        # counting subscriber instance remove per topic name
+        if sub.name in TopicBack.sub_instance_rem_count.keys():
+            TopicBack.sub_instance_rem_count[sub.name] += 1
+        else:
+            TopicBack.sub_instance_rem_count[sub.name] = 1
 
         # Be aware of https://github.com/ros/ros_comm/issues/111
         return sub.unregister()
+
+    @staticmethod
+    def is_sub_interface_last(name):
+        """
+        Check wether the topic interface is the last pub/sub instance present
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.sub_instance_add_count.get(name, 0) == 1 + TopicBack.sub_instance_rem_count.get(name, 0)
+
+    @staticmethod
+    def more_than_sub_interface_added(name):
+        """
+        Check if more than the topic interface has been added
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.sub_instance_add_count.get(name, 0) > 1 + TopicBack.sub_instance_rem_count.get(name, 0)
+
+    @staticmethod
+    def more_than_sub_interface_removed(name):
+        """
+        Check if more than the topic interface has been removed
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.sub_instance_rem_count.get(name, 0) > TopicBack.sub_instance_add_count.get(name, 0)
+
+    @staticmethod
+    def is_pub_interface_last(name):
+        """
+        Check wether the topic interface is the last pub/sub instance present
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.pub_instance_add_count.get(name, 0) == 1 + TopicBack.pub_instance_rem_count.get(name, 0)
+
+    @staticmethod
+    def more_than_pub_interface_added(name):
+        """
+        Check if more than the topic interface has been added
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.pub_instance_add_count.get(name, 0) > 1 + TopicBack.pub_instance_rem_count.get(name, 0)
+
+    @staticmethod
+    def more_than_pub_interface_removed(name):
+        """
+        Check if more than the topic interface has been removed
+        returns False if not present
+        :param name: name of the topic
+        :return: True/False
+        """
+        return TopicBack.pub_instance_rem_count.get(name, 0) > TopicBack.pub_instance_add_count.get(name, 0)
+
+    @staticmethod
+    def collapse_sub_count(name):
+        """
+        Does the math between added and removed subs to start counting from 0 again
+        :param name:
+        :return:
+        """
+
+        TopicBack.sub_instance_add_count[name] -= TopicBack.sub_instance_rem_count.get(name, 0)
+        TopicBack.sub_instance_rem_count[name] = 0
+
+    @staticmethod
+    def collapse_pub_count(name):
+        """
+        Does the math between added and removed pubs to start counting from 0 again
+        :param name:
+        :return:
+        """
+
+        TopicBack.pub_instance_add_count[name] -= TopicBack.pub_instance_rem_count.get(name, 0)
+        TopicBack.pub_instance_rem_count[name] = 0
 
     def __init__(self, topic_name, topic_type, queue_size=1, start_timeout=2):
 

@@ -8,6 +8,8 @@ import pickle
 # This is needed if running this test directly (without using nose loader)
 # prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
 # And we need our current module to be found first.
+import time
+
 current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 # if not current_path in sys.path:
 sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
@@ -210,8 +212,8 @@ class TestRosInterface(unittest.TestCase):
 
     def test_topic_withhold_update_disappear(self):
         """
-        Test topic witholding functionality for a topic which doesnt exists anymore in
-        the ros environment. Normal usecase
+        Test topic withholding functionality for a topic which doesnt exists anymore in the ros environment.
+        Normal usecase
         Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
         :return:
         """
@@ -291,8 +293,8 @@ class TestRosInterface(unittest.TestCase):
 
     def test_topic_disappear_update_withhold(self):
         """
-        Test topic exposing functionality for a topic which already exists in
-        the ros environment. Normal usecase
+        Test topic exposing functionality for a topic which already exists in the ros environment.
+        Normal usecase
         Sequence : (UPDATE? ->) DISAPPEAR -> UPDATE -> WITHHOLD (-> UPDATE ?)
         :return:
         """
@@ -326,7 +328,7 @@ class TestRosInterface(unittest.TestCase):
             # it coming online before expose call.
             nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
 
-            with timeout(5) as t:
+            with timeout(10) as t:
                 dt = DiffTuple([], [])
                 while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                     dt = self.interface.update()
@@ -365,6 +367,10 @@ class TestRosInterface(unittest.TestCase):
             self.assertTrue(topicname not in self.interface.topics.keys())
 
         appear_disappear()
+
+        # To not be too fast, otherwise connection_cache wont detect pub diff
+        # TODO : fix this (connection cache diff bug?)
+        time.sleep(5)
 
         # test that coming back actually also works
         appear_disappear()

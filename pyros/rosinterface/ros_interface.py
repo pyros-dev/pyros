@@ -143,22 +143,27 @@ class RosInterface(BaseInterface):
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
 
-    def _filter_out_pyros_topics(self, publishers, subscribers):
-        """
-        This method filter out the topic pubs / subs that are due to pyros behavior itself.
-        These extra pubs/subs should not be used to represent the state of the system we connect to.
-        :param publishers:
-        :param subscribers:
-        :return:
-        """
-        # getting the list of interfaced topics from well known node param
-
+    def _get_pyros_topics(self):
         if_topics = {}
         for par in self.params_available:
             if par.endswith(TopicBack.IF_TOPIC_PARAM):
                 # extract process name from param name ( removing extra slash )
                 pname = par[:- len('/' + TopicBack.IF_TOPIC_PARAM)]
                 if_topics[pname] = rospy.get_param(par, [])
+        return  if_topics
+
+    def _adjust_pyros_topics(self, publishers, subscribers, if_topics=None, removed=False):
+        """
+        This method filter out the topic pubs / subs that are due to pyros behavior itself.
+        These extra pubs/subs should not be used to represent the state of the system we connect to.
+        :param publishers:
+        :param subscribers:
+        :param if_topics: topics that are there because of pyros interface (such as provided from _get_pyros_topics)
+        :param removed: true if we are manipulating list of detected removed pubs/subs
+        :return:
+        """
+        # getting the list of interfaced topics from well known node param
+        if_topics = if_topics or self._get_pyros_topics()
 
         # Examination of topics :
         # We keep publishers that are provided by something else ( not our exposed topic pub if present )
@@ -166,8 +171,12 @@ class RosInterface(BaseInterface):
         filtered_publishers = []
         for p in publishers:
             # keeping only nodes that are not pyros interface for this topic
-            nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.pub_instance_count.get(p[0], 0) > 1)]
-            # also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+            # when added pub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+            if not removed:
+                nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0]))]
+            else:  # when removed pub, local instance_rem_count needs to be > instance_add_count
+                   #  to be considered coming from a non-interface pub deletion
+                nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) and TopicBack.more_than_pub_interface_removed(p[0]))]
             if nonif_pub_providers:
                 filtered_publishers.append([p[0], nonif_pub_providers])
 
@@ -176,10 +185,26 @@ class RosInterface(BaseInterface):
         filtered_subscribers = []
         for s in subscribers:
             # keeping only nodes that are not pyros interface for this topic
-            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.sub_instance_count.get(s[0], 0) > 1)]
-            # also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+            # when added sub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+            if not removed:
+                nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0]))]
+            else:  # when removed sub, local instance_rem_count needs to be > instance_add_count
+                   # to be considered coming from a non-interface sub deletion
+                nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) and TopicBack.more_than_sub_interface_removed(s[0]))]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
+
+        # when dealing with removed pubs/subs, we want to add interfaced topics that haven't been detected
+        # as removed. This is required when using diff optimisation because it relies on ROS detection.
+        if removed:
+            for n, tl in if_topics.iteritems():
+                for t in tl:
+                    # instance count of 1 means the interfaced sub is the last one -> we can remove it
+                    if TopicBack.is_sub_interface_last(t):
+                        filtered_subscribers.append([t, [n]])  # keeping same format for pubs an subs list
+                    # instance count of 1 means the interfaced pub is the last one -> we can remove it
+                    if TopicBack.is_pub_interface_last(t):
+                        filtered_publishers.append([t, [n]])  # keeping same format for pubs an subs list
 
         return filtered_publishers, filtered_subscribers
 
@@ -252,7 +277,9 @@ class RosInterface(BaseInterface):
         :param service_types:
         :return:
         """
-        filtered_publishers, filtered_subscribers = self._filter_out_pyros_topics(publishers, subscribers)
+        iftopics = self._get_pyros_topics()
+        filtered_publishers, filtered_subscribers = self._adjust_pyros_topics(publishers, subscribers, if_topics=iftopics)
+        # this is used with full list : we only need to filter out from that list.
 
         # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
         with self.topics_available_lock:
@@ -274,10 +301,14 @@ class RosInterface(BaseInterface):
         :param subscribers_dt:
         :return:
         """
-        filtered_added_publishers, filtered_added_subscribers = self._filter_out_pyros_topics(publishers_dt.added, subscribers_dt.added)
-        filtered_removed_publishers, filtered_removed_subscribers = self._filter_out_pyros_topics(publishers_dt.removed, subscribers_dt.removed)
+        iftopics = self._get_pyros_topics()
+        filtered_added_publishers, filtered_added_subscribers = self._adjust_pyros_topics(publishers_dt.added, subscribers_dt.added, if_topics=iftopics)
+        # this is called with difference tuples
+        # we need to add removed topics that are only exposed by this pyros interface.
+        filtered_removed_publishers, filtered_removed_subscribers = self._adjust_pyros_topics(publishers_dt.removed, subscribers_dt.removed, if_topics=iftopics, removed=True)
 
         # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
+        # warning : we may have duplicated entries (one for sub and one for pub)
         topics_dt = DiffTuple(
             added=filtered_added_publishers + filtered_added_subscribers,
             removed=filtered_removed_publishers + filtered_removed_subscribers
@@ -319,7 +350,7 @@ class RosInterface(BaseInterface):
                         list_sub='~connections_list',
                         handle_actions=False,
                         user_callback=self._proxy_cb,
-                        diff_opt=False,  # TODO : Change to True and fix all tests
+                        diff_opt=True,
                         diff_sub='~connections_diff'
                     )
                 except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
@@ -398,22 +429,23 @@ class RosInterface(BaseInterface):
 
                                 for k, v in cb_ss_dt.added.subscribers.iteritems():
                                     added_subscribers[k] = added_subscribers.get(k, set()) | v.nodes
-                                for k, v in cb_ss_dt.removed.publishers.iteritems():
+                                for k, v in cb_ss_dt.removed.subscribers.iteritems():
                                     removed_subscribers[k] = removed_subscribers.get(k, set()) | v.nodes
 
+                                # Careful here the previous loop produced result that still matters
                                 pubset = {(name, chan.type) for name, chan in cb_ss_dt.added.publishers.iteritems()}
                                 subset = {(name, chan.type) for name, chan in cb_ss_dt.added.subscribers.iteritems()}
-                                added_topic_types + [list(t) for t in (pubset | subset)]
+                                added_topic_types += [list(t) for t in (pubset | subset)]
 
                                 pubset = {(name, chan.type) for name, chan in cb_ss_dt.removed.publishers.iteritems()}
                                 subset = {(name, chan.type) for name, chan in cb_ss_dt.removed.subscribers.iteritems()}
-                                removed_topic_types + [list(t) for t in (pubset | subset)]
+                                removed_topic_types += [list(t) for t in (pubset | subset)]
 
                                 svcset = {(name, chan.type) for name, chan in cb_ss_dt.added.services.iteritems()}
-                                added_service_types + [list(t) for t in svcset]
+                                added_service_types += [list(t) for t in svcset]
 
                                 svcset = {(name, chan.type) for name, chan in cb_ss_dt.removed.services.iteritems()}
-                                removed_service_types + [list(t) for t in svcset]
+                                removed_service_types += [list(t) for t in svcset]
 
                         except Queue.Empty as exc:
                             # we re done here

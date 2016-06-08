@@ -124,10 +124,12 @@ class BaseInterface(object):
                 six.reraise(exc_info[0], exc_info[1], exc_info[2])
 
         for tst_name in [tst for tst in remove_names if tst in resolved_dict.keys()]:
-            logging.info("[{name}] Removing {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
-            class_clean_func(resolved_dict[tst_name])  # calling the cleanup function in case we need to do something
-            resolved_dict.pop(tst_name, None)
-            removed += [tst_name]
+            if tst_name in resolved_dict:  # we make sure the transient is still exposed
+                # because we might have modified resolved_dict after building the list to loop on
+                logging.info("[{name}] Removing {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
+                class_clean_func(resolved_dict[tst_name])  # calling the cleanup function in case we need to do something
+                resolved_dict.pop(tst_name, None)
+                removed += [tst_name]
 
         return DiffTuple(added, removed)
 
