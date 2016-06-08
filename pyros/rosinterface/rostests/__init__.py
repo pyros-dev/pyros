@@ -9,7 +9,7 @@
 import time
 
 
-class timeout(object):
+class Timeout(object):
     """
     Small useful timeout class
     """

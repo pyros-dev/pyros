@@ -51,6 +51,9 @@ class TopicBack(object):
     # a solution that works multiprocess
     IF_TOPIC_PARAM = 'pyros_if_topics'
 
+    # TODO: maybe contextmanager to make sure unregister always happens if we create it ?
+    # Should be fine since hte interface is in loop...
+    # this might help keep track of the interface created pub/sub, and help keep things tidy...
 
     @staticmethod
     def _create_pub(name, rostype, *args, **kwargs):
@@ -223,6 +226,7 @@ class TopicBack(object):
 
         self.pub = None
 
+        rospy.loginfo("Pyros.rosinterface : Creating rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype.__name__))
         self.pub = self._create_pub(self.fullname, self.rostype, queue_size=1)
         # CAREFUL ROS publisher doesnt guarantee messages to be delivered
         # stream-like design spec -> loss is acceptable.
@@ -258,6 +262,7 @@ class TopicBack(object):
         if_topics.remove(self.fullname)
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics)
 
+        rospy.loginfo("Pyros.rosinterface : Deleting rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype.__name__))
         # cleanup pub and sub, so we can go through another create / remove cycle properly
         self._remove_pub(self.pub)
         self._remove_sub(self.sub)
