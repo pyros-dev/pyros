@@ -17,7 +17,7 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 import time
 from pyros import PyrosROS
 
-# we import pyros.rosinterface here oly to get the ROs setup done if needed,
+# we import pyros.rosinterface here only to get the ROs setup done if needed,
 # because we need to use ros modules for testing here
 import pyros.rosinterface
 

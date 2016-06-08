@@ -168,7 +168,7 @@ class TestRosInterface(unittest.TestCase):
         TopicBack._remove_pub(nonexistent_pub)  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
         # and update should be enough to cleanup
-        with Timeout(100) as t:
+        with Timeout(5) as t:
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
@@ -549,7 +549,7 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            with Timeout(300) as t:
+            with Timeout(5) as t:
                 while not t.timed_out and nonexistent_srv.resolved_name not in self.interface.services_available:
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)

@@ -39,6 +39,7 @@ if (CATKIN_ENABLE_TESTING)
     catkin_add_nosetests(pyros/rosinterface/rostests/testService.py)
     catkin_add_nosetests(pyros/rosinterface/rostests/testStringTopic.py)
     catkin_add_nosetests(pyros/rosinterface/rostests/testRosInterface.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/testRosInterfaceCache.py)
     # Running with nose because rostest fails ( not sure why yet )
 
     # add_rostest(pyros/rosinterface/rostests/testStringTopic.test)

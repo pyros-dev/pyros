@@ -6,14 +6,12 @@ import logging
 
 # Unit test import (  will emulate ROS setup if needed )
 import time
-try:
-    from pyros.rosinterface import PyrosROS
-except ImportError as exc:
-    import os
-    import pyros.rosinterface
-    import sys
-    sys.modules["pyros.rosinterface"] = pyros.rosinterface.delayed_import_auto(base_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', '..'))
-    from pyros.rosinterface import PyrosROS
+
+from pyros import PyrosROS
+
+# we import pyros.rosinterface here only to get the ROs setup done if needed,
+# because we need to use ros modules for testing here
+import pyros.rosinterface
 
 import rospy
 import roslaunch
@@ -23,7 +21,8 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 
 import pyzmp
 
-from pyros.rosinterface.rostests import Timeout, TestPyrosROS
+from pyros.rosinterface.rostests import Timeout
+from pyros.tests.testPyrosROS import TestPyrosROS
 
 # useful test tools
 from pyros_setup import rostest_nose
