@@ -203,15 +203,14 @@ class TestPyrosROS(object):
                 nose.tools.assert_equal(len(topics.providers), 1)
                 nose.tools.assert_true(rosn.name in [p[0] for p in topics.providers])
 
-                start = time.time()
-                timeout = 15  # should be enough to let the node start (?)
                 res = topics.call()
                 # What we get here is non deterministic
                 # however we can wait for topic to be detected to make sure we get it after some time
 
-                while time.time() - start < timeout and not '/string_pub/test_str_topic' in res.keys():
-                    rospy.rostime.wallsleep(1)
-                    res = topics.call()
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_pub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = topics.call()
 
                 nose.tools.assert_true('/string_pub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
             finally:
@@ -267,12 +266,11 @@ class TestPyrosROS(object):
                 # What we get here is non deterministic
                 # however we can wait for topic to be detected to make sure we get it after some time
 
-                start = time.time()
-                timeout = 15  # should be enough to let the node start (?)
                 res = topics.call()
-                while time.time() - start < timeout and not '/string_pub/test_str_topic' in res.keys():
-                    rospy.rostime.wallsleep(1)
-                    res = topics.call()
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_pub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = topics.call()
 
                 nose.tools.assert_true('/string_pub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
 
