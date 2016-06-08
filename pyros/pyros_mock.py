@@ -89,7 +89,7 @@ class PyrosMock(PyrosBase):
             self._param_val[name] = value
             val = None  # consuming the message
         else:
-            val = self._param_val.get(name, None)
+            val = self._param_val.get(name)
         return val
 
     def params(self):

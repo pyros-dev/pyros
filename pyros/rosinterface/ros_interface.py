@@ -116,7 +116,7 @@ class RosInterface(BaseInterface):
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
         # get first matching service
-        tpc = self.topics_available.get(topic_name, None)
+        tpc = self.topics_available.get(topic_name)
         if tpc:
             if tpc.type is None:  # if the type is unknown, lets discover it
                 try:
@@ -138,7 +138,7 @@ class RosInterface(BaseInterface):
         return [p for p in self.params_available.keys()]
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
-        prm = self.params_available.get(param_name, None)
+        prm = self.params_available.get(param_name)
         if prm:
             if prm.type is None:  # if the type is unknown, lets discover it (since the service is supposed to exist)
                 # TODO : param master API

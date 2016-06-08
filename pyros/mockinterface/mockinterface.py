@@ -54,7 +54,7 @@ class MockInterface(BaseInterface):
         return [t for t in self.topics_available.keys()]
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
-        tpc = self.topics_available.get(topic_name, None)
+        tpc = self.topics_available.get(topic_name)
         return tpc  # None is returned if not found
 
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
@@ -68,7 +68,7 @@ class MockInterface(BaseInterface):
         return [p for p in self.params_available.keys()]
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
-        prm = self.params_available.get(param_name, None)
+        prm = self.params_available.get(param_name)
         return prm  # None is returned if not found
 
     def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the param class implementation
