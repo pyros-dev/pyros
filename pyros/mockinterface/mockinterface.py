@@ -36,10 +36,11 @@ class MockInterface(BaseInterface):
     # We should try our best to go for the lowest common denominator here
     # SERVICES
     def get_svc_list(self):  # function returning all services available on the system
-        return self.services_available
+        return [s for s in self.services_available.keys()]
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
-        return self.services_available_type.get(service_name)
+        svc = self.services_available.get(service_name)
+        return svc  # None is returned if not found
 
     def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
         return MockService(service_name, service_type, *args, **kwargs)
@@ -50,10 +51,11 @@ class MockInterface(BaseInterface):
 
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
-        return self.topics_available
+        return [t for t in self.topics_available.keys()]
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
-        return self.topics_available_type.get(topic_name)
+        tpc = self.topics_available.get(topic_name, None)
+        return tpc  # None is returned if not found
 
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return MockTopic(topic_name, topic_type, *args, **kwargs)
@@ -63,10 +65,11 @@ class MockInterface(BaseInterface):
 
     # PARAMS
     def get_param_list(self):  # function returning all params available on the system
-        return self.params_available
+        return [p for p in self.params_available.keys()]
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
-        return self.params_available_type.get(param_name)
+        prm = self.params_available.get(param_name, None)
+        return prm  # None is returned if not found
 
     def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the param class implementation
         return MockParam(param_name, param_type, *args, **kwargs)
@@ -76,16 +79,16 @@ class MockInterface(BaseInterface):
 
     def update(self):
         with self.topics_available_lock:
-            self.topics_available = topics_available_remote
-            self.topics_available_type = topics_available_type_remote
+            for t in topics_available_remote:
+                self.topics_available[t] = topics_available_type_remote.get(t)
 
         with self.services_available_lock:
-            self.services_available = services_available_remote
-            self.services_available_type = services_available_type_remote
+            for s in services_available_remote:
+                self.services_available[s] = services_available_type_remote.get(s)
 
         with self.params_available_lock:
-            self.params_available = params_available_remote
-            self.params_available_type = params_available_type_remote
+            for p in params_available_remote:
+                self.params_available[p] = params_available_type_remote.get(p)
 
         return super(MockInterface, self).update()
 
@@ -99,13 +102,13 @@ BaseInterface.register(MockInterface)
 def mock_service(svc_name, svc_type):
     print(" -> Mock Service {svc_name} appear".format(**locals()))
     MockInterface.services_available_lock.acquire()
-    MockInterface.services_available.add(svc_name)  # Service appears
-    MockInterface.services_available_type[svc_name] = svc_type
+    # Service appears
+    MockInterface.services_available[svc_name] = svc_type
     MockInterface.services_available_lock.release()
     yield
     MockInterface.services_available_lock.acquire()
-    MockInterface.services_available.remove(svc_name)
-    MockInterface.services_available_type.pop(svc_name)
+    # Service disappear
+    MockInterface.services_available.pop(svc_name)
     MockInterface.services_available_lock.release()
     print(" -> Mock Service {svc_name} disappear".format(**locals()))
 
@@ -114,13 +117,13 @@ def mock_service(svc_name, svc_type):
 def mock_topic(topic_name, topic_type):
     print(" -> Mock Topic {topic_name} appear".format(**locals()))
     MockInterface.topics_available_lock.acquire()
-    MockInterface.topics_available.add(topic_name)  # Service appears
-    MockInterface.topics_available_type[topic_name] = topic_type
+    # Topic appears
+    MockInterface.topics_available[topic_name] = topic_type
     MockInterface.topics_available_lock.release()
     yield
     MockInterface.topics_available_lock.acquire()
-    MockInterface.topics_available.remove(topic_name)  # Service disappears
-    MockInterface.topics_available_type.pop(topic_name)
+    # Topic disappears
+    MockInterface.topics_available.pop(topic_name)
     MockInterface.topics_available_lock.release()
     print(" -> Mock Topic {topic_name} disappear".format(**locals()))
 
@@ -129,12 +132,12 @@ def mock_topic(topic_name, topic_type):
 def mock_param(param_name, param_type):
     print(" -> Mock Param {param_name} appear".format(**locals()))
     MockInterface.params_available_lock.acquire()
-    MockInterface.params_available.add(param_name)  # Param appears
-    MockInterface.params_available_type[param_name] = param_type
+    # Param appears
+    MockInterface.params_available[param_name] = param_type
     MockInterface.params_available_lock.release()
     yield
     MockInterface.params_available_lock.acquire()
-    MockInterface.params_available.remove(param_name)  # Param disappears
-    MockInterface.params_available_type.pop(param_name)
+    # Param disappears
+    MockInterface.params_available.pop(param_name)  # Param disappears
     MockInterface.params_available_lock.release()
     print(" -> Mock Param {param_name} disappear".format(**locals()))

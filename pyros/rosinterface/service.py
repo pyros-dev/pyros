@@ -24,6 +24,19 @@ def get_service_srv_dict(service):
     return get_msg_dict(service.rostype_req), get_msg_dict(service.rostype_resp)
 
 
+class ServiceTuple(object):
+    """
+    Class representing the service the interface connects to
+    """
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+# Note : for service the connection endpoint is not important
+# R1 : service concept is not connection oriented ( client is inexistant until service is used )
+# R2 : ROS only keeps the last service provider in master, previous ones are just erased.
+# TODO: make that the pickled representation of ServiceBack (check asdict())
+
+
 class ServiceBack(object):
     """
     ServiceBack is the class handling conversion from Python API to ROS Service

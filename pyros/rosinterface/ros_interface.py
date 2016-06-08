@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+from collections import namedtuple, MutableMapping
+from copy import deepcopy, copy
+from itertools import ifilter
+
 import rospy
 import rosservice, rostopic, rosparam
 
@@ -12,9 +16,9 @@ import Queue
 import time
 from ..baseinterface import BaseInterface, DiffTuple
 
-from .service import ServiceBack
-from .topic import TopicBack
-from .param import ParamBack
+from .service import ServiceBack, ServiceTuple
+from .topic import TopicBack, TopicTuple
+from .param import ParamBack, ParamTuple
 
 try:
     import rocon_python_comms
@@ -85,18 +89,20 @@ class RosInterface(BaseInterface):
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
     def get_svc_list(self):  # function returning all services available on the system
-        return self.services_available
+        return [s for s in self.services_available.keys()]
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
-        if service_name in self.services_available_type.keys():
-            service_type = self.services_available_type[service_name]
-        else:
-            try:
-                resolved_service_name = rospy.resolve_name(service_name)  # required or not ?
-                service_type = rosservice.get_service_type(resolved_service_name)  # maybe better to store and retrieve from update instead?
-            except rosservice.ROSServiceIOException:  # exception can occur -> just reraise
-               raise
-        return service_type
+        # get first matching service
+        svc = self.services_available.get(service_name)
+        if svc:
+            if svc.type is None:  # if the type is unknown, lets discover it
+                try:
+                    resolved_service_name = rospy.resolve_name(service_name)  # required or not ?
+                    svc.type = rosservice.get_service_type(resolved_service_name)
+                except rosservice.ROSServiceIOException:  # exception can occur -> just reraise
+                    raise
+            return svc.type  # return the type
+        # Note if svc is unknown, then type is not returned (None)
 
     def ServiceMaker(self, service_name, service_type):  # the service class implementation
         return ServiceBack(service_name, service_type)
@@ -106,18 +112,20 @@ class RosInterface(BaseInterface):
 
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
-        return self.topics_available
+        return [t for t in self.topics_available.keys()]
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
-        if topic_name in self.topics_available_type.keys():
-            topic_type = self.topics_available_type[topic_name]
-        else:
-            try:
-                resolved_topic_name = rospy.resolve_name(topic_name)
-                topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
-            except rosservice.ROSTopicIOException, e:  # exception can occur -> just reraise
-                raise
-        return topic_type
+        # get first matching service
+        tpc = self.topics_available.get(topic_name, None)
+        if tpc:
+            if tpc.type is None:  # if the type is unknown, lets discover it
+                try:
+                    resolved_topic_name = rospy.resolve_name(topic_name)
+                    tpc.type, _, _ = rostopic.get_topic_type(resolved_topic_name)
+                except rosservice.ROSServiceIOException:  # exception can occur -> just reraise
+                   raise
+            return tpc.type  # return the first we find. enough.
+        # Note if tpc is unknown, then type is not returned (None)
 
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return TopicBack(topic_name, topic_type, *args, **kwargs)
@@ -127,15 +135,16 @@ class RosInterface(BaseInterface):
 
     # PARAMS
     def get_param_list(self):  # function returning all params available on the system
-        return self.params_available
+        return [p for p in self.params_available.keys()]
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
-        if param_name in self.params_available_type.keys():
-            param_type = self.params_available_type[param_name]
-        else:
-            # TODO : param master API
-            param_type = None
-        return param_type
+        prm = self.params_available.get(param_name, None)
+        if prm:
+            if prm.type is None:  # if the type is unknown, lets discover it (since the service is supposed to exist)
+                # TODO : param master API
+                pass
+            return prm.type  # return the first we find. enough.
+        # Note if prm is unknown, then type is not returned (None)
 
     def ParamMaker(self, param_name, param_type):  # the param class implementation
         return ParamBack(param_name, param_type)
@@ -152,14 +161,13 @@ class RosInterface(BaseInterface):
                 if_topics[pname] = rospy.get_param(par, [])
         return  if_topics
 
-    def _adjust_pyros_topics(self, publishers, subscribers, if_topics=None, removed=False):
+    def _filter_out_pyros_topics(self, publishers, subscribers, if_topics=None):
         """
         This method filter out the topic pubs / subs that are due to pyros behavior itself.
         These extra pubs/subs should not be used to represent the state of the system we connect to.
         :param publishers:
         :param subscribers:
         :param if_topics: topics that are there because of pyros interface (such as provided from _get_pyros_topics)
-        :param removed: true if we are manipulating list of detected removed pubs/subs
         :return:
         """
         # getting the list of interfaced topics from well known node param
@@ -172,11 +180,7 @@ class RosInterface(BaseInterface):
         for p in publishers:
             # keeping only nodes that are not pyros interface for this topic
             # when added pub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
-            if not removed:
-                nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0]))]
-            else:  # when removed pub, local instance_rem_count needs to be > instance_add_count
-                   #  to be considered coming from a non-interface pub deletion
-                nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) and TopicBack.more_than_pub_interface_removed(p[0]))]
+            nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0]))]
             if nonif_pub_providers:
                 filtered_publishers.append([p[0], nonif_pub_providers])
 
@@ -186,27 +190,26 @@ class RosInterface(BaseInterface):
         for s in subscribers:
             # keeping only nodes that are not pyros interface for this topic
             # when added sub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
-            if not removed:
-                nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0]))]
-            else:  # when removed sub, local instance_rem_count needs to be > instance_add_count
-                   # to be considered coming from a non-interface sub deletion
-                nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) and TopicBack.more_than_sub_interface_removed(s[0]))]
+            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0]))]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
 
-        # when dealing with removed pubs/subs, we want to add interfaced topics that haven't been detected
-        # as removed. This is required when using diff optimisation because it relies on ROS detection.
-        if removed:
-            for n, tl in if_topics.iteritems():
-                for t in tl:
-                    # instance count of 1 means the interfaced sub is the last one -> we can remove it
-                    if TopicBack.is_sub_interface_last(t):
-                        filtered_subscribers.append([t, [n]])  # keeping same format for pubs an subs list
-                    # instance count of 1 means the interfaced pub is the last one -> we can remove it
-                    if TopicBack.is_pub_interface_last(t):
-                        filtered_publishers.append([t, [n]])  # keeping same format for pubs an subs list
-
         return filtered_publishers, filtered_subscribers
+
+    # This is really needed because an interfaced topic satisfies itself, and no diff message will be received
+    # from ROS, even if the topic is gone. This is because the interface pub still requires the topic.
+    # This returns the list of topics that satisfy themselves, to add them to the diff
+    def get_lone_interfaced_topics(self):
+        """
+        Returns lone interfaced topic in the same way as it would be returned by the ROS system.
+        But reading only internal data, since the local interface state (last pub/sub) will trigger the change.
+        :return:
+        """
+        lone_topics = []
+        for t in self.topics:  # note the topic will always be in the topics_available list by design TODO : change this ?
+            if TopicBack.is_pub_interface_last(t) and TopicBack.is_sub_interface_last(t):
+                lone_topics.append([t, [rospy.get_name()]])
+        return lone_topics
 
     def retrieve_params(self):
         """
@@ -222,8 +225,11 @@ class RosInterface(BaseInterface):
         CAREFUL : this can be called from another thread (subscriber callback)
         """
         with self.params_available_lock:
-            self.params_available = set(params)
-            self.params_available_type = {}  # for consistency but unused since the lack of master API
+            self.params_available = dict()
+            for p in params:
+                pt = []
+                ptp = ParamTuple(name=p, type=pt[1] if len(pt) > 0 else None)
+                self.params_available[ptp.name] = ptp
 
     def compute_params(self, params_dt):
         """
@@ -231,14 +237,19 @@ class RosInterface(BaseInterface):
         CAREFUL : this can be called from another thread (subscriber callback)
         """
         with self.params_available_lock:
-            self.params_available.update({p[0] for p in params_dt.added})
-            #for p in params_dt.added:
-            #    self.params_available_type[p.name] = p.type
-            self.params_available.difference_update({p[0] for p in params_dt.removed})
-            #for p in params_dt.removed:
-            #    self.params_available_type.pop(p.name, None)
+            for p in self.params_available:
+                pt = ParamTuple(name=p[0], type=None)
+                if pt.name in self.params_available.keys():
+                    if self.params_available[pt.name].type is None or pt.type is not None:
+                        self.params_available[pt.name].type = pt.type
+                    else:
+                        self.params_available[pt.name] = pt
 
-        self.params_available_type = {}  # for consistency but unused since the lack of master API
+            for p in self.params_available:
+                pt = ParamTuple(name=p[0], type=None)
+                if pt.name in self.params_available.keys():
+                    self.params_available.pop(pt.name, None)
+
         return params_dt
 
     def retrieve_system_state(self):
@@ -278,17 +289,23 @@ class RosInterface(BaseInterface):
         :return:
         """
         iftopics = self._get_pyros_topics()
-        filtered_publishers, filtered_subscribers = self._adjust_pyros_topics(publishers, subscribers, if_topics=iftopics)
+        filtered_publishers, filtered_subscribers = self._filter_out_pyros_topics(publishers, subscribers, if_topics=iftopics)
         # this is used with full list : we only need to filter out from that list.
 
         # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
         with self.topics_available_lock:
-            self.topics_available = set([t[0] for t in (filtered_publishers + filtered_subscribers)])
-            self.topics_available_type = {tt[0]: tt[1] for tt in topic_types}  # changing topic type into a dict for easy acces
+            self.topics_available = dict()
+            for t in (filtered_publishers + filtered_subscribers):
+                tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types), [])
+                ttp = TopicTuple(name=t[0], type=tt[1] if len(tt) > 0 else None, endpoints=set(t[1]))
+                self.topics_available[ttp.name] = ttp
 
         with self.services_available_lock:
-            self.services_available = set([s[0] for s in services])
-            self.services_available_type = {tt[0]: tt[1] for tt in service_types}  # changing service type into a dict for easy acces
+            self.services_available = dict()
+            for s in services:
+                st = next(ifilter(lambda lst: s[0] == lst[0], service_types), [])
+                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+                self.services_available[stp.name] = stp
 
         # We still need to return DiffTuples
         return services, filtered_publishers + filtered_subscribers
@@ -302,33 +319,81 @@ class RosInterface(BaseInterface):
         :return:
         """
         iftopics = self._get_pyros_topics()
-        filtered_added_publishers, filtered_added_subscribers = self._adjust_pyros_topics(publishers_dt.added, subscribers_dt.added, if_topics=iftopics)
+        filtered_added_publishers, filtered_added_subscribers = self._filter_out_pyros_topics(publishers_dt.added, subscribers_dt.added, if_topics=iftopics)
         # this is called with difference tuples
         # we need to add removed topics that are only exposed by this pyros interface.
-        filtered_removed_publishers, filtered_removed_subscribers = self._adjust_pyros_topics(publishers_dt.removed, subscribers_dt.removed, if_topics=iftopics, removed=True)
+        filtered_removed_publishers, filtered_removed_subscribers = self._filter_out_pyros_topics(publishers_dt.removed, subscribers_dt.removed, if_topics=iftopics)
+
+        # collapsing add / remove pairs with the help of nodes multiplicity
+        # here to avoid more complicated side effects later on
+        added_pubs = {pub[0]: pub[1] for pub in filtered_added_publishers}
+        added_subs = {sub[0]: sub[1] for sub in filtered_added_subscribers}
+        removed_pubs = {pub[0]: pub[1] for pub in filtered_removed_publishers}
+        removed_subs = {sub[0]: sub[1] for sub in filtered_removed_subscribers}
+
+        for apn, ap in added_pubs.iteritems():
+            for rpn, rp in removed_pubs.iteritems():
+                if rp in ap:  # remove nodes that are added and removed -> no change seen
+                    ap.remove(rp)
+                    removed_pubs[rpn].remove(rp)
+
+        for rpn, rp in removed_pubs.iteritems():
+            for apn, ap in added_pubs.iteritems():
+                if ap in rp:  # remove nodes that are removed and added -> no change seen
+                    rp.remove(ap)
+                    added_pubs[apn].remove(ap)
 
         # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
-        # warning : we may have duplicated entries (one for sub and one for pub)
+        # Need to be careful if pub and sub are added/removed at same time : only one topic added/removed
+        added_topics = {pub[0]: pub[1] for pub in filtered_added_publishers}
+        removed_topics = {pub[0]: pub[1] for pub in filtered_removed_publishers}
+
+        for t in filtered_added_subscribers:
+            added_topics[t[0]] = added_topics.get(t[0], []) + t[1]
+        for t in filtered_removed_subscribers:
+            removed_topics[t[0]] = removed_topics.get(t[0], []) + t[1]
+
+        # We also need to add lone topics to be removed from the internal state here :
+        for rt in self.get_lone_interfaced_topics():
+            removed_topics[rt[0]] = rt[1]
+
+        # TODO : improve here to make sure of nodes unicity after this collapsing step
+
         topics_dt = DiffTuple(
-            added=filtered_added_publishers + filtered_added_subscribers,
-            removed=filtered_removed_publishers + filtered_removed_subscribers
+            added=[[k, v] for k, v in added_topics.iteritems()],
+            removed=[[k, v] for k, v in removed_topics.iteritems()]
         )
 
         with self.topics_available_lock:
-            self.topics_available.update({t[0] for t in topics_dt.added})
-            for t in topic_types_dt.added:
-                self.topics_available_type[t[0]] = t[1]
-            self.topics_available.difference_update({t[0] for t in topics_dt.removed})
-            for t in topic_types_dt.removed:
-                self.topics_available_type.pop(t[0], None)
+            for t in topics_dt.added:
+                tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.added), [])
+                ttp = TopicTuple(name=t[0], type=tt[1] if len(tt) > 0 else None, endpoints=set(t[1]))
+                if ttp.name in self.topics_available.keys():
+                    # if already available, we only update the endpoints list
+                    self.topics_available[ttp.name].endpoints |= ttp.endpoints
+                else:
+                    self.topics_available[ttp.name] = ttp
+
+            for t in topics_dt.removed:
+                tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.removed), [])
+                ttp = TopicTuple(name=t[0], type=tt[1] if len(tt) > 0 else None, endpoints=set(t[1]))
+                if ttp.name in self.topics_available.keys():
+                    self.topics_available[ttp.name].endpoints -= ttp.endpoints
+                    if not self.topics_available[ttp.name].endpoints:
+                        self.topics_available.pop(ttp.name, None)
 
         with self.services_available_lock:
-            self.services_available.update({s[0] for s in services_dt.added})
-            for s in service_types_dt.added:
-                self.services_available_type[s[0]] = s[1]
-            self.services_available.difference_update({s[0] for s in services_dt.removed})
-            for s in service_types_dt.removed:
-                self.services_available_type.pop(s[0], None)
+            for s in services_dt.added:
+                st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
+                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+                # Note : same behavior as ROS: a new service with same name erase previous service (including its type)
+                self.services_available[stp.name] = stp
+
+            for s in services_dt.removed:
+                st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
+                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+                if stp.name in self.services_available.keys():
+                    self.services_available.pop(stp.name, None)
 
         # We still need to return DiffTuples
         return services_dt, topics_dt
@@ -342,6 +407,10 @@ class RosInterface(BaseInterface):
             # dynamically switching cache on and off.
             self.connection_cache = None
 
+        # TODO Instead of one or the other, we should have "two layer behaviors" with different frequencies
+        # Fast loop checking only diff
+        # Slow loop checking full state
+        # It will allow recovering from any mistakes because of wrong diffs (update speed/race conditions/etc.)
         if self.enable_cache:
             if self.connection_cache is None:  # Building Connection Cache proxy if needed
                 # connectioncache proxy if available (remap the topics if necessary instead of passing params)
@@ -361,13 +430,21 @@ class RosInterface(BaseInterface):
             # determining params diff despite lack of API
             params = set(rospy.get_param_names())
             params_dt = DiffTuple(
-                added=params - self.params_available,
-                removed=self.params_available - params
+                added=[p for p in params if p not in [pname for pname in self.params_available.keys()]],
+                removed=[p for p in self.params_available.keys() if p not in [ifilter(lambda pf: pf == p, params)]]
             )
             params_dt = self.compute_params(params_dt)
 
+            # detecting lone topics and simulating a removed detection to trigger remove from interface
+            # These are only used for detection.
+            # compute_system_state will retrieve them again after filtering out interface topics.
+            # TODO : simplify and solidify logic for this case
+            early_topics_dt = DiffTuple([], self.get_lone_interfaced_topics())
+
             # If we have a callback setup we process the diff we got since last time
-            if (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
+            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0)\
+                    or (len(params_dt.added) > 0 or len(params_dt.removed) > 0)\
+                    or self.cb_ss.qsize() > 0:
 
                 # This will be set if we need to ignore current state, and reset it from list
                 reset = False
@@ -464,7 +541,7 @@ class RosInterface(BaseInterface):
                     )
                     # we still need to return a diff to report on our behavior
                     # update() will compute diffs and do the job for us
-                    return super(RosInterface, self).update()
+                    dt = super(RosInterface, self).update()
                 else:  # if we have any change, we process it
                     # converting data format. Here we want only the names/keys.
                     # Resolving the details will be done as usual
@@ -474,6 +551,7 @@ class RosInterface(BaseInterface):
                         added=[[k, [n[0] for n in nset]] for k, nset in added_services.iteritems()],
                         removed=[[k, [n[0] for n in nset]] for k, nset in removed_services.iteritems()]
                     )
+                    # remove publishers added which are not new, and lost publisher which are still there
                     publishers_dt = DiffTuple(
                         added=[[k, [n[0] for n in nset]] for k, nset in added_publishers.iteritems()],
                         removed=[[k, [n[0] for n in nset]] for k, nset in removed_publishers.iteritems()]
@@ -493,11 +571,15 @@ class RosInterface(BaseInterface):
                     services_dt, topics_dt = self.compute_system_state(publishers_dt, subscribers_dt, services_dt, topic_types_dt, service_types_dt)
                     # TODO : we can optimize this by changing base interface and pass all types from here already.
                     # update_on_diff wants only names
-                    return super(RosInterface, self).update_on_diff(
-                            DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
-                            DiffTuple([t[0] for t in topics_dt.added], [t[0] for t in topics_dt.removed]),
-                            DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
+                    dt = super(RosInterface, self).update_on_diff(
+                        DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
+                        DiffTuple([t[0] for t in topics_dt.added], [t[0] for t in topics_dt.removed]),
+                        DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
                     )
+                #TMP
+                if dt.added or dt.removed:
+                    print(rospy.get_name() + " : " + str(dt))
+                return dt
             else:
                 # no update : nothing to do
                 return DiffTuple([], [])

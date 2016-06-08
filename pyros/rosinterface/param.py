@@ -4,6 +4,13 @@ import rospy
 from collections import OrderedDict
 
 
+class ParamTuple(object):
+    def __init__(self, name, type):
+        self.name = name
+        self.type = type
+# TODO: make that the pickled representation of ParamBack (check asdict())
+
+
 class ParamBack(object):
     """
     ParamBack is the class handling conversion from REST API to ROS Param

@@ -121,8 +121,8 @@ class TestRosInterface(unittest.TestCase):
 
     def test_topic_appear_update_expose(self):
         """
-        Test topic exposing functionality for a topic which already exists in
-        the ros environment. Normal usecase
+        Test topic exposing functionality for a topic which already exists in the ros environment.
+        Normal usecase
         Sequence : (UPDATE?) -> APPEAR -> UPDATE -> EXPOSE (-> UPDATE?)
         :return:
         """
@@ -549,7 +549,7 @@ class TestRosInterface(unittest.TestCase):
         # it coming online before expose call.
         nonexistent_srv = rospy.Service(servicename, EmptySrv, srv_cb)
         try:
-            with Timeout(5) as t:
+            with Timeout(300) as t:
                 while not t.timed_out and nonexistent_srv.resolved_name not in self.interface.services_available:
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)

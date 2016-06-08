@@ -7,10 +7,11 @@ TopicType = namedtuple("TopicType", "msgtype")
 
 statusecho_topic = TopicType("StatusMsg")
 
-"""
-MockTopic is a mock of the class handling conversion from Python API to Topic call
-"""
+
 class MockTopic(BaseTopic):
+    """
+    MockTopic is a mock of the class handling conversion from Python API to Topic call
+    """
 
     # Mock Implementation
     # Intra-process inter-thread communication channel : a simple class variable

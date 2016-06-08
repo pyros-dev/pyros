@@ -71,18 +71,21 @@ def regexes_match_sublist(regexes, match_candidates):
     return [match for sublist in [regex_match_sublist(rgx, match_candidates) for rgx in regexes] for match in sublist]
 
 
+#TODO Entity Component System design for interface loop. cf https://pypi.python.org/pypi/esper (py3 + py2 in fork)
+# Entities are transients (ex : for ROS : pubs, subs, svcs, params, and more can be added),
+# Systems store logic about when/how a transient should be represented in the interface.
+# GOALS : clarity, testability and flexibility
 class BaseInterface(object):
 
     # This is a local cache of the system state because we don't want to ask everytime.
+    # TODO: find a way to make interface development easier by allowing developer to compare and worry only about local state representation versus interface
+    # NOT about how to synchronize remote state with local state...
     services_available_lock = threading.Lock()  # writer lock (because we have subscribers on another thread)
-    services_available = set()
-    services_available_type = {}
+    services_available = dict()
     topics_available_lock = threading.Lock()
-    topics_available = set()
-    topics_available_type = {}
+    topics_available = dict()
     params_available_lock = threading.Lock()
-    params_available = set()
-    params_available_type = {}
+    params_available = dict()
     # This stays always in sync with the system (via interface update call)
     # but the interface instance can be created and recreated independently
 
