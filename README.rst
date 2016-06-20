@@ -1,6 +1,10 @@
 Pyros
 =====
 
+.. image:: https://badges.gitter.im/asmodehn/pyros.svg
+   :alt: Join the chat at https://gitter.im/asmodehn/pyros
+   :target: https://gitter.im/asmodehn/pyros?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 .. image:: https://travis-ci.org/asmodehn/pyros.svg?branch=indigo-devel
     :target: https://travis-ci.org/asmodehn/pyros
 
@@ -87,6 +91,19 @@ Coming up soon
 - [ ] an ubuntu (virtual env embedded) is provided to install pyros on your Ubuntu Trusty to use pyros from binary.
 
 => If you want to build a binary package depending on pyros, you should rely on the pip dependency mechanism and embed the appropriate version into your deb (virtual env embedded).
+
+Roadmap
+-------
+
+We should do what we can to catch up on IoT platforms design.
+Although Pyros focus on pure python design, another package depending on it should enable ROS systems to connect as device to these IoT platforms.
+
+Currently Rostful provide HTTP connection to your robot.
+For example another project could provide MQTT connection to your robot, following amazon choice of using MQTT (OASIS Standard).
+
+IoT platforms design :
+
+- Amazon :  http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 
 Will NOT do in pyros
 --------------------

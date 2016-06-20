@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from pyros.mockinterface.mockinterface import MockInterface
+from pyros.mockinterface import MockInterface, mock_service
 from pyros.mockinterface.mockservice import statusecho_service, MockService
 
 import nose
@@ -27,22 +27,22 @@ def test_mockinterface_update_services_c1():
     assert_false(diffupdate.added)
     assert_false(diffupdate.removed)  # service not added cannot be removed
 
-    mockif.mock_service_appear(svc_name, statusecho_service)  # simulating service appearing
-    mockif.services_args.add(svc_name)  # adding it to regex list to allow it to be exposed
+    with mock_service(svc_name, statusecho_service):  # simulating service appearing
+        mockif.services_args.add(svc_name)  # adding it to regex list to allow it to be exposed
 
-    diffupdate = mockif.update_services(add_names=[svc_name], remove_names=[])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # service exposed can be added
+        diffupdate = mockif.update_services(add_names=[svc_name], remove_names=[])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # service exposed can be added
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed now
-    assert_true(isinstance(svc, MockService))  # service type is MockService
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed now
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
-    diffupdate = mockif.update_services(add_names=[], remove_names=[svc_name])
-    assert_false(diffupdate.added)
-    assert_true(diffupdate.removed)  # service exposed can be deleted
+        diffupdate = mockif.update_services(add_names=[], remove_names=[svc_name])
+        assert_false(diffupdate.added)
+        assert_true(diffupdate.removed)  # service exposed can be deleted
 
-    assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
+        assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
 
 
 # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )
@@ -60,18 +60,16 @@ def test_mockinterface_update_services_c2():
     assert_false(diffupdate.added)
     assert_false(diffupdate.removed)  # service not added cannot be removed
 
-    mockif.mock_service_appear(svc_name, statusecho_service)  # simulating service appearing
-    mockif.services_args.add(svc_name)  # adding it to regex list to allow it to be exposed
+    with mock_service(svc_name, statusecho_service):  # simulating service appearing
+        mockif.services_args.add(svc_name)  # adding it to regex list to allow it to be exposed
 
-    diffupdate = mockif.update_services(add_names=[svc_name], remove_names=[])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # service exposed can be added
+        diffupdate = mockif.update_services(add_names=[svc_name], remove_names=[])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # service exposed can be added
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed now
-    assert_true(isinstance(svc, MockService))  # service type is MockService
-
-    mockif.mock_service_disappear(svc_name)
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed now
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
     svc = mockif.services.get(svc_name, None)
     assert_true(svc is not None)  # service is still exposed even though it s gone from the system we interface to
@@ -97,17 +95,15 @@ def test_mockinterface_expose_update_services_fullname():
     assert_false(diffupdate.added)  # service not detected cannot be added
     assert_false(diffupdate.removed)
 
-    mockif.mock_service_appear(svc_name, statusecho_service)
+    with mock_service(svc_name, statusecho_service):
 
-    diffupdate = mockif.expose_services([svc_name])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # service available can be detected and be added
+        diffupdate = mockif.expose_services([svc_name])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # service available can be detected and be added
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed now
-    assert_true(isinstance(svc, MockService))  # service type is MockService
-
-    mockif.mock_service_disappear(svc_name)
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed now
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
     svc = mockif.services.get(svc_name, None)
     assert_true(svc is not None)  # service exposed now
@@ -140,42 +136,40 @@ def test_mockinterface_update_expose_services_fullname():
     assert_false(diffupdate.added)  # service not available is not detected and not added
     assert_false(diffupdate.removed)  # service not added previously is not removed
 
-    mockif.mock_service_appear(svc_name, statusecho_service)
+    with mock_service(svc_name, statusecho_service):
 
-    diffupdate = mockif.services_change_detect()
-    assert_false(diffupdate.removed)
-    assert_false(diffupdate.added)  # service available is not detected and added without previous expose call
+        diffupdate = mockif.services_change_detect()
+        assert_false(diffupdate.removed)
+        assert_false(diffupdate.added)  # service available is not detected and added without previous expose call
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is None)  # service not exposed now
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is None)  # service not exposed now
 
-    diffupdate = mockif.expose_services([svc_name])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new expose call add the service because it is already available
+        diffupdate = mockif.expose_services([svc_name])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new expose call add the service because it is already available
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed now
-    assert_true(isinstance(svc, MockService))  # service type is MockService
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed now
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
-    diffupdate = mockif.services_change_detect()
-    assert_false(diffupdate.removed)
-    assert_false(diffupdate.added)  # new detection call doesnt change anything
+        diffupdate = mockif.services_change_detect()
+        assert_false(diffupdate.removed)
+        assert_false(diffupdate.added)  # new detection call doesnt change anything
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service still exposed
-    assert_true(isinstance(svc, MockService))  # service type is still MockService
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service still exposed
+        assert_true(isinstance(svc, MockService))  # service type is still MockService
 
-    diffupdate = mockif.expose_services([])
-    assert_false(diffupdate.added)
-    assert_true(diffupdate.removed)  # new expose call can remove the service even if it is still available
+        diffupdate = mockif.expose_services([])
+        assert_false(diffupdate.added)
+        assert_true(diffupdate.removed)  # new expose call can remove the service even if it is still available
 
-    assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
+        assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
 
-    diffupdate = mockif.expose_services([svc_name])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new expose call can readd if it is still available
-
-    mockif.mock_service_disappear(svc_name)
+        diffupdate = mockif.expose_services([svc_name])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new expose call can readd if it is still available
 
     svc = mockif.services.get(svc_name, None)
     assert_true(svc is not None)  # service exposed now
@@ -210,17 +204,15 @@ def test_mockinterface_expose_services_regex():
     assert_false(diffupdate.added)  # service not detected cannot be added
     assert_false(diffupdate.removed)
 
-    mockif.mock_service_appear(svc_name, statusecho_service)
+    with mock_service(svc_name, statusecho_service):
 
-    diffupdate = mockif.services_change_detect()
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new detection call finds the service and adds it
+        diffupdate = mockif.services_change_detect()
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new detection call finds the service and adds it
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed
-    assert_true(isinstance(svc, MockService))  # service type is MockService
-
-    mockif.mock_service_disappear(svc_name)
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
     diffupdate = mockif.services_change_detect()
     assert_false(diffupdate.added)
@@ -239,42 +231,40 @@ def test_mockinterface_update_expose_services_fullname_diff():
     assert_false(diffupdate.added)  # service not passed in diff is not detected and not added
     assert_false(diffupdate.removed)  # service not added previously is not removed
 
-    mockif.mock_service_appear(svc_name, statusecho_service)
+    with mock_service(svc_name, statusecho_service):
 
-    diffupdate = mockif.services_change_diff([svc_name], [])
-    assert_false(diffupdate.removed)
-    assert_false(diffupdate.added)  # service available is not detected and added without previous expose call
+        diffupdate = mockif.services_change_diff([svc_name], [])
+        assert_false(diffupdate.removed)
+        assert_false(diffupdate.added)  # service available is not detected and added without previous expose call
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is None)  # service not exposed now
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is None)  # service not exposed now
 
-    diffupdate = mockif.expose_services([svc_name])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new expose call add the service because it is already available
+        diffupdate = mockif.expose_services([svc_name])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new expose call add the service because it is already available
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed now
-    assert_true(isinstance(svc, MockService))  # service type is MockService
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed now
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
-    diffupdate = mockif.services_change_diff([], [])
-    assert_false(diffupdate.removed)
-    assert_false(diffupdate.added)  # empty diff call doesnt change anything
+        diffupdate = mockif.services_change_diff([], [])
+        assert_false(diffupdate.removed)
+        assert_false(diffupdate.added)  # empty diff call doesnt change anything
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service still exposed
-    assert_true(isinstance(svc, MockService))  # service type is still MockService
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service still exposed
+        assert_true(isinstance(svc, MockService))  # service type is still MockService
 
-    diffupdate = mockif.expose_services([])
-    assert_false(diffupdate.added)
-    assert_true(diffupdate.removed)  # new expose call can remove the service even if it is still available
+        diffupdate = mockif.expose_services([])
+        assert_false(diffupdate.added)
+        assert_true(diffupdate.removed)  # new expose call can remove the service even if it is still available
 
-    assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
+        assert_true(mockif.services.get(svc_name, None) is None)  # service not exposed anymore
 
-    diffupdate = mockif.expose_services([svc_name])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new expose call can readd if it is still available
-
-    mockif.mock_service_disappear(svc_name)
+        diffupdate = mockif.expose_services([svc_name])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new expose call can readd if it is still available
 
     svc = mockif.services.get(svc_name, None)
     assert_true(svc is not None)  # service exposed now
@@ -309,17 +299,15 @@ def test_mockinterface_expose_services_regex_diff():
     assert_false(diffupdate.added)  # service not detected cannot be added
     assert_false(diffupdate.removed)
 
-    mockif.mock_service_appear(svc_name, statusecho_service)
+    with mock_service(svc_name, statusecho_service):
 
-    diffupdate = mockif.services_change_diff([svc_name], [])
-    assert_false(diffupdate.removed)
-    assert_true(diffupdate.added)  # new diff call finds the service and adds it
+        diffupdate = mockif.services_change_diff([svc_name], [])
+        assert_false(diffupdate.removed)
+        assert_true(diffupdate.added)  # new diff call finds the service and adds it
 
-    svc = mockif.services.get(svc_name, None)
-    assert_true(svc is not None)  # service exposed
-    assert_true(isinstance(svc, MockService))  # service type is MockService
-
-    mockif.mock_service_disappear(svc_name)
+        svc = mockif.services.get(svc_name, None)
+        assert_true(svc is not None)  # service exposed
+        assert_true(isinstance(svc, MockService))  # service type is MockService
 
     diffupdate = mockif.services_change_diff([], [svc_name])
     assert_false(diffupdate.added)

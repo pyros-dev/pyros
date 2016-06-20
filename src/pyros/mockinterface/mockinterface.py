@@ -1,17 +1,24 @@
 from __future__ import absolute_import
 
-import logging
-import abc
+from contextlib import contextmanager
+
+
 from pyros.baseinterface import BaseInterface
+
+from .mocksystem import (
+    services_available_remote, services_available_type_remote,
+    topics_available_remote, topics_available_type_remote,
+    params_available_remote, params_available_type_remote,
+)
+
 
 from .mockservice import MockService
 from .mocktopic import MockTopic
 from .mockparam import MockParam
 
-import unicodedata
-
 
 class MockInterface(BaseInterface):
+
     """
     MockInterface.
     """
@@ -23,14 +30,7 @@ class MockInterface(BaseInterface):
             topics = []
         if params is None:
             params = []
-        # These list what is available on the Mock implementation.
-        # They are accessible directly for tests who want to simulate multiprocess communication framework changes.
-        self.services_available = []
-        self.services_available_type = {}
-        self.topics_available = []
-        self.topics_available_type = {}
-        self.params_available = []
-        self.params_available_type = {}
+
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
         super(MockInterface, self).__init__(services, topics, params)
 
@@ -49,13 +49,6 @@ class MockInterface(BaseInterface):
     def ServiceCleaner(self, service):  # the service class cleanup implementation
         return service.cleanup()
 
-    def mock_service_appear(self, svc_name, svc_type):
-        self.services_available.append(svc_name)  # Service appears
-        self.services_available_type[svc_name] = svc_type
-
-    def mock_service_disappear(self, svc_name):
-        self.services_available.remove(svc_name)  # Service disappears
-        self.services_available_type.pop(svc_name)
 
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
@@ -70,14 +63,7 @@ class MockInterface(BaseInterface):
     def TopicCleaner(self, topic):  # the topic class implementation
         return topic.cleanup()
 
-    def mock_topic_appear(self, topic_name, topic_type):
-        self.topics_available.append(topic_name)  # Service appears
-        self.topics_available_type[topic_name] = topic_type
-
-    def mock_topic_disappear(self, topic_name):
-        self.topics_available.remove(topic_name)  # Service disappears
-        self.topics_available_type.pop(topic_name)
-
+    # PARAMS
     def get_param_list(self):  # function returning all params available on the system
         return self.params_available
 
@@ -90,12 +76,67 @@ class MockInterface(BaseInterface):
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
 
-    def mock_param_appear(self, param_name, param_type):
-        self.params_available.append(param_name)  # Param appears
-        self.params_available_type[param_name] = param_type
+    def update(self):
+        with self.topics_available_lock:
+            self.topics_available = topics_available_remote
+            self.topics_available_type = topics_available_type_remote
 
-    def mock_param_disappear(self, param_name):
-        self.params_available.remove(param_name)  # Param disappears
-        self.params_available_type.pop(param_name)
+        with self.services_available_lock:
+            self.services_available = services_available_remote
+            self.services_available_type = services_available_type_remote
+
+        with self.params_available_lock:
+            self.params_available = params_available_remote
+            self.params_available_type = params_available_type_remote
+
+        return super(MockInterface, self).update()
+
+
 
 BaseInterface.register(MockInterface)
+
+# Mock functions to force changes in interface local cache.
+
+@contextmanager
+def mock_service(svc_name, svc_type):
+    print(" -> Mock Service {svc_name} appear".format(**locals()))
+    MockInterface.services_available_lock.acquire()
+    MockInterface.services_available.add(svc_name)  # Service appears
+    MockInterface.services_available_type[svc_name] = svc_type
+    MockInterface.services_available_lock.release()
+    yield
+    MockInterface.services_available_lock.acquire()
+    MockInterface.services_available.remove(svc_name)
+    MockInterface.services_available_type.pop(svc_name)
+    MockInterface.services_available_lock.release()
+    print(" -> Mock Service {svc_name} disappear".format(**locals()))
+
+
+@contextmanager
+def mock_topic(topic_name, topic_type):
+    print(" -> Mock Topic {topic_name} appear".format(**locals()))
+    MockInterface.topics_available_lock.acquire()
+    MockInterface.topics_available.add(topic_name)  # Service appears
+    MockInterface.topics_available_type[topic_name] = topic_type
+    MockInterface.topics_available_lock.release()
+    yield
+    MockInterface.topics_available_lock.acquire()
+    MockInterface.topics_available.remove(topic_name)  # Service disappears
+    MockInterface.topics_available_type.pop(topic_name)
+    MockInterface.topics_available_lock.release()
+    print(" -> Mock Topic {topic_name} disappear".format(**locals()))
+
+
+@contextmanager
+def mock_param(param_name, param_type):
+    print(" -> Mock Param {param_name} appear".format(**locals()))
+    MockInterface.params_available_lock.acquire()
+    MockInterface.params_available.add(param_name)  # Param appears
+    MockInterface.params_available_type[param_name] = param_type
+    MockInterface.params_available_lock.release()
+    yield
+    MockInterface.params_available_lock.acquire()
+    MockInterface.params_available.remove(param_name)  # Param disappears
+    MockInterface.params_available_type.pop(param_name)
+    MockInterface.params_available_lock.release()
+    print(" -> Mock Param {param_name} disappear".format(**locals()))

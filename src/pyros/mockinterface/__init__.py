@@ -13,6 +13,7 @@ from __future__ import absolute_import
 from .mocktopic import MockTopic, statusecho_topic
 from .mockservice import MockService, statusecho_service
 from .mockparam import MockParam
+from .mockinterface import MockInterface, mock_service, mock_topic, mock_param
 
 from .mockmessage import (
     extract_values,
@@ -23,6 +24,9 @@ from .mockmessage import (
 )
 
 from .mocknode import PyrosMock
+
+
+# TODO : We should probably use mock library for this and test against it...
 
 __all__ = [
     'MockTopic',
@@ -36,5 +40,6 @@ __all__ = [
     'StatusMsg',
     'statusecho_topic',
     'statusecho_service',
+    'MockInterface',
     'PyrosMock',
 ]

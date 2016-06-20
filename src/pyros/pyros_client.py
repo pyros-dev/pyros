@@ -40,7 +40,13 @@ class PyrosServiceTimeout(PyrosException):
 PyrosException.register(PyrosServiceTimeout)
 
 
+# TODO : provide a test client ( similar to what werkzeug/flask does )
+# The goal is to make it easy for users of pyros to test and validate their library only against the client,
+# without having to have all the ROS environment installed and setup, and running extra processing
+# just for unit testing...
 class PyrosClient(object):
+    # TODO : improve ZMP to return the socket_bind address to point to the exact IPC/socket channel.
+    # And pass it here, instead of assuming node name is unique...
     def __init__(self, node_name=None):
         # Link to only one Server
         self.node_name = node_name
@@ -95,37 +101,6 @@ class PyrosClient(object):
         ):
             raise PyrosServiceNotFound('params')
 
-        # ROCON stuff
-        # self.namespaces_svc = zmp.Service.discover('namespaces', 5)
-        # if self.namespaces_svc is None or (
-        #     self.node_name is not None and
-        #     self.node_name not in self.namespaces_svc.providers
-        # ):
-        #     raise PyrosServiceNotFound('namespaces')
-
-        # self.interactions_svc = zmp.Service.discover('interactions', 5)
-        # if self.interactions_svc is None or (
-        #     self.node_name is not None and
-        #     self.node_name not in self.interactions_svc.providers
-        # ):
-        #     raise PyrosServiceNotFound('interactions')
-
-        # self.interaction_svc = zmp.Service.discover('interaction', 5)
-        # if self.interaction_svc is None or (
-        #     self.node_name is not None and
-        #     self.node_name not in self.interaction_svc.providers
-        # ):
-        #     raise PyrosServiceNotFound('interaction')
-
-        # self.has_rocon_svc = zmp.Service.discover('has_rocon', 5)
-        # if self.has_rocon_svc is None or (
-        #     self.node_name is not None and
-        #     self.node_name not in self.has_rocon_svc.providers
-        # ):
-        #     raise PyrosServiceNotFound('has_rocon')
-
-
-
     def buildMsg(self, connection_name, suffix=None):
         #changing unicode to string ( testing stability of multiprocess debugging )
         if isinstance(connection_name, unicode):
@@ -159,7 +134,13 @@ class PyrosClient(object):
         if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
-        res = self.topic_svc.call(args=(topic_name, None,))
+        try:
+            res = self.topic_svc.call(args=(topic_name, None,))
+        except zmp.service.ServiceCallTimeout as exc:
+            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+
+        # TODO : if topic_name not exposed, we get None as res.
+        # We should improve that behavior (display warning ? allow auto -dynamic- expose ?)
 
         return res
 
@@ -213,11 +194,17 @@ class PyrosClient(object):
         return res
 
     def topics(self):
-        res = self.topics_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
+        try:
+            res = self.topics_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
+        except zmp.service.ServiceCallTimeout, exc:
+            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         return res
         
     def services(self):
-        res = self.services_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
+        try:
+            res = self.services_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
+        except zmp.service.ServiceCallTimeout, exc:
+            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
         return res
 
     def params(self):

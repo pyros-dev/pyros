@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import sys
+import threading
 import collections
 import re
 import abc
@@ -12,6 +13,20 @@ DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
 
 class BaseInterface(object):
+
+    # This is a local cache of the system state because we don't want to ask everytime.
+    services_available_lock = threading.Lock()  # writer lock (because we have subscribers on another thread)
+    services_available = set()
+    services_available_type = {}
+    topics_available_lock = threading.Lock()
+    topics_available = set()
+    topics_available_type = {}
+    params_available_lock = threading.Lock()
+    params_available = set()
+    params_available_type = {}
+    # This stays always in sync with the system (via interface update call)
+    # but the interface instance can be created and recreated independently
+
     """
     BaseInterface.
     Assumption : we only deal with absolute names here. The users should resolve them
@@ -123,7 +138,8 @@ class BaseInterface(object):
         Exposes a list of transients regexes. resolved transients not matching the regexes will be removed.
         _expose_transients_regex -> _transient_change_detect -> _transient_change_diff -> _update_transients
         :param transient_desc: a string describing the transient type ( service, topic, etc. )
-        :param regexes: the list of regex to filter the transient to add
+        :param regexes: the list of regex to filter the transient to add.
+               Note: regexes = [] remove all registered regexes.
         :param regex_set: the list of regex already existing
         :param resolved_dict: the list to add the resolved transient(s) to
         :param get_list_func: the function to get the list of all transients currently available to be exposed
@@ -438,18 +454,9 @@ class BaseInterface(object):
                                           class_build_func=self.ParamMaker,
                                           )
 
-        self.reinit(services, topics, params)
-
         # First update() will re-detect previously found names, but when trying to update, no duplicates should happen.
         # This should be taken care of in the abstract transient functional interface
 
-    def reinit(self, services=None, topics=None, params=None):
-        """
-        :param services: list of services to expose. None means no change, keep current config.
-        :param topics: list of topics to expose. None means no change, keep current config.
-        :param params: list of params to expose. None means no change, keep current config.
-        :return: the difference between the transient previously exposed and recently exposed
-        """
         if services is not None:
             sdt = self.expose_services(services)
         else:
@@ -464,11 +471,6 @@ class BaseInterface(object):
             pdt = self.expose_params(params)
         else:
             pdt = DiffTuple([], [])  # no change in exposed services
-
-        return DiffTuple(
-            added=sdt.added+tdt.added+pdt.added,
-            removed=sdt.removed+tdt.removed+pdt.removed
-        )
 
     def update_on_diff(self, services_dt, topics_dt, params_dt):
 

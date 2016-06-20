@@ -769,7 +769,7 @@ class TestRosInterfaceNoCache(TestRosInterface):
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
-        self.interface = RosInterface(False)
+        self.interface = RosInterface(enable_cache=False)
 
     def tearDown(self):
         self.interface = None

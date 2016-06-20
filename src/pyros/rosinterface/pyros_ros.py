@@ -11,14 +11,7 @@ import sys
 
 from .ros_interface import RosInterface
 
-# TODO : fix import to work dynamically here
-#from .roconinterface.rocon_interface import RoconInterface
-
-from ..pyros_prtcl import MsgBuild, Topic, Service, Param, TopicInfo, ServiceInfo, ParamInfo, Rocon, InteractionInfo, NamespaceInfo
-
 from pyros.baseinterface import PyrosBase
-from dynamic_reconfigure.server import Server
-from . import pyros_cfg
 import ast
 import os
 import logging
@@ -35,68 +28,13 @@ class PyrosROS(PyrosBase):
     """
     Interface with ROS.
     """
-    def __init__(self, name=None, argv=None, dynamic_reconfigure=True, base_path=None):
-        super(PyrosROS, self).__init__(name=name or 'pyros_ros')
+    def __init__(self, name=None, argv=None, base_path=None, args=None, kwargs=None):
+        super(PyrosROS, self).__init__(name=name or 'pyros_ros', interface_class=RosInterface, args=args or (), kwargs=kwargs or {})
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
         # protecting rospy from unicode
         self.str_argv = [unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for arg in argv]
-        self.dynamic_reconfigure = dynamic_reconfigure
         self.base_path = base_path  # used for setup in actual separate process dynamically
-        try:
-            from .roconinterface.rocon_interface import RoconInterface
-            _ROCON_AVAILABLE = True
-        except ImportError, e:
-            import logging
-            logging.warn("Error: could not import RoconInterface - disabling. {0!s}".format(e))
-            _ROCON_AVAILABLE = False
-
-        self.enable_cache = False
-        self.ros_if = None
-        self.ros_if_params = None   # for delayed reinit()
-
-        self.enable_rocon = _ROCON_AVAILABLE
-        self.rocon_if = None
-
-        # def start_rapp(req):  # Keep this minimal
-        #     rospy.logwarn("""Requesting Rapp Start {rapp}: """.format(
-        #         rapp=req.rapp_name
-        #     ))
-        #     #normalizing names... ( somewhere else ?)
-        #     #service_name = unicodedata.normalize('NFKD', req.service_name).encode('ascii', 'ignore')
-        #     #service is raw str
-        #     if req.rapp_name[0] == '/':
-        #         req.rapp_name = req.rapp_name[1:]
-        #
-        #     if self.rocon_if:
-        #         #TMP
-        #         if req.rapp_name.split('/')[0] in self.rocon_if.rapps_namespaces:
-        #             self.rocon_if.start_rapp(req.rapp_name.split('/')[0], "/".join(req.rapp_name.split('/')[1:]))
-        #
-        #     res = True
-        #
-        #     return srv.StartRappResponse(res)
-        #
-        # def stop_rapp(req):  # Keep this minimal
-        #     rospy.logwarn("""Requesting Rapp Stop: """)
-        #
-        #     if self.rocon_if:
-        #         #TMP
-        #         self.rocon_if.stop_rapp()
-        #
-        #     res = {"stopped": True}
-        #     output_data = json.dumps(res)
-        #     return srv.StopRappResponse(output_data)
-
-        #self.RappStartService = rospy.Service('~start_rapp', srv.StartRapp, start_rapp)
-        #self.RappStopService = rospy.Service('~stop_rapp', srv.StopRapp, stop_rapp)
-
-        #self.provides(self.interactions)
-        #self.provides(self.namespaces)
-        #self.provides(self.interaction)
-        #self.provides(self.has_rocon)
-
-        ####
 
     # TODO: get rid of this to need one less client-node call
     # we need make the message type visible to client,
@@ -104,12 +42,12 @@ class PyrosROS(PyrosBase):
     # dynamically right when calling the service.
     def msg_build(self, connec_name):
         msg = None
-        if self.ros_if:
-            if connec_name in self.ros_if.topics.keys():
-                input_msg_type = self.ros_if.topics.get(connec_name, None).rostype
+        if self.interface:
+            if connec_name in self.interface.topics.keys():
+                input_msg_type = self.interface.topics.get(connec_name, None).rostype
                 msg = input_msg_type()
-            elif connec_name in self.ros_if.services.keys():
-                input_msg_type = self.ros_if.services.get(connec_name, None).rostype_req
+            elif connec_name in self.interface.services.keys():
+                input_msg_type = self.interface.services.get(connec_name, None).rostype_req
                 msg = input_msg_type()
         return msg
 
@@ -117,13 +55,13 @@ class PyrosROS(PyrosBase):
     def topic(self, name, msg_content=None):
         try:
             msg = self.msg_build(name)
-            if self.ros_if and name in self.ros_if.topics.keys():
+            if self.interface and name in self.interface.topics.keys():
                 if msg_content is not None:
                     msgconv.populate_instance(msg_content, msg)
-                    self.ros_if.topics.get(name, None).publish(msg)
+                    self.interface.topics.get(name, None).publish(msg)
                     msg = None  # consuming the message
                 else:
-                    res = self.ros_if.topics.get(name, None).get(consume=False)
+                    res = self.interface.topics.get(name, None).get(consume=False)
                     msg = msgconv.extract_values(res) if res else res
             return msg
         except msgconv.FieldTypeMismatchException, e:
@@ -132,8 +70,8 @@ class PyrosROS(PyrosBase):
 
     def topics(self):
         topics_dict = {}
-        if self.ros_if:
-            for t, tinst in self.ros_if.topics.iteritems():
+        if self.interface:
+            for t, tinst in self.interface.topics.iteritems():
                 topics_dict[t] = tinst.asdict()
         return topics_dict
 
@@ -146,8 +84,8 @@ class PyrosROS(PyrosBase):
             # FIXME : if the service is not exposed this returns None.
             # Cost a lot time to find the reason since client code doesnt check the answer.
             # Maybe returning error is better ?
-            if self.ros_if and name in self.ros_if.services.keys():
-                resp = self.ros_if.services.get(name, None).call(rqst)
+            if self.interface and name in self.interface.services.keys():
+                resp = self.interface.services.get(name, None).call(rqst)
                 resp_content = msgconv.extract_values(resp)
             return resp_content
 
@@ -165,62 +103,44 @@ class PyrosROS(PyrosBase):
 
     def services(self):
         services_dict = {}
-        if self.ros_if:
-            for s, sinst in self.ros_if.services.iteritems():
+        if self.interface:
+            for s, sinst in self.interface.services.iteritems():
                 services_dict[s] = sinst.asdict()
         return services_dict
 
     def param(self, name, value=None):
-        if self.ros_if and name in self.ros_if.params.keys():
+        if self.interface and name in self.interface.params.keys():
             if value is not None:
-                self.ros_if.params.get(name, None).set(value)
+                self.interface.params.get(name, None).set(value)
                 value = None  # consuming the message
             else:
-                value = self.ros_if.params.get(name, None).get()
+                value = self.interface.params.get(name, None).get()
         return value
 
     def params(self):
         params_dict = {}
-        if self.ros_if:
-            for p, pinst in self.ros_if.params.iteritems():
+        if self.interface:
+            for p, pinst in self.interface.params.iteritems():
                 params_dict[p] = pinst.asdict()
         return params_dict
 
-    def interaction(self, name):
-        if self.rocon_if and name in self.rocon_if.interactions:
-            self.rocon_if.request_interaction(name)
+    def setup(self, *args, **kwargs):
+        """
+        Dynamically reset the interface to expose the services / topics / params whose names are passed as args
+        :param services:
+        :param topics:
+        :param params:
+        :param enable_cache
+        :return:
+        """
 
-        return None
+        # we add params from ros args to kwargs if it is not there yet
+        kwargs.setdefault('services', list(set(ast.literal_eval(rospy.get_param('~services', "[]")))))
+        kwargs.setdefault('topics', list(set(ast.literal_eval(rospy.get_param('~topics', "[]")))))
+        kwargs.setdefault('params', list(set(ast.literal_eval(rospy.get_param('~params', "[]")))))
+        kwargs.setdefault('enable_cache', rospy.get_param('~enable_cache', False))
 
-    def interactions(self):
-        if self.rocon_if:
-            ir = self.rocon_if.interactions
-            inter_dict = {}
-            for intr in ir:
-                inter_dict[intr] = InteractionInfo(name=intr.name, display_name=intr.display_name)
-
-            return inter_dict
-        return {}
-
-    def namespaces(self):
-        if self.rocon_if:
-            ns = self.rocon_if.rapps_namespaces
-            rapp_dict = {}
-            for rapp in ns:
-                rapp_dict[rapp] = NamespaceInfo(name=rapp.name)
-
-            return rapp_dict
-
-        return {}
-
-    def has_rocon(self):
-        return True if self.rocon_if else False
-
-    def reinit(self, services=None, topics=None, params=None, enable_cache=None):
-        # this needs to be available just after __init__, however we need the ros_if to be present
-        self.ros_if_params = (services, topics, params, enable_cache)
-        if self.ros_if:
-            self.ros_if.reinit(*self.ros_if_params)
+        super(PyrosROS, self).setup(*args, **kwargs)
 
     def run(self):
         """
@@ -234,41 +154,19 @@ class PyrosROS(PyrosBase):
         while not m.is_online():
             time.sleep(0.5)
 
-        enable_rocon = rospy.get_param('~enable_rocon', False)
-        self.enable_rocon = self.enable_rocon and enable_rocon
-
-        self.enable_cache = rospy.get_param('~enable_cache', False)
-        self.ros_if = RosInterface(enable_cache=self.enable_cache)
-
-        if self.ros_if_params:
-            self.ros_if.reinit(*self.ros_if_params)
-
-        if self.enable_rocon:
-
-            rospy.logerr("ENABLE_ROCON IS TRUE !!")
-            self.rocon_if = RoconInterface(self.ros_if)
-            pass
-
         # we initialize the node here, in subprocess, passing ros parameters.
         # disabling signal to avoid overriding callers behavior
         rospy.init_node(self.name, argv=self.str_argv, disable_signals=True)
         rospy.loginfo('PyrosROS {name} node started with args : {argv}'.format(name=self.name, argv=self.str_argv))
 
-        if self.dynamic_reconfigure:
-            # Create a dynamic reconfigure server ( needs to be done after node_init )
-            self.server = Server(pyros_cfg, self.reconfigure)
-
         # TODO : install shutdown hook to shutdown if detected
 
         try:
-            logging.debug("zmp[{name}] running, pid[{pid}]".format(name=__name__, pid=os.getpid()))
-
-            super(PyrosROS, self).run()
-
-            logging.debug("zmp[{name}] shutdown, pid[{pid}]".format(name=__name__, pid=os.getpid()))
+            # this spins with regular frequency
+            super(PyrosROS, self).run()  # we override parent run to add one argument to ros interface
 
         except KeyboardInterrupt:
-            rospy.logwarn('PyrosROS node stopped by keyboad interrupt')
+            rospy.logwarn('PyrosROS node stopped by keyboard interrupt')
 
     def shutdown(self, join=True):
         """
@@ -277,64 +175,6 @@ class PyrosROS(PyrosBase):
         :return: None
         """
         super(PyrosROS, self).shutdown(join)
-
-    def update_throttled(self):
-        """
-        Update function to call from a looping thread.
-        """
-        self.ros_if.update()
-
-    # Create a callback function for the dynamic reconfigure server.
-    def reconfigure(self, config, level):
-
-        new_services = None
-        new_topics = None
-        new_params = None
-        try:
-            # convert new services to a set and then back to a list to ensure uniqueness
-            new_services = list(set(ast.literal_eval(config["services"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {services} containing malformed service strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new topics to a set and then back to a list to ensure uniqueness
-            new_topics = list(set(ast.literal_eval(config["topics"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {topics} containing malformed topic strings. Fix your input!'.format(name=__name__, **config))
-        try:
-            # convert new params to a set and then back to a list to ensure uniqueness
-            new_params = list(set(ast.literal_eval(config["params"])))
-        except ValueError:
-            rospy.logwarn('[{name}] Ignored list {params} containing malformed param strings. Fix your input!'.format(name=__name__, **config))
-
-        self.enable_cache = rospy.get_param('~enable_cache', False)
-
-        self.enable_rocon = config.get('enable_rocon', False)
-
-        rospy.loginfo("""[{name}] Interface Reconfigure Request:
-    services : {services}
-    topics : {topics}
-    params : {params}
-    enable_cache : {enable_cache}
-    enable_rocon : {enable_rocon}
-        """.format(name=__name__,
-                   topics="\n" + "- ".rjust(10) + "\n\t- ".join(new_topics) if new_topics else "None",
-                   services="\n" + "- ".rjust(10) + "\n\t- ".join(new_services) if new_services else "None",
-                   params="\n" + "- ".rjust(10) + "\n\t- ".join(new_params) if new_params else "None",
-                   enable_cache=config.get('enable_cache', False),
-                   enable_rocon=config.get('enable_rocon', False),
-                   ))
-
-        self.reinit(new_services, new_topics, new_params, self.enable_cache)
-
-        if not self.rocon_if and self.enable_rocon:
-            rospy.logerr("ENABLE_ROCON IS TRUE IN RECONF !!")
-            self.rocon_if = RoconInterface(self.ros_if)
-
-        if self.rocon_if:
-            config = self.rocon_if.reconfigure(config, level)
-
-        return config
-
 
 
 PyrosBase.register(PyrosROS)
