@@ -89,7 +89,7 @@ class RosInterface(BaseInterface):
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
     def get_svc_list(self):  # function returning all services available on the system
-        return [s for s in self.services_available.keys()]
+        return [s for s in self.services_available]
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
         # get first matching service
@@ -112,7 +112,7 @@ class RosInterface(BaseInterface):
 
     # TOPICS
     def get_topic_list(self):  # function returning all topics available on the system
-        return [t for t in self.topics_available.keys()]
+        return [t for t in self.topics_available]
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
         # get first matching service
@@ -135,7 +135,7 @@ class RosInterface(BaseInterface):
 
     # PARAMS
     def get_param_list(self):  # function returning all params available on the system
-        return [p for p in self.params_available.keys()]
+        return [p for p in self.params_available]
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
         prm = self.params_available.get(param_name)
@@ -239,7 +239,7 @@ class RosInterface(BaseInterface):
         with self.params_available_lock:
             for p in self.params_available:
                 pt = ParamTuple(name=p[0], type=None)
-                if pt.name in self.params_available.keys():
+                if pt.name in self.params_available:
                     if self.params_available[pt.name].type is None or pt.type is not None:
                         self.params_available[pt.name].type = pt.type
                     else:
@@ -247,7 +247,7 @@ class RosInterface(BaseInterface):
 
             for p in self.params_available:
                 pt = ParamTuple(name=p[0], type=None)
-                if pt.name in self.params_available.keys():
+                if pt.name in self.params_available:
                     self.params_available.pop(pt.name, None)
 
         return params_dt
@@ -368,7 +368,7 @@ class RosInterface(BaseInterface):
             for t in topics_dt.added:
                 tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.added), [])
                 ttp = TopicTuple(name=t[0], type=tt[1] if len(tt) > 0 else None, endpoints=set(t[1]))
-                if ttp.name in self.topics_available.keys():
+                if ttp.name in self.topics_available:
                     # if already available, we only update the endpoints list
                     self.topics_available[ttp.name].endpoints |= ttp.endpoints
                 else:
@@ -377,7 +377,7 @@ class RosInterface(BaseInterface):
             for t in topics_dt.removed:
                 tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.removed), [])
                 ttp = TopicTuple(name=t[0], type=tt[1] if len(tt) > 0 else None, endpoints=set(t[1]))
-                if ttp.name in self.topics_available.keys():
+                if ttp.name in self.topics_available:
                     self.topics_available[ttp.name].endpoints -= ttp.endpoints
                     if not self.topics_available[ttp.name].endpoints:
                         self.topics_available.pop(ttp.name, None)
@@ -386,13 +386,16 @@ class RosInterface(BaseInterface):
             for s in services_dt.added:
                 st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
                 stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
-                # Note : same behavior as ROS: a new service with same name erase previous service (including its type)
-                self.services_available[stp.name] = stp
+                if stp.name in self.services_available:
+                    if self.services_available[stp.name].type is None or stp.type is not None:
+                        self.services_available[stp.name].type = stp.type
+                    else:
+                        self.services_available[stp.name] = st
 
             for s in services_dt.removed:
                 st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
                 stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
-                if stp.name in self.services_available.keys():
+                if stp.name in self.services_available:
                     self.services_available.pop(stp.name, None)
 
         # We still need to return DiffTuples
@@ -430,8 +433,8 @@ class RosInterface(BaseInterface):
             # determining params diff despite lack of API
             params = set(rospy.get_param_names())
             params_dt = DiffTuple(
-                added=[p for p in params if p not in [pname for pname in self.params_available.keys()]],
-                removed=[p for p in self.params_available.keys() if p not in [ifilter(lambda pf: pf == p, params)]]
+                added=[p for p in params if p not in [pname for pname in self.params_available]],
+                removed=[p for p in self.params_available if p not in [ifilter(lambda pf: pf == p, params)]]
             )
             params_dt = self.compute_params(params_dt)
 
