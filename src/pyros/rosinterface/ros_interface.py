@@ -115,7 +115,9 @@ class RosInterface(BaseInterface):
                 except rosservice.ROSServiceIOException:  # exception can occur -> just reraise
                    raise
             return svc.type  # return the type
-        # Note if svc is unknown, then type is not returned (None)
+        else:
+            rospy.logerr("ERROR while resolving {service_name}. Service not known as available. Ignoring".format(**locals()))
+            return None
 
     def ServiceMaker(self, service_name, service_type):  # the service class implementation
         return ServiceBack(service_name, service_type)
@@ -138,7 +140,9 @@ class RosInterface(BaseInterface):
                 except rosservice.ROSServiceIOException:  # exception can occur -> just reraise
                    raise
             return tpc.type  # return the first we find. enough.
-        # Note if tpc is unknown, then type is not returned (None)
+        else:
+            rospy.logerr("ERROR while resolving {topic_name}. Topic not known as available. Ignoring".format(**locals()))
+            return None
 
     def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
         return TopicBack(topic_name, topic_type, *args, **kwargs)
@@ -157,7 +161,9 @@ class RosInterface(BaseInterface):
                 # TODO : param master API
                 pass
             return prm.type  # return the first we find. enough.
-        # Note if prm is unknown, then type is not returned (None)
+        else:
+            rospy.logerr("ERROR while resolving {param_name}. Param not known as available. Ignoring".format(**locals()))
+            return None
 
     def ParamMaker(self, param_name, param_type):  # the param class implementation
         return ParamBack(param_name, param_type)
@@ -374,10 +380,10 @@ class RosInterface(BaseInterface):
                 st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
                 stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
                 if stp.name in self.services_available:
-                    if self.services_available[stp.name].type is None or stp.type is not None:
+                    if self.services_available[stp.name].type is None and stp.type is not None:
                         self.services_available[stp.name].type = stp.type
-                    else:
-                        self.services_available[stp.name] = st
+                else:
+                    self.services_available[stp.name] = stp
 
             for s in services_dt.removed:
                 st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
@@ -410,8 +416,10 @@ class RosInterface(BaseInterface):
                     )
                 except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
                     # timeout initializing : disabling the feature but we should be LOUD about it
-                    rospy.logerr("FAILED during initialization of Connection Cache Proxy. Disabling.")
+                    rospy.logwarn("Pyros.rosinterface : FAILED during initialization of Connection Cache Proxy. Disabling.")
                     self.enable_cache = False
+                else:
+                    rospy.loginfo("Pyros.rosinterface : Connection Cache Optimization enabled")
 
             # determining params diff despite lack of API
             params = set(rospy.get_param_names())
@@ -436,12 +444,15 @@ class RosInterface(BaseInterface):
             # CAREFUL : match self._filter_out_pyros_topics() behavior
             for i, t in self.topics.iteritems():
                 if (i in if_topics.get(rospy.get_name(), []) and  # if we interface to this topic and
-                    t.pub_instance_count[t.name] == 1 and  # we have only one publisher connection and
-                    t.sub_instance_count[t.name] == 1  # one subscriber connection
+                    t.pub_instance_count[t.name] == t.pub.get_num_connections() and  # we have only publisher connections from this node and
+                    t.sub_instance_count[t.name] == t.sub.get_num_connections()  # subscriber connections from this node
                 ):  # then it means this topic has actually disappeared from the system we interface with
                     early_topics_dt.removed.append(i)  # we add it to the list of difference already found
                     # because the cache will still see it and not include it in diff
                     # we ll let the usual update_on_diff get rid of it the usual way
+
+            if early_topics_dt.added or early_topics_dt.removed:
+                rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
 
             # If we have a callback setup we process the diff we got since last time
             if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
@@ -568,14 +579,20 @@ class RosInterface(BaseInterface):
                         removed=removed_service_types
                     )
                     services_dt, topics_dt = self.compute_system_state(publishers_dt, subscribers_dt, services_dt, topic_types_dt, service_types_dt)
-                    # TODO : we can optimize this by changing base interface and pass all types from here already.
+
+                    if topics_dt.added or topics_dt.removed:
+                        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Topics Delta {topics_dt}".format(**locals()))
+                    if services_dt.added or services_dt.removed:
+                        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Services Delta {services_dt}".format(**locals()))
+
                     # update_on_diff wants only names
                     dt = super(RosInterface, self).update_on_diff(
                             DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
                             DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
                             DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
                     )
-                print rospy.get_name() +" : " + str(dt)
+                if dt.added or dt.removed:
+                    rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : " + str(dt))
                 return dt
             else:
                 # no update : nothing to do

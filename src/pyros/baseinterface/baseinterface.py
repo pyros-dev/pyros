@@ -119,6 +119,9 @@ class BaseInterface(object):
                     resolved_dict[tst_name] = class_build_func(tst_name, ttype, *class_build_args, **class_build_kwargs)
                     added += [tst_name]
                     logging.info("[{name}] Interfacing with {desc} {transient}".format(name=__name__, desc=transient_desc, transient=tst_name))
+                else:
+                    logging.warning("[{name}] Type of {desc} {transient} unknown. Giving up trying to interface.".format(name=__name__, desc=transient_desc,
+                                                                              transient=tst_name))
             except Exception, e:
                 logging.warn("[{name}] Cannot interface with {desc} {transient} : {exc}".format(name=__name__, desc=transient_desc, transient=tst_name, exc=e))
                 exc_info = sys.exc_info()
