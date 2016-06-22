@@ -6,7 +6,7 @@ import os
 # This is needed if running this test directly (without using nose loader)
 # prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
 # And we need our current module to be found first.
-current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 # if not current_path in sys.path:
 sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 

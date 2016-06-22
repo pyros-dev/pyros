@@ -48,9 +48,6 @@ def setup_module():
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
-
-        rospy.signal_shutdown('test complete')
-
         rostest_nose.rostest_nose_teardown_module()
 
 
@@ -84,7 +81,7 @@ class TestRosInterfaceCache(TestRosInterface):
         # Easier to remap the node topic to the proxy ones, instead of the opposite, since there is no dynamic remapping.
         # However for normal usecase, remapping the proxy handles is preferable.
         try:
-            self.connection_cache_proc = TestRosInterface.launch.launch(self.connection_cache_node)
+            self.connection_cache_proc = self.launch.launch(self.connection_cache_node)
         except roslaunch.RLException as rlexc:
             raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
 

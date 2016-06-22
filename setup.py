@@ -33,8 +33,8 @@ setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
-        'pyzmp>=0.0.9',
-        'pyros_setup>=0.1.0',
+        'pyzmp>0.0.9',
+        'pyros_setup>=0.1.0',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
         'nose>=1.3.7',
     ],
     test_suite="nose.collector",

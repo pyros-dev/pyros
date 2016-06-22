@@ -144,6 +144,17 @@ class PyrosBase(pyzmp.Node):
     def params(self):
         return
 
+    def start(self, timeout=None):
+        """
+        Clean shutdown of the node.
+        :param join: optionally wait for the process to end (default : True)
+        :return: None
+        """
+
+        super(PyrosBase, self).start(timeout=timeout)
+        # Because we currently use this to setup connection
+        return self.name
+
     @abc.abstractmethod
     def setup(self, *args, **kwargs):
         """
@@ -193,14 +204,14 @@ class PyrosBase(pyzmp.Node):
 
         logging.debug("pyros node shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
-    def shutdown(self, join=True):
+    def shutdown(self, join=True, timeout=None):
         """
         Clean shutdown of the node.
         :param join: optionally wait for the process to end (default : True)
         :return: None
         """
 
-        super(PyrosBase, self).shutdown(join)
+        return super(PyrosBase, self).shutdown(join, timeout=timeout)
 
     def update(self, timedelta):
         """

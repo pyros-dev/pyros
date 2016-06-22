@@ -2,7 +2,16 @@
 from __future__ import absolute_import
 
 import sys
+import os
 import logging
+
+
+# This is needed if running this test directly (without using nose loader)
+# prepending because ROS relies on package dirs list in PYTHONPATH and not isolated virtualenvs
+# And we need our current module to be found first.
+current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+# if not current_path in sys.path:
+sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
 # Unit test import (  will emulate ROS setup if needed )
 import time
@@ -53,9 +62,6 @@ def setup_module():
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
-
-        rospy.signal_shutdown('test complete')
-
         rostest_nose.rostest_nose_teardown_module()
 
 
@@ -69,6 +75,8 @@ def srv_cb(req):
 class TestPyrosROSCache(TestPyrosROS):
 
     def setUp(self):
+        # we need to speed fast enough for the tests to not fail on timeout...
+        rospy.set_param('/connection_cache/spin_freq', 2)  # 2 Hz
         self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
                                                          remap_args=[('~list', '/pyros_ros/connections_list'),
                                                                      ('~diff', '/pyros_ros/connections_diff'),

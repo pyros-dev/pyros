@@ -178,13 +178,13 @@ class PyrosROS(PyrosBase):
         except KeyboardInterrupt:
             logging.warn('PyrosROS node stopped by keyboard interrupt')
 
-    def shutdown(self, join=True):
+    def shutdown(self, join=True, timeout=None):
         """
         Clean shutdown of the node.
         :param join: optionally wait for the process to end (default : True)
         :return: None
         """
-        super(PyrosROS, self).shutdown(join)
+        super(PyrosROS, self).shutdown(join, timeout=timeout)
 
 
 PyrosBase.register(PyrosROS)

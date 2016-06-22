@@ -85,8 +85,6 @@ def teardown_module():
         if slow_process is not None:
             slow_process.stop()
 
-        rospy.signal_shutdown('test complete')
-
         rostest_nose.rostest_nose_teardown_module()
 
 

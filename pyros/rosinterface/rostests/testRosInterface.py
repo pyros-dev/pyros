@@ -46,9 +46,6 @@ def setup_module():
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
-
-        rospy.signal_shutdown('test complete')
-
         rostest_nose.rostest_nose_teardown_module()
 
 

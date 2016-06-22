@@ -138,7 +138,7 @@ class TopicBack(object):
     @staticmethod
     def is_sub_interface_last(name):
         """
-        Check wether the topic interface is the last pub/sub instance present
+        Check whether the topic interface is the last pub/sub instance present
         returns False if not present
         :param name: name of the topic
         :return: True/False
@@ -165,10 +165,11 @@ class TopicBack(object):
         """
         return TopicBack.sub_instance_rem_count.get(name, 0) > TopicBack.sub_instance_add_count.get(name, 0)
 
+    # We need this because we cannot really trust get_num_connections() (updated only after message is published)
     @staticmethod
     def is_pub_interface_last(name):
         """
-        Check wether the topic interface is the last pub/sub instance present
+        Check whether the topic interface is the last pub/sub instance present
         returns False if not present
         :param name: name of the topic
         :return: True/False

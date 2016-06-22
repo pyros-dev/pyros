@@ -23,7 +23,8 @@ if (CATKIN_ENABLE_TESTING)
 
     # Careful this will not support parallel testing, due to multiprocess environment used in tests
     catkin_add_nosetests(pyros/mockinterface/tests)
-    # because of ROS these should be run in separate process each to avoid global side effect during tests
+    # because of ROS (node_init() can be called only once per process)
+    # these should be run in separate process each to avoid global side effect during tests
     # TODO : find a way to force nose to run each test isolated ?
     #catkin_add_nosetests(pyros/rosinterface/tests)
     catkin_add_nosetests(pyros/tests)

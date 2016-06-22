@@ -83,8 +83,6 @@ def teardown_module():
         if echo_process is not None and echo_process.is_alive():
             echo_process.stop()
 
-        rospy.signal_shutdown('test complete')
-
         rostest_nose.rostest_nose_teardown_module()
 
 

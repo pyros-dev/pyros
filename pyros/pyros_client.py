@@ -55,49 +55,49 @@ class PyrosClient(object):
         self.msg_build_svc = pyzmp.Service.discover('msg_build', 5)
         if self.msg_build_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.msg_build_svc.providers
+            self.node_name not in [p[0] for p in self.msg_build_svc.providers]
         ):
             raise PyrosServiceNotFound('msg_build')
 
         self.topic_svc = pyzmp.Service.discover('topic', 5)
         if self.topic_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.topic_svc.providers
+            self.node_name not in [p[0] for p in self.topic_svc.providers]
         ):
             raise PyrosServiceNotFound('topic')
 
-        self.service_svc = pyzmp.Service.discover('service', node_name, 5)
+        self.service_svc = pyzmp.Service.discover('service', 5)
         if self.service_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.service_svc.providers
+            self.node_name not in [p[0] for p in self.service_svc.providers]
         ):
             raise PyrosServiceNotFound('service')
 
-        self.param_svc = pyzmp.Service.discover('param', node_name, 5)
+        self.param_svc = pyzmp.Service.discover('param', 5)
         if self.param_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.param_svc.providers
+            self.node_name not in [p[0] for p in self.param_svc.providers]
         ):
             raise PyrosServiceNotFound('param')
 
         self.topics_svc = pyzmp.Service.discover('topics', 5)
         if self.topics_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.topics_svc.providers
+            self.node_name not in [p[0] for p in self.topics_svc.providers]
         ):
             raise PyrosServiceNotFound('topics')
 
         self.services_svc = pyzmp.Service.discover('services', 5)
         if self.services_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.services_svc.providers
+            self.node_name not in [p[0] for p in self.services_svc.providers]
         ):
             raise PyrosServiceNotFound('services')
 
         self.params_svc = pyzmp.Service.discover('params', 5)
         if self.params_svc is None or (
             self.node_name is not None and
-            self.node_name not in self.params_svc.providers
+            self.node_name not in [p[0] for p in self.params_svc.providers]
         ):
             raise PyrosServiceNotFound('params')
 
