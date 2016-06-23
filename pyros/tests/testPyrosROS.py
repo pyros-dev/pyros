@@ -299,7 +299,7 @@ class TestPyrosROS(object):
             logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
             raise
         try:
-            # Starting PyrosROS with preconfigured services
+            # Starting PyrosROS with preconfigured services to expose
             rosn = PyrosROS(kwargs={'services': ['/string_echo/echo_service'], 'enable_cache': self.enable_cache})  # careful assuming the service fullname here
             try:
                 nose.tools.assert_true(not rosn.is_alive())

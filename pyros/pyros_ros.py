@@ -55,17 +55,16 @@ class PyrosROS(PyrosBase):
             unicodedata.normalize('NFKD', arg).encode('ascii', 'ignore') if isinstance(arg, unicode) else str(arg) for
             arg in argv]
 
-        # name and argv are special :
-        # They can be set only once, aince htey are passed to rospy.node_init in the interface.
+        # argv is special :
+        # They can be set only once, since they are passed to rospy.node_init in the interface.
         # That behavior is implemented in setup()
-        self.name = name or 'pyros_ros'
         self.argv = str_argv
 
         args = args or ()
         kwargs = kwargs or {}
 
         super(PyrosROS, self).__init__(
-            name=self.name,
+            name=name or 'pyros_ros',  # Careful with name : we cannot restart a node with the same name again...
             interface_class=(__package__, '.rosinterface', 'RosInterface'),  # lazy class evaluation to delay imports
             args=args,  # we want to pass the name to the interface to init the node with that name
             kwargs=kwargs,
@@ -157,7 +156,7 @@ class PyrosROS(PyrosBase):
         # we get self.name and self.argv from the duplicated parent process memory.
         super(PyrosROS, self).setup(node_name=self.name, services=services, topics=topics, params=params, enable_cache=enable_cache, argv=self.argv)
 
-    def run(self):
+    def run(self, *args, **kwargs):
         """
         Running in a zmp.Node process, providing zmp.services
         """
@@ -173,7 +172,7 @@ class PyrosROS(PyrosBase):
             # This will instantiate the rosinterface, which will initialize the ros node.
             # this is all done here in the child process, to not pollute the original process context.
             # this spins with regular frequency
-            super(PyrosROS, self).run()  # we override parent run to add one argument to ros interface
+            super(PyrosROS, self).run(*args, **kwargs)  # we override parent run to add one argument to ros interface
 
         except KeyboardInterrupt:
             logging.warn('PyrosROS node stopped by keyboard interrupt')

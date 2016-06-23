@@ -101,21 +101,5 @@ class PyrosMock(PyrosBase):
     def setup(self, services=None, topics=None, params=None):
         super(PyrosMock, self).setup(services, topics, params)
 
-    # #
-    # # Specific Mock hack
-    # # The interface should not be replaced on run ( to keep mock data )
-    # def run(self, services=None, topics=None, params=None):
-    #     """
-    #     Running in a pyzmp.Node process, providing pyzmp.services
-    #     """
-    #
-    #     logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
-    #
-    #     # Initialization ( here in child )
-    #     # None passed in argument means empty list ( different than reinit meaning )
-    #
-    #     super(PyrosBase, self).run()
-    #
-    #     logging.debug("pyros node shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
 
 PyrosBase.register(PyrosMock)

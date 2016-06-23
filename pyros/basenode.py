@@ -16,6 +16,7 @@ from .baseinterface import BaseInterface
 from pyros_setup import ConfigHandler
 
 
+# TODO : cleaner design by using pyzmp.Node as delegate to make all interface explicit here...
 class PyrosBase(pyzmp.Node):
     """
     Base Interface in pure python ( No ROS needed ).
@@ -185,49 +186,29 @@ class PyrosBase(pyzmp.Node):
 
         self.interface = self.interface_class(*args, **kwargs)
 
-    # TODO : change this running interface to have a delegate zmp node ( instead of motherclass )
-    # Maybe this will help when passing custom argument from child classes to child processes...
-    def run(self):
-        """
-        Running in a zmp.Node process, providing zmp.services
-        """
-
-        logging.debug("pyros node running, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
-
-        # Initialization ( here in child )
-        # None passed in argument means empty list ( different than reinit meaning )
-
-        # getting preset params from parent process memory
-        self.setup(*self._args, **self._kwargs)
-
-        super(PyrosBase, self).run()
-
-        logging.debug("pyros node shutdown, zmp[{name}] pid[{pid}]".format(name=self.name, pid=os.getpid()))
-
     def shutdown(self, join=True, timeout=None):
         """
         Clean shutdown of the node.
         :param join: optionally wait for the process to end (default : True)
-        :return: None
+        :return: last exitcode from update method
         """
-
         return super(PyrosBase, self).shutdown(join, timeout=timeout)
 
-    def update(self, timedelta):
+    def update(self, timedelta, *args, **kwargs):
         """
         Update function to call from a looping thread.
+        Note : the interface is lazily constructed here
         :param timedelta: the time past since the last update call
         """
+        if self.interface is None:
+            self.setup(*args, **kwargs)
+
+        # TODO move time management somewhere else...
         self.last_update += timedelta
         if self.last_update > self.update_interval:
             self.last_update = 0
-            self.update_throttled()
+            self.interface.update()
 
-    def update_throttled(self):
-        """
-        An update method that is only run every self.update_interval
-        It updates the interface state
-        :return:
-        """
-        self.interface.update()
+        # No return here means we need to keep looping
+
 
