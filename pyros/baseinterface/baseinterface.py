@@ -13,6 +13,7 @@ from functools import partial
 DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
 
+# Utility methods to work with regexes
 def cap_match_string(match):
     """
     Attach beginning of line and end of line characters to the given string.

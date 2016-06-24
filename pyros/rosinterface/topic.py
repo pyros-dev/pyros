@@ -136,24 +136,26 @@ class TopicBack(object):
         return sub.unregister()
 
     @staticmethod
-    def is_sub_interface_last(name):
+    def is_sub_interface_last(name, ros_num_connections):
         """
         Check whether the topic interface is the last pub/sub instance present
         returns False if not present
         :param name: name of the topic
+        :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.sub_instance_add_count.get(name, 0) == 1 + TopicBack.sub_instance_rem_count.get(name, 0)
+        return TopicBack.sub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
 
     @staticmethod
-    def more_than_sub_interface_added(name):
+    def more_than_sub_interface_added(name, ros_num_connections):
         """
         Check if more than the topic interface has been added
         returns False if not present
         :param name: name of the topic
+        :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.sub_instance_add_count.get(name, 0) > 1 + TopicBack.sub_instance_rem_count.get(name, 0)
+        return TopicBack.sub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
 
     @staticmethod
     def more_than_sub_interface_removed(name):
@@ -167,24 +169,26 @@ class TopicBack(object):
 
     # We need this because we cannot really trust get_num_connections() (updated only after message is published)
     @staticmethod
-    def is_pub_interface_last(name):
+    def is_pub_interface_last(name, ros_num_connections):
         """
         Check whether the topic interface is the last pub/sub instance present
         returns False if not present
         :param name: name of the topic
+        :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.pub_instance_add_count.get(name, 0) == 1 + TopicBack.pub_instance_rem_count.get(name, 0)
+        return TopicBack.pub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
 
     @staticmethod
-    def more_than_pub_interface_added(name):
+    def more_than_pub_interface_added(name, ros_num_connections):
         """
         Check if more than the topic interface has been added
         returns False if not present
         :param name: name of the topic
+        :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.pub_instance_add_count.get(name, 0) > 1 + TopicBack.pub_instance_rem_count.get(name, 0)
+        return TopicBack.pub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
 
     @staticmethod
     def more_than_pub_interface_removed(name):

@@ -186,7 +186,8 @@ class RosInterface(BaseInterface):
         for p in publishers:
             # keeping only nodes that are not pyros interface for this topic
             # when added pub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
-            nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0]))]
+            # TODO : 1 here is a magic number. we should get_num_connections() instead
+            nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0], 1))]
             if nonif_pub_providers:
                 filtered_publishers.append([p[0], nonif_pub_providers])
 
@@ -196,7 +197,8 @@ class RosInterface(BaseInterface):
         for s in subscribers:
             # keeping only nodes that are not pyros interface for this topic
             # when added sub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
-            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0]))]
+            # TODO : 1 here is a magic number. we should get_num_connections() instead
+            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0], 1))]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
 
@@ -212,9 +214,9 @@ class RosInterface(BaseInterface):
         :return:
         """
         lone_topics = []
-        for t in self.topics:  # note the topic will always be in the topics_available list by design TODO : change this ?
-            if TopicBack.is_pub_interface_last(t) and TopicBack.is_sub_interface_last(t):
-                lone_topics.append([t, [rospy.get_name()]])
+        for tname, t in self.topics.iteritems():  # note the topic will always be in the topics_available list by design TODO : change this ?
+            if TopicBack.is_pub_interface_last(tname, t.pub.get_num_connections()) and TopicBack.is_sub_interface_last(tname, t.sub.get_num_connections()):
+                lone_topics.append([tname, [rospy.get_name()]])
         return lone_topics
 
     def retrieve_params(self):
@@ -359,10 +361,6 @@ class RosInterface(BaseInterface):
         for t in filtered_removed_subscribers:
             removed_topics[t[0]] = removed_topics.get(t[0], []) + t[1]
 
-        # We also need to add lone topics to be removed from the internal state here :
-        for rt in self.get_lone_interfaced_topics():
-            removed_topics[rt[0]] = rt[1]
-
         # TODO : improve here to make sure of nodes unicity after this collapsing step
 
         topics_dt = DiffTuple(
@@ -452,10 +450,11 @@ class RosInterface(BaseInterface):
             # TODO : simplify and solidify logic for this case
             early_topics_dt = DiffTuple([], self.get_lone_interfaced_topics())
 
+            if early_topics_dt.added or early_topics_dt.removed:
+                rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
+
             # If we have a callback setup we process the diff we got since last time
-            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0)\
-                    or (len(params_dt.added) > 0 or len(params_dt.removed) > 0)\
-                    or self.cb_ss.qsize() > 0:
+            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
 
                 # This will be set if we need to ignore current state, and reset it from list
                 reset = False
@@ -588,9 +587,9 @@ class RosInterface(BaseInterface):
 
                     # update_on_diff wants only names
                     dt = super(RosInterface, self).update_on_diff(
-                        DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
-                        DiffTuple([t[0] for t in topics_dt.added], [t[0] for t in topics_dt.removed]),
-                        DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
+                            DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
+                            DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
+                            DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
                     )
                 if dt.added or dt.removed:
                     rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : " + str(dt))

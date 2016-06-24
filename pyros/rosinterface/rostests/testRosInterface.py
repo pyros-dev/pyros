@@ -111,9 +111,9 @@ class TestRosInterface(unittest.TestCase):
 
         # cleaning up
         self.interface.expose_topics([])
-        # topic is not in the list of args any longer
+        # every added topic should be in the list of args
         self.assertTrue(topicname not in self.interface.topics_args)
-        # topic backend has been removed
+        # topic backend has not been created since the update didn't run yet
         self.assertTrue(topicname not in self.interface.topics.keys())
 
     def test_topic_appear_update_expose(self):
