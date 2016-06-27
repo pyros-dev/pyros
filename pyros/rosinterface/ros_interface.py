@@ -198,7 +198,7 @@ class RosInterface(BaseInterface):
             # keeping only nodes that are not pyros interface for this topic
             # when added sub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
             # TODO : 1 here is a magic number. we should get_num_connections() instead
-            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_pub_interface_added(s[0], 1))]
+            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_sub_interface_added(s[0], 1))]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
 
@@ -214,9 +214,10 @@ class RosInterface(BaseInterface):
         :return:
         """
         lone_topics = []
-        for tname, t in self.topics.iteritems():  # note the topic will always be in the topics_available list by design TODO : change this ?
+        for tname, t in self.topics.iteritems():
             if TopicBack.is_pub_interface_last(tname, t.pub.get_num_connections()) and TopicBack.is_sub_interface_last(tname, t.sub.get_num_connections()):
                 lone_topics.append([tname, [rospy.get_name()]])
+                self.topics_available.pop(tname)  # without this, the topic will remain in self.topics_available until the cache node can update, etc. -> delay
         return lone_topics
 
     def retrieve_params(self):
@@ -448,7 +449,7 @@ class RosInterface(BaseInterface):
             # These are only used for detection.
             # compute_system_state will retrieve them again after filtering out interface topics.
             # TODO : simplify and solidify logic for this case
-            early_topics_dt = DiffTuple([], self.get_lone_interfaced_topics())
+            early_topics_dt = DiffTuple([], [t[0] for t in self.get_lone_interfaced_topics()])
 
             if early_topics_dt.added or early_topics_dt.removed:
                 rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
