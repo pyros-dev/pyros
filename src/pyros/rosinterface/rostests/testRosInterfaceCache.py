@@ -24,7 +24,7 @@ import rosnode
 from std_msgs.msg import String, Empty
 from std_srvs.srv import Empty as EmptySrv, Trigger
 
-from pyros.rosinterface.rostests import timeout, TestRosInterface
+from pyros.rosinterface.rostests import Timeout, TestRosInterface
 
 # useful test tools
 from pyros_setup import rostest_nose
@@ -75,7 +75,7 @@ class TestRosInterfaceCache(TestRosInterface):
 
         # wait for node to be started
         node_api = None
-        with timeout(5) as t:
+        with Timeout(5) as t:
             while not t.timed_out and node_api is None:
                 node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
 
