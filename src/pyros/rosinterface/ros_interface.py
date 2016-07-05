@@ -117,7 +117,6 @@ class RosInterface(BaseInterface):
         self._debug_logger.propagate = False  # to avoid propagating to root logger
         self._debug_logger.setLevel(logging.DEBUG)
         self._debug_logger.addHandler(file_handler)
-        rospy.logwarn(" STARTIN DEBUG LOG IN {}".format(logfilename))
 
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
