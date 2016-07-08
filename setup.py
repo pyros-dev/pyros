@@ -36,6 +36,7 @@ setup(name='pyros',
         'pyzmp==0.0.11',  # lets be rigorous since we are working both at the same time...
         'pyros_setup>=0.1.0',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
         'nose>=1.3.7',
+        'mock',
     ],
     test_suite="nose.collector",
     tests_require=["nose"],
