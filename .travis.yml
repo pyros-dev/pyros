@@ -18,13 +18,16 @@ before_install:
   - sudo apt-get install python2.7 virtualenvwrapper -y
   - source "/usr/share/virtualenvwrapper/virtualenvwrapper.sh"
 
+# note we test usage only in develspace.
+# installspace require system python-six >= 1.9.0 (too high for trusty)
+# => there will be no ros indigo deb package for pyros => on indigo, you need to use pyros from pip package via catkin_pip or from source.
 install:
   - if [ "$PURE_PYTHON" == "true" ]; then (mkvirtualenv --system-site-packages -r requirements.txt -i . -q python_2.7_ros); fi
-  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/build_devel.sh indigo && bash rosutils/build_install.sh); fi
+  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/build_devel.sh indigo); fi
 
 script:
   - if [ "$PURE_PYTHON" == "true" ]; then (workon python_2.7_ros && python setup.py test); fi
-  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/test_devel.sh && bash rosutils/test_install.sh); fi
+  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/test_devel.sh); fi
 
 notifications:
   email: false
