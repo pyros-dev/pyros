@@ -35,13 +35,14 @@ fi
 #tagging new release
 ${GIT_TAG_CMD}
 
-#doing bloom release
-if [ "$1" = "pypi" ]; then
-    bloom-release pyros --track indigo --rosdistro indigo
-fi
 
 #uploading package and pushing tags
-python setup.py sdist upload -r $1 && ${GIT_PUSH_CMD}
+python setup.py sdist upload -r $1 # && ${GIT_PUSH_CMD}
 
-#TODO : mix with bloom release to release both at the same time
-# OR maybe we dont need a pypi package at all ??
+#doing bloom release
+#if [ "$1" = "pypi" ]; then
+#    bloom-release pyros --track indigo --rosdistro indigo
+#fi
+
+#TODO : bloom-release is optional and can be done at a later time...
+#TODO : do this from setup.py with special command. all from one place.
