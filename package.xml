@@ -18,16 +18,9 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <buildtool_depend version_gte="0.6.18">catkin</buildtool_depend>
   <build_depend version_gte="0.1.3">catkin_pip</build_depend>
 
-  <build_depend version_gte="1.0.1">python-mock</build_depend>
-
   <depend version_gte="1.11.19">rospy</depend>
-  <depend version_gte="2.1.6">python-concurrent.futures</depend>
-  <depend version_gte="14.0.1">python-zmq</depend>
-  <!-- <build_depend>python-tblib</build_depend>  Trusty version not working for us. need the submodule dep here -->
-  <depend version_gte="1.5.2">python-six</depend>
 
   <!-- these dependencies are only for testing -->
-  <exec_depend version_gte="3.10">python-yaml</exec_depend>
 
   <build_depend version_gte="1.11.19">rostest</build_depend>
   <test_depend version_gte="1.11.19">rostopic</test_depend>
