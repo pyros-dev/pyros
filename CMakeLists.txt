@@ -7,8 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # We need to install the pip dependencies in the workspace being created
-# catkin_pip_requirements(${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt)
-# Currently : no extra dev requirements needed : every required dependency in setup.py
+catkin_pip_requirements(${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt --ignore-installed)
 
 # defining current package as a package that should be managed by pip (not catkin - even though we make it usable with workspaces)
 catkin_pip_setup()

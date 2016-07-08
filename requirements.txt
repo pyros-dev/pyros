@@ -3,6 +3,7 @@
 
 # dependencies for development
 # Note : all tests included in package, which means we don't need anything here
+six>=1.9  # to match required version for test. this will be installed ignoring system version (1.5.2 on trusty)
 
 # dependency sources for development only
 # Note for ROS : this will end up in the wstool workspace. so we dont need to define it in the rosinstall...
