@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import os
 from collections import namedtuple, MutableMapping
 from copy import deepcopy, copy
 from itertools import ifilter
+import logging
 
 import rospy
 import rosservice, rostopic, rosparam
@@ -86,6 +88,23 @@ class RosInterface(BaseInterface):
         # Setting our list of interfaced topic right when we start
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
 
+        # Setup our debug log
+        # We need this debug log since rospy.logdebug does NOT store debug messages in the log.
+        # But it should Ref : http://wiki.ros.org/rospy/Overview/Logging#Reading_log_messages
+        # TODO : find why.
+        ros_home = os.environ.get('ROS_HOME', os.path.join(os.path.expanduser("~"), '.ros'))
+        self._debug_logger = logging.getLogger('pyros.ros_interface')
+        if not os.path.exists(os.path.join(ros_home, 'logdebug')):
+            os.makedirs(os.path.join(ros_home, 'logdebug'))
+        logfilename = os.path.join(ros_home, 'logdebug', rospy.get_name()[1:].replace(os.path.sep, "-") + '_pyros_rosinterface.log')
+        file_handler = logging.handlers.RotatingFileHandler(
+            logfilename,
+            maxBytes=100 * 131072,
+            backupCount=10
+        )
+        self._debug_logger.propagate = False  # to avoid propagating to root logger
+        self._debug_logger.setLevel(logging.DEBUG)
+        self._debug_logger.addHandler(file_handler)
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
     def get_svc_list(self):  # function returning all services available on the system
@@ -452,7 +471,7 @@ class RosInterface(BaseInterface):
             early_topics_dt = DiffTuple([], [t[0] for t in self.get_lone_interfaced_topics()])
 
             if early_topics_dt.added or early_topics_dt.removed:
-                rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
+                self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
 
             # If we have a callback setup we process the diff we got since last time
             if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
@@ -582,9 +601,9 @@ class RosInterface(BaseInterface):
                     services_dt, topics_dt = self.compute_system_state(publishers_dt, subscribers_dt, services_dt, topic_types_dt, service_types_dt)
 
                     if topics_dt.added or topics_dt.removed:
-                        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Topics Delta {topics_dt}".format(**locals()))
+                        self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Topics Delta {topics_dt}".format(**locals()))
                     if services_dt.added or services_dt.removed:
-                        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Services Delta {services_dt}".format(**locals()))
+                        self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Services Delta {services_dt}".format(**locals()))
 
                     # update_on_diff wants only names
                     dt = super(RosInterface, self).update_on_diff(
@@ -593,7 +612,7 @@ class RosInterface(BaseInterface):
                             DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
                     )
                 if dt.added or dt.removed:
-                    rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : " + str(dt))
+                    self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Interface Update Delta {dt}".format(**locals()))
                 return dt
             else:
                 # no update : nothing to do
