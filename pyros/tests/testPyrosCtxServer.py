@@ -11,6 +11,8 @@ current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 import time
 
+import pyros_utils
+
 from pyros.pyros_ctx_server import pyros_ctx
 from pyros.pyros_client import PyrosClient
 
@@ -25,7 +27,7 @@ def testPyrosMockCtx():
 def testPyrosROSCtx():
     # start ros system , before PyrosROS process and Client otherwise Client assumes there is  problem ( discovery timeout )
     import pyros_setup
-    master, roscore_proc = pyros_setup.get_master(spawn=True)  # we start the master if needed
+    master, roscore_proc = pyros_utils.get_master(spawn=True)  # we start the master if needed
 
     assert master.is_online()
 

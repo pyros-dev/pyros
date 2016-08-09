@@ -34,7 +34,7 @@ from pyros.rosinterface.rostests import Timeout
 from pyros.tests.testPyrosROS import TestPyrosROS
 
 # useful test tools
-from pyros_setup import rostest_nose
+from pyros_utils import rostest_nose
 import unittest
 import nose
 from nose.tools import assert_true, assert_equal, timed

@@ -24,7 +24,7 @@ import roslaunch
 import rosservice
 
 #useful test tools
-from pyros_setup import rostest_nose
+from pyros_utils import rostest_nose
 import inspect
 import unittest
 import nose

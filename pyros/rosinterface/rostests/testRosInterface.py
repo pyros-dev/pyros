@@ -31,7 +31,7 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 from pyros.rosinterface.rostests import Timeout
 
 # useful test tools
-from pyros_setup import rostest_nose
+from pyros_utils import rostest_nose
 import unittest
 
 

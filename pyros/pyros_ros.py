@@ -13,6 +13,7 @@ import logging
 import unicodedata
 
 from pyros_setup import deprecated
+import pyros_utils
 
 from . import config
 
@@ -162,7 +163,7 @@ class PyrosROS(PyrosBase):
         """
 
         # master has to be running here or we just wait for ever
-        m, _ = pyros_setup.get_master(spawn=False)
+        m, _ = pyros_utils.get_master(spawn=False)
         while not m.is_online():
             time.sleep(0.5)
 

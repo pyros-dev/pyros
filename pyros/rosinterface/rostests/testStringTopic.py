@@ -27,7 +27,7 @@ from std_msgs.msg import String, Empty
 
 import pyros
 
-from pyros_setup import rostest_nose
+from pyros_utils import rostest_nose
 import logging
 import inspect
 import unittest
