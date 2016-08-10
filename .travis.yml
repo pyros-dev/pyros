@@ -2,29 +2,50 @@ sudo: required
 dist: trusty
 language: generic
 
-# TODO : we can combine python language and test multiple python version in matrix here (2 and 3 matching platform version)
+branches:
+  except:
+    - gh-pages
 
 env:
+
+env:
+  # This will check any ROS distro with any python interpreter
+  # supported on this OS
+  - CI_ROS_DISTRO=indigo ROS_FLOW=devel
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - CI_ROS_DISTRO=indigo ROS_FLOW=install
+  - CI_ROS_DISTRO=indigo PYTHON=2.7
+  - CI_ROS_DISTRO=indigo PYTHON=3.4
+
+  - CI_ROS_DISTRO=jade ROS_FLOW=devel
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - CI_ROS_DISTRO=jade ROS_FLOW=install
+  - CI_ROS_DISTRO=jade PYTHON=2.7
+  - CI_ROS_DISTRO=jade PYTHON=3.4
+  # TODO : pypy + pypy3
+
   # This will trigger a usual ros catkin build to make sure it still works
   - PURE_PYTHON=false
   # This will trigger python build
   - PURE_PYTHON=true
 
-# This is the same for all builds
+# We need to get a ROS distro to be able to test pyros
+# from different ros environments, or
+# from different virtualenv using site-packages.
 before_install:
-  # Install ROS. We always need it on system.
-  - bash rosutils/install_ros.sh indigo ./
-  # Install python 2.7
-  - sudo apt-get install python2.7 virtualenvwrapper -y
-  - source "/usr/share/virtualenvwrapper/virtualenvwrapper.sh"
+  # Install ROS. We always need it for testing on system.
+  - bash rosutils/install_ros.sh
+  # Install python and required packages on system if needed
+  - if [ -z ${PYTHON+undef} ]; then echo "Python virtual env not used"; else sudo apt-get install python${PYTHON} virtualenvwrapper -y && source "/usr/share/virtualenvwrapper/virtualenvwrapper.sh"; fi
+  # Install package ROS dependencies
+  - rosdep install --default-yes --from-paths ./ --rosdistro $CI_ROS_DISTRO
+
 
 install:
-  - if [ "$PURE_PYTHON" == "true" ]; then (mkvirtualenv --system-site-packages -r requirements.txt -i . -q python_2.7_ros); fi
-  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/build_devel.sh indigo && bash rosutils/build_install.sh); fi
+  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_build.sh); else (mkvirtualenv --system-site-packages -i . -q python_${PYTHON}_ros); fi
 
 script:
-  - if [ "$PURE_PYTHON" == "true" ]; then (workon python_2.7_ros && python setup.py test); fi
-  - if [ "$PURE_PYTHON" == "false" ]; then (bash rosutils/test_devel.sh && bash rosutils/test_install.sh); fi
+  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_checks.sh); else (workon python_${PYTHON}_ros && python -m nose pyros --distro ${CI_ROS_DISTRO}); fi
 
 notifications:
   email: false

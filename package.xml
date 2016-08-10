@@ -23,8 +23,11 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <depend version_gte="1.11.19">rospy</depend>
 
   <depend version_gte="0.0.11">pyzmp</depend>
+  <!-- pyros_setup is not needed in ROS workflow, only used by python workflow -->
   <depend version_gte="0.1.2">pyros_config</depend>
   <depend version_gte="0.1.2">pyros_utils</depend>
+
+  <depend version_gte="1.5.2">python-six</depend>
 
   <!-- these dependencies are only for testing -->
 

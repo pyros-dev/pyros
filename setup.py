@@ -1,7 +1,28 @@
+import os
+import sys
 from setuptools import setup
 
 with open('pyros/_version.py') as vf:
     exec(vf.read())
+
+if sys.argv[-1] == 'publish':
+
+    os.system("python setup.py sdist")
+    os.system("python setup.py bdist_wheel")
+    # OLD way:
+    #os.system("python setup.py sdist bdist_wheel upload")
+    # NEW way:
+    # Ref: https://packaging.python.org/distributing/
+    os.system("twine upload dist/*")
+    print("You probably want to also tag the version now:")
+    print("  python setup.py tag")
+    sys.exit()
+
+if sys.argv[-1] == 'tag':
+    os.system("git tag -a {0} -m 'version {0}'".format(__version__))
+    os.system("git push --tags")
+    sys.exit()
+
 
 setup(name='pyros',
     version=__version__,

@@ -5,6 +5,8 @@ import unicodedata
 
 import sys
 
+import six
+
 """
 Client to rostful node, Python style.
 Required for multiprocess communication.
@@ -103,7 +105,7 @@ class PyrosClient(object):
 
     def buildMsg(self, connection_name, suffix=None):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(connection_name, unicode):
+        if isinstance(connection_name, six.string_types):
             connection_name = unicodedata.normalize('NFKD', connection_name).encode('ascii', 'ignore')
         res = self.msg_build_svc.call(args=(connection_name,))
         return res
@@ -117,7 +119,7 @@ class PyrosClient(object):
         :return:
         """
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(topic_name, unicode):
+        if isinstance(topic_name, six.string_types):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         if _msg_content is not None:
@@ -131,13 +133,13 @@ class PyrosClient(object):
 
     def topic_extract(self, topic_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(topic_name, unicode):
+        if isinstance(topic_name, six.string_types):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         try:
             res = self.topic_svc.call(args=(topic_name, None,))
         except pyzmp.service.ServiceCallTimeout as exc:
-            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+            six.reraise(PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2])
 
         # TODO : if topic_name not exposed, we get None as res.
         # We should improve that behavior (display warning ? allow auto -dynamic- expose ?)
@@ -146,7 +148,7 @@ class PyrosClient(object):
 
     def service_call(self, service_name, _msg_content=None, **kwargs):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(service_name, unicode):
+        if isinstance(service_name, six.string_types):
             service_name = unicodedata.normalize('NFKD', service_name).encode('ascii', 'ignore')
 
         try:
@@ -154,8 +156,8 @@ class PyrosClient(object):
                 res = self.service_svc.call(args=(service_name, _msg_content,))
             else:  # default kwargs is {}
                 res = self.service_svc.call(args=(service_name, kwargs,))
-        except pyzmp.service.ServiceCallTimeout, exc:
-            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+        except pyzmp.service.ServiceCallTimeout as exc:
+            six.reraise(PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2])
         # A service that doesn't exist on the node will return res_content.resp_content None.
         # It should probably except...
         # TODO : improve error handling, maybe by checking the type of res ?
@@ -171,7 +173,7 @@ class PyrosClient(object):
         :return:
         """
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(param_name, unicode):
+        if isinstance(param_name, six.string_types):
             param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
 
         _value = _value or {}
@@ -188,7 +190,7 @@ class PyrosClient(object):
 
     def param_get(self, param_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(param_name, unicode):
+        if isinstance(param_name, six.string_types):
             param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
         res = self.param_svc.call(args=(param_name, None,))
         return res
@@ -196,15 +198,15 @@ class PyrosClient(object):
     def topics(self):
         try:
             res = self.topics_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
-        except pyzmp.service.ServiceCallTimeout, exc:
-            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+        except pyzmp.service.ServiceCallTimeout as exc:
+            six.reraise(PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2])
         return res
         
     def services(self):
         try:
             res = self.services_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
-        except pyzmp.service.ServiceCallTimeout, exc:
-            raise PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2]
+        except pyzmp.service.ServiceCallTimeout as exc:
+            six.reraise(PyrosServiceTimeout("Pyros Service call timed out."), None, sys.exc_info()[2])
         return res
 
     def params(self):
