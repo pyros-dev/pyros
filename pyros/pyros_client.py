@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import unicodedata
 
 import sys
@@ -8,11 +9,15 @@ import sys
 import six
 
 """
-Client to rostful node, Python style.
+Client to pyros node, Python style.
 Required for multiprocess communication.
 """
 
+# When importing this your environment should already be setup
+# and pyzmp should be found (from ROS packages or from python packages)
 import pyzmp
+
+
 from .exceptions import PyrosException
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
@@ -105,7 +110,7 @@ class PyrosClient(object):
 
     def buildMsg(self, connection_name, suffix=None):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(connection_name, six.string_types):
+        if isinstance(connection_name, unicode):
             connection_name = unicodedata.normalize('NFKD', connection_name).encode('ascii', 'ignore')
         res = self.msg_build_svc.call(args=(connection_name,))
         return res
@@ -119,7 +124,7 @@ class PyrosClient(object):
         :return:
         """
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(topic_name, six.string_types):
+        if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         if _msg_content is not None:
@@ -133,7 +138,7 @@ class PyrosClient(object):
 
     def topic_extract(self, topic_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(topic_name, six.string_types):
+        if isinstance(topic_name, unicode):
             topic_name = unicodedata.normalize('NFKD', topic_name).encode('ascii', 'ignore')
 
         try:
@@ -148,7 +153,7 @@ class PyrosClient(object):
 
     def service_call(self, service_name, _msg_content=None, **kwargs):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(service_name, six.string_types):
+        if isinstance(service_name, unicode):
             service_name = unicodedata.normalize('NFKD', service_name).encode('ascii', 'ignore')
 
         try:
@@ -173,7 +178,7 @@ class PyrosClient(object):
         :return:
         """
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(param_name, six.string_types):
+        if isinstance(param_name, unicode):
             param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
 
         _value = _value or {}
@@ -190,7 +195,7 @@ class PyrosClient(object):
 
     def param_get(self, param_name):
         #changing unicode to string ( testing stability of multiprocess debugging )
-        if isinstance(param_name, six.string_types):
+        if isinstance(param_name, unicode):
             param_name = unicodedata.normalize('NFKD', param_name).encode('ascii', 'ignore')
         res = self.param_svc.call(args=(param_name, None,))
         return res

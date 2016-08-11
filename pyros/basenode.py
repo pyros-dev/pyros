@@ -13,7 +13,7 @@ import pyzmp
 from .exceptions import PyrosException
 from .baseinterface import BaseInterface
 
-from pyros_setup import ConfigHandler
+from pyros_config import ConfigHandler
 
 
 # TODO : cleaner design by using pyzmp.Node as delegate to make all interface explicit here...

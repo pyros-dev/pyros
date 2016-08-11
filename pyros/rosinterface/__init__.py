@@ -15,6 +15,8 @@ from . import pyros_setup_config
 # This is much simpler since we don't need any other configuration at import time.
 # Extra Pyros configuration can be passed at runtime directly to the interface.
 
+# This is not related with import trickery to get Pyros dependencies,
+# it only concerns ROS interface dependencies (might be imported separately...)
 try:
     import rospy  # early except to prevent unintentional workaround in all modules here
     from .topic import TopicBack
