@@ -12,9 +12,7 @@ from .basenode import PyrosBase
 import logging
 import unicodedata
 
-
-# This is required here for deprecated decorator only. TODO : move it
-import pyros_setup
+from .utils import deprecated
 
 # When importing this your environment should already be setup
 # and pyzmp should be found (from ROS packages or from python packages)
@@ -91,7 +89,7 @@ class PyrosROS(PyrosBase):
     # we need make the message type visible to client,
     # and have him convert to a python structure that we can then convert to a message
     # dynamically right when calling the service.
-    @pyros_setup.deprecated
+    @deprecated
     def msg_build(self, connec_name):
         msg = None
         if self.interface:
