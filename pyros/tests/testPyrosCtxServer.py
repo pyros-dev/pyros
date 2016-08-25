@@ -26,7 +26,6 @@ def testPyrosMockCtx():
 
 def testPyrosROSCtx():
     # start ros system , before PyrosROS process and Client otherwise Client assumes there is  problem ( discovery timeout )
-    import pyros_setup
     master, roscore_proc = pyros_utils.get_master(spawn=True)  # we start the master if needed
 
     assert master.is_online()
