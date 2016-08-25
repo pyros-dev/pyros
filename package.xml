@@ -1,6 +1,6 @@
 <package>
   <name>pyros</name>
-  <version>0.1.0</version>
+  <version>0.0.9</version>
   <description>
 Provides Python to ROS multiprocess API, useful for using ROS from different multiprocess environment (think webserver, celery, etc.) while keeping both isolated.
   </description>
