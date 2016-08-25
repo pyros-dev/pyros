@@ -24,10 +24,6 @@ env:
   - CI_ROS_DISTRO=jade PYTHON=3.4
   # TODO : pypy + pypy3
 
-  # This will trigger a usual ros catkin build to make sure it still works
-  - PURE_PYTHON=false
-  # This will trigger python build
-  - PURE_PYTHON=true
 
 # We need to get a ROS distro to be able to test pyros
 # from different ros environments, or

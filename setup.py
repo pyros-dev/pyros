@@ -2,9 +2,12 @@ import os
 import sys
 from setuptools import setup
 
+# Ref : https://packaging.python.org/single_source_version/#single-sourcing-the-version
 with open('pyros/_version.py') as vf:
     exec(vf.read())
 
+# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
+# TODO : we can do this in a cleaner way
 if sys.argv[-1] == 'publish':
 
     os.system("python setup.py sdist")
@@ -54,12 +57,13 @@ setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
-        'pyzmp==0.0.11',  # lets be rigorous since we are working on both at the same time...
-        'pyros_setup>=0.1.1',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
+        'pyzmp==0.0.14',  # lets be rigorous since we are working on both at the same time...
+        'pyros_setup>=0.1.2',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
         'pyros_config>=0.1.3',
         'nose>=1.3.7',
         'mock==1.0.1',  # old mock to be compatible with trusty versions
     ],
+      # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     test_suite="nose.collector",
     tests_require=["nose"],
     zip_safe=False,  # TODO testing...
