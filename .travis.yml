@@ -41,6 +41,7 @@ install:
   - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_build.sh); else (mkvirtualenv --system-site-packages -i . -q python_${PYTHON}_ros); fi
 
 script:
+  # TODO : we need to call nose with --exe here to NOT SKIP tests (but will need to guarantee process isolation)
   - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_checks.sh); else (workon python_${PYTHON}_ros && python -m nose pyros -s); fi
 
 notifications:
