@@ -2,8 +2,31 @@
 Changelog for package pyros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* changed config behavior. now using pyros-setup default config.
+  getting rid of complex default+override behavior for import config.
+  improved logger.
+  improved setup.py commands.
+* importing pyros_setup only when imports from ros_interface failed.
+* created deprecated decorator as util in pyros until we find better solution.
+* fixing dependency on pyzmp with strict version.
+  removed useless env values for travis
+* improved main init to import dependencies from python or from ROS packages.
+  fixed check for unicode strings.
+  started implementing CATKIN_PIP_NO_DEPS for testing.
+  reviewing dependencies version.
+* improved travis test scripts from pyros-setup scripts.
+  improved setup.py with publish method
+  fixed python3 issues on pyros_client
+* moved some dependencies out of pyros_setup, to not require pyros_setup if using ROS environment as usual.
+* describing improved repository structure
+* improving release script
+* Contributors: AlexV, alexv
+
 0.1.0 (2016-07-08)
 ------------------
+* regenerating full changelog
 * rosdep dependency is likely redundant with pypi package
 * fixing python mock version to be compatibel with trusty
 * Revert "dropping installspace build. no ros-indigo deb package will be created. requirements are too high for trusty : six >= 1.9"
@@ -15,10 +38,11 @@ Changelog for package pyros
 * adding pypi mock dependency
 * generating changelog in preparation for version 0.1.0
 * reducing ros python dependencies since we now rely on catkin_pip.
-* cleanup debug log.
-* moved debug logging to special logdebug file to reduce terminal logspam.
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/pyros into config_refactor
+  Conflicts:
+  pyros/rosinterface/ros_interface.py
 * fixing tests
-* disabling some test to prevent catkin test hanging... but test pass when run without --with-xunit. probably a nose issue.
+* fixed check for early topic detection and stabilize cache diff optimization.
 * getting pyzmp 0.0.11 via dependencies to hopefully fix travis.
   not using requirements any longer since we dont have extra dependencies and catkin_pip_setup does install the package in dev mode.
 * fixing node behaviors with recent pyzmp.
@@ -31,10 +55,6 @@ Changelog for package pyros
 * fixed checking for available transients. now doesnt have to be a dict, just an iterable.
   Conflicts:
   pyros/rosinterface/ros_interface.py
-* fix adding available services.
-  quick fix on early topics detection to avoid dropping topic interface just after creation. now comparing local topic connection counter with global topic connection counter instead of always assuming 1.
-  improved logging.
-* fixed checking for available transients. now doesnt have to be a dict, just an iterable.
 * next TODO. first step to simplification.
 * removed useless None in get(smthg, None)
 * added interface cache tests to run by default.
@@ -49,27 +69,43 @@ Changelog for package pyros
 * fix tests for RosInterface especially with cache (but no diff optim)
 * adding yujin underlay as we need it for connectioncache message format.
 * fixing path to current workspace
-* now storing endpoints for topics in order to accurately detect lost topics when we get only endpoints diff from cache.
-  WIP. some tests breaking now.
-* WIP. attempting to fix diff behavior with cache in corner cases when things changing fast on the system.
-* changing static method used from class to class method used from self.
-* now using diff optimisation in connection_cache
 * renaming catkin_pure_python to catkin_pip
 * updating for catkin_pure_python 0.1.0
 * fixing various minor python issues
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/pyros into config_refactor
+  Conflicts:
+  package.xml
+  pyros/pyros_client.py
 * removed duplicated import
 * not installing pyros-setup from ROS package. pyros-setup should be useful only if run without ROS (directly from pip).
-* fixed service and topic type introspection.
-* fixing definitions to match new topic class structure.
-* fixing rostest call of testService.py
 * fixing self tests. now using pyros_setup pip package.
-* locking version numbers for pyros-setup and pyros-test dependencies
+* Merge branch 'cmake_buildtool' of https://github.com/asmodehn/pyros into config_refactor
+  Conflicts:
+  CMakeLists.txt
+  pyros/pyros_mock.py
+  requirements.txt
+  setup.py
+  src/pyros/baseinterface/basenode.py
+  src/pyros/rosinterface/pyros_ros.py
+  src/pyros/tests/testPyrosMock.py
+  zmp/__init_\_.py
+  zmp/exceptions.py
+  zmp/master.py
+  zmp/message.py
+  zmp/node.py
+  zmp/proto/service.proto
+  zmp/service.py
+  zmp/service_pb2.py
+  zmp/tests/profile_node.py
+  zmp/tests/test_message.py
+  zmp/tests/test_node.py
+  zmp/tests/test_service.py
+  zmp/topic.py
 * adding nosemain for self test.
 * now using pyzmp package dependency instead of internal zmp sources.
   removed submodules
 * now travis check python and ros workflows
 * moving to package v2
-* todo comments. py3 compat.
 * replacing obsolete navi/semantic_locations by new /rocon/semantics/locations
 * moved pyros and zmp sources, otherwise pyros was not find through egg link.
 * added version.
@@ -87,8 +123,43 @@ Changelog for package pyros
   now uses six to improve python3 compatibility.
 * starting to adapt to new configuration from pyros-setup.
 * now using catkin_pure_python
+* Contributors: AlexV, alexv
+
+0.0.9 (2016-08-25)
+------------------
+* Merge branch 'gopher-devel' of https://github.com/asmodehn/pyros into gopher-devel
+* releasing 0.0.9 for gopher benevolent
+* disabled pyrosROS test hanging on jenkins sometimes.
+* Merge pull request `#93 <https://github.com/asmodehn/pyros/issues/93>`_ from asmodehn/new_six
+  removing old gone six submodule
+* removing old gone six submodule
+* cleanup debug log.
+* Merge pull request `#84 <https://github.com/asmodehn/pyros/issues/84>`_ from asmodehn/connection_cache_diff_callback
+  Connection cache diff callback
+* moved debug logging to special logdebug file to reduce terminal logspam.
+* disabling some test to prevent catkin test hanging... but test pass when run without --with-xunit. probably a nose issue.
+* fix adding available services.
+  quick fix on early topics detection to avoid dropping topic interface just after creation. now comparing local topic connection counter with global topic connection counter instead of always assuming 1.
+  improved logging.
+* fixed checking for available transients. now doesnt have to be a dict, just an iterable.
+* now storing endpoints for topics in order to accurately detect lost topics when we get only endpoints diff from cache.
+  WIP. some tests breaking now.
+* WIP. attempting to fix diff behavior with cache in corner cases when things changing fast on the system.
+* changing static method used from class to class method used from self.
+* now using diff optimisation in connection_cache
+* fixed service and topic type introspection.
+* fixing definitions to match new topic class structure.
+* fixing rostest call of testService.py
+* locking version numbers for pyros-setup and pyros-test dependencies
+* todo comments. py3 compat.
+* Merge pull request `#71 <https://github.com/asmodehn/pyros/issues/71>`_ from gitter-badger/gitter-badge
+  Add a Gitter chat badge to README.rst
 * Add Gitter badge
+* Merge pull request `#69 <https://github.com/asmodehn/pyros/issues/69>`_ from asmodehn/multiclient
+  cosmetics, comments and small fixes...
 * cosmetics, comments and small fixes...
+* Merge pull request `#62 <https://github.com/asmodehn/pyros/issues/62>`_ from asmodehn/remove_unused_features
+  Remove unused features
 * readme regarding IoT.
 * cosmetics.
 * changing reinit method to a setup service.
@@ -99,6 +170,7 @@ Changelog for package pyros
 * fixing package dependencies for catkin
 * fixing catkin build.
 * removing unused ROS service specifications
+* Merge branch 'improve_exceptions_handling' into remove_unused_features
 * improved exception handling.
   adding mock client to make unittests easy.
   cosmetics.
@@ -107,9 +179,15 @@ Changelog for package pyros
   cleanup
 * Improved Readme
 * exposing servicecall timeout exception. cosmetics
+* Merge pull request `#55 <https://github.com/asmodehn/pyros/issues/55>`_ from stonier/verbosity
+  Logging : WARN -> INFO
 * fixing log warn -> info for startup args.
 * warn -> info when it's not meant to be alarming to the users.
 * fixme comments
+* Merge commit '971199c' into indigo-devel
+* Merge commit '15aab53' into indigo-devel
+* Merge pull request `#48 <https://github.com/asmodehn/pyros/issues/48>`_ from asmodehn/connection_cache
+  Connection cache
 * adding simple test to assert rospy potentially strange behaviors.
   separating cache and non cache tests.
   catching connection_cache proxy init timeout, showing error and disabling.
@@ -123,8 +201,12 @@ Changelog for package pyros
 * fixing pyrosROS test with latest pyros_test
 * adding pyrosRos test to catkin tests
 * reiniting connection cache if dynamic_reconfigure disable/enable it.
+* Merge branch 'strict-python-exp' into connection_cache
 * using enable_cache in dynamic_reconfigure to be able to dynamically switch if needed.
 * fixed populating empty message instance. comments.
+* Merge pull request `#50 <https://github.com/asmodehn/pyros/issues/50>`_ from asmodehn/strict-python-exp
+  Strict python experiment
+* Merge branch 'connection_cache' of https://github.com/asmodehn/pyros into strict-python-exp
 * adding missing rosnode as test dependency.
 * disabling roconinterface dynamic import.
 * moving more nodes to pyros-test
@@ -134,6 +216,8 @@ Changelog for package pyros
 * using pyros_cfg and fix import in rocont interface, to run nosetests from python venv.
 * added generated code for dynamic_reconfigure.
 * adding requirements, fixing setup.py for setuptools.
+* Merge pull request `#49 <https://github.com/asmodehn/pyros/issues/49>`_ from asmodehn/pyros_setup_fixes
+  now allowing to delay the import of rosinterface subpackage and passi…
 * now allowing to delay the import of rosinterface subpackage and passing base_path to find ROS environment dynamically.
 * using ros-shadow-fixed for travis
 * cleaning up comments
@@ -154,6 +238,8 @@ Changelog for package pyros
 0.0.8 (2016-01-25)
 ------------------
 * doing zmp tests one by one to workaround nose hanging bug with option --with-xunit
+* Merge pull request `#45 <https://github.com/asmodehn/pyros/issues/45>`_ from asmodehn/update_timed
+  ZMP node now passing timedelta to update.
 * making service and param new style classes.
 * fixing throttling to reinitialize last_update in basenode.
 * fixing a few quantifiedcode issues...
@@ -169,9 +255,15 @@ Changelog for package pyros
   cosmetics.
 * reviewing README.
 * changelog for 0.1.0. cosmetics.
+* Merge pull request `#43 <https://github.com/asmodehn/pyros/issues/43>`_ from asmodehn/autofix/wrapped2_to3_fix
+  Fix "Prefer `format()` over string interpolation operator" issue
 * fixing badges after rename.
+* Merge pull request `#42 <https://github.com/asmodehn/pyros/issues/42>`_ from asmodehn/autofix/wrapped2_to3_fix
+  Fix "Avoid mutable default arguments" issue
 * Migrated `%` string formating
 * Avoid mutable default arguments
+* Merge pull request `#41 <https://github.com/asmodehn/pyros/issues/41>`_ from asmodehn/mp_exception
+  Multiprocess
 * made namedtuple fields optional like for protobuf protocol.
 * fixing zmp tests with namedtuple protocol
 * fixing catkin cmakelists after test rename
@@ -228,6 +320,10 @@ Changelog for package pyros
 * fixing testRosInterface rostest to be runnable from python directly, and debuggable in IDE, by emulating ROS setup in testfile.
 * implemented functional API, abstract base interface class, mockinterface tests.
 * moving and fixing tests.
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/pyros into mp_exception
+  Conflicts:
+  setup.py
+  src/rostful_node/rostful_node_process.py
 * implemented transferring exception information via protobuf msg.
   readding tblib as dependency required for trusty.
 * WIP. starting to change message to be able to just not send the traceback if tblib not found.
@@ -274,12 +370,17 @@ Changelog for package pyros
 * adding tblib to be able to transfer exception between processes.
 * fixing travis badge
 * adding travis badge
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/rostful-node into indigo-devel
 * adding rostopic as a test_depend
+* Merge pull request `#33 <https://github.com/asmodehn/pyros/issues/33>`_ from asmodehn/travis
+  starting travis integration for autotest
 * starting travis integration for autotest
+* Merge pull request `#32 <https://github.com/asmodehn/pyros/issues/32>`_ from asmodehn/params
+  Params
 * fixes to make this node work again with rostful
   cosmetics and cleanups
 * First implementation to expose params to python the same way as we do for topics and services
-* Contributors: Cody, alexv
+* Contributors: AlexV, Cody, alexv
 
 0.0.7 (2015-10-12)
 ------------------
@@ -287,7 +388,9 @@ Changelog for package pyros
 * change message content check to accept empty dicts
 * fixing corner cases when passing None as message content. invalid and should not work.
 * fixing tests. and changed api a little.
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/rostful-node into subprocess
 * send empty dicts instead of none from client
+* Merge branch 'subprocess' of https://github.com/asmodehn/rostful-node into subprocess
 * now passing stop_event as an argument to the spinner.
   cosmetics.
 * removing useless fancy checks to force disabling rocon when set to false. updated rapp_watcher not working anymore.
@@ -304,6 +407,8 @@ Changelog for package pyros
   Test service nodes added
 * Fix crash when reconfigure removes topics, started on unit tests
 * fixing removing from dictionary topic_args.
+* Merge pull request `#28 <https://github.com/asmodehn/pyros/issues/28>`_ from asmodehn/multi-instance-delete
+  Fixed topic deletion when multiple publishers/subscribers exist on the same topic
 * stopped removal of slashes from front of topics
 * Fixed regex and add/remove issues with topics and services
 * Fixed topic deletion, multiple calls to add
@@ -314,11 +419,20 @@ Changelog for package pyros
   Ensured uniqueness of topics and services being passed into the system using sets.
   Removed unnecessary ws_name code.
   Issue `#27 <https://github.com/asmodehn/pyros/issues/27>`_.
+* Merge pull request `#26 <https://github.com/asmodehn/pyros/issues/26>`_ from asmodehn/wildcards
+  full regex, fixed reconfigure crash
+* Merge branch 'indigo-devel' into wildcards
+  Conflicts:
+  src/rostful_node/ros_interface.py
+* Merge pull request `#23 <https://github.com/asmodehn/pyros/issues/23>`_ from asmodehn/waiting-fix
+  Services are no longer lost, waiting lists are used more logically.
 * full regex, fixed reconfigure crash
   Can now use full regex in topic or service strings to match incoming strings.
   Fixed crash when dynamic reconfigure receives an invalid string
-* fix \*_waiting list usage, service loss no longer permanent
-  The lists \*_waiting now contain topics, services or actions which we are
+* Merge pull request `#22 <https://github.com/asmodehn/pyros/issues/22>`_ from asmodehn/feature-devel
+  Wildcard implementation
+* fix *_waiting list usage, service loss no longer permanent
+  The lists *_waiting now contain topics, services or actions which we are
   expecting, but do not currently exist. Once it comes into existence, we remove
   it from this list.
   When services disconnect, their loss is no longer permanent. This had to do with
@@ -339,6 +453,10 @@ Changelog for package pyros
 * added important technical TODO.
 * fixing bad merge.
 * fixing unitests after merge
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/rostful-node into rosless
+  Conflicts:
+  src/rostful_node/rostful_client.py
+  src/rostful_node/rostful_node.py
 * quick fix to keep disappeared topics around, waiting, in case they come back up...
 * turning off consume/noloss behavior. should not be the default. should be in parameter another way to expose topics.
 * preparing for release 0.0.6. setup also possible without catkin.
@@ -351,6 +469,7 @@ Changelog for package pyros
   added more unit tests for rostful mock
 * added rostful mock object ( useful if no ROS found ).
   improved structure and added small unit test.
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/rostful-node into indigo-devel
 * comments TODO to remember to fix hack.
 * changing cfg file name to fix install
 * tentative fix of cfg...
@@ -358,10 +477,13 @@ Changelog for package pyros
 * adding python futures as dependency
 * commenting out icon image. no cache home on robot. need to find a new strategy.
 * removed useless broken services
+* Merge pull request `#16 <https://github.com/asmodehn/pyros/issues/16>`_ from asmodehn/indigo
+  fixing catkin_make install with dynamic reconfigure.
 * adding bloom release in release process to sync with pypi release.
 * fixing catkin_make install with dynamic reconfigure.
 * fixes for release and cosmetics.
 * preparing pypi release
+* Merge branch 'indigo-devel' of https://github.com/asmodehn/rostful-node into indigo-devel
 * improving rostful node API.
   Adding rostful pipe client and python pipe protocol.
   removed redundant ros services.
