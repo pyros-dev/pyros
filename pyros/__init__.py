@@ -8,6 +8,12 @@ import sys
 
 from ._version import __version__
 
+from . import config
+
+# create logger
+_logger = logging.getLogger(__name__)
+# and let it propagate to parent logger, or other handler
+# the user of pyros should configure handlers
 
 # handling all import trickery to access dependent ROS modules here, our "entry point for import"
 try:
@@ -18,16 +24,14 @@ try:
 except (pkg_resources.DistributionNotFound, ImportError):
     # Handling hybrid usecase : package built in a devel workspace with catkin, and used from normal python
     import pyros_setup  # this has to be in your python environment.
-    # This will setup a python environment dynamically (useful for ROS systems)
-    pyros_setup.configurable_import(instance_relative_config=False).configure({
-        # since we didn't find pyzmp in our current environment,
-        # lets assume it is in our devel workspace, and it has not been setup yet.
-        'WORKSPACES': [
-            os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'devel')),
-        ],
-        'DISTRO': 'indigo',
-    }).activate()
-    logging.warning("Modified Python sys.path {0}".format(sys.path))
+    from . import config  # default config
+
+    # Lets use the system configuration already setup by pyros-setup
+    pyros_setup.configurable_import().configure().activate()
+    # This will use default pyros_setup.cfg. see http://flask.pocoo.org/docs/0.11/config/#instance-folders
+    # also pyros_setup should create the file if it doesnt exist.
+
+    _logger.warning("Modified Python sys.path {0}".format(sys.path))
     import pyzmp
     import pyros_utils
 

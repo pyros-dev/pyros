@@ -41,7 +41,7 @@ install:
   - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_build.sh); else (mkvirtualenv --system-site-packages -i . -q python_${PYTHON}_ros); fi
 
 script:
-  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_checks.sh); else (workon python_${PYTHON}_ros && python -m nose pyros --distro ${CI_ROS_DISTRO}); fi
+  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_checks.sh); else (workon python_${PYTHON}_ros && python -m nose pyros -s --distro ${CI_ROS_DISTRO}); fi
 
 notifications:
   email: false

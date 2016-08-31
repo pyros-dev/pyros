@@ -1,5 +1,52 @@
 import sys
 import os
+
+# logging configuration should be here to not be imported by python users of pyros.
+# only used from command line
+
+import logging.config
+# Setting up logging for this test
+logging.config.dictConfig(
+    {
+        'version': 1,
+        'formatters': {
+            'verbose': {
+                'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            },
+            'simple': {
+                'format': '%(levelname)s %(name)s:%(message)s'
+            },
+        },
+        'handlers': {
+            'null': {
+                'level': 'DEBUG',
+                'class': 'logging.NullHandler',
+            },
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple'
+            },
+        },
+        'loggers': {
+            'pyros_config': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'pyros_setup': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            },
+            'pyros': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            }
+        }
+    }
+)
+
+
 import nose
 import pkg_resources
 
