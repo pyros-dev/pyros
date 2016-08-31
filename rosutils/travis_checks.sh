@@ -17,5 +17,5 @@ elif [ "$ROS_FLOW" == "install" ]; then
     source install/setup.bash
     echo PYTHONPATH = $PYTHONPATH
     rospack profile
-    python -m nose pyros
+    python -m nose pyros -s
 fi
