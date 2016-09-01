@@ -449,10 +449,22 @@ class RosInterface(BaseInterface):
                         diff_opt=True,
                         diff_sub='~connections_diff'
                     )
-                except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
+
+                except AttributeError as attr_exc:
+                    # attribute error (likely rocon_python_comms doesnt have ConnectionCacheProxy)
+                    # NOT EXPECTED System configuration problem : BE LOUD !
                     # timeout initializing : disabling the feature but we should be LOUD about it
                     rospy.logwarn("Pyros.rosinterface : FAILED during initialization of Connection Cache Proxy. Disabling.")
+                    import traceback
+                    rospy.logwarn('Exception: {0}'.format(traceback.format_stack()))
                     self.enable_cache = False
+
+                except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
+
+                    # timeout initializing : disabling the feature but we should WARN about it
+                    rospy.logwarn("Pyros.rosinterface : TIMEOUT during initialization of Connection Cache Proxy. Disabling.")
+                    self.enable_cache = False
+
                 else:
                     rospy.loginfo("Pyros.rosinterface : Connection Cache Optimization enabled")
 
