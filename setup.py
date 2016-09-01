@@ -10,7 +10,6 @@ with open('pyros/_version.py') as vf:
 # Best Flow :
 # Clean previous build & dist
 # $ gitchangelog >CHANGELOG.rst
-# $ git commit CHANGELOG.rst -m "updating changelog"
 # change version in code and changelog
 # $ python setup.py prepare_release
 # WAIT FOR TRAVIS CHECKS
@@ -117,5 +116,9 @@ setuptools.setup(name='pyros',
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     test_suite="nose.collector",
     tests_require=["nose"],
+    cmdclass={
+        'prepare_release': PrepareReleaseCommand,
+        'publish': PublishCommand,
+    },
     zip_safe=False,  # TODO testing...
 )
