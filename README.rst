@@ -57,6 +57,9 @@ ROS usage
 Pyros is a blanket under which all the ROS tricks can remain hidden, and not break your usual python workflows.
 
 ROS needs to be installed on your machine for the rosinterface to work.
+All system & ROS dependencies need to match pyros expectations when launching Pyros from Python.
+Pyros currently cannot verify your current system and certify compatibility.
+
 This package includes :
 
 - a rosnode that will be launched in a separate process to maintain isolation.
