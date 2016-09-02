@@ -60,7 +60,7 @@ install:
   # Installing package dependencies
   - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
   # getting virtualenv setup with dependencies is we need to work with pure python setup
-  - if [ -n ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
+  - if [ ! -z ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
 
 
 script:
@@ -70,7 +70,7 @@ script:
   # Passing env vars here since passing in docker run currently breaks (2016-08-25)
   - if [ -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "export ROS_DISTRO=$ROS_DISTRO && export ROS_FLOW=$ROS_FLOW && /git_clone/travis_checks.bash"); fi
   # TODO : we need to call nose with --exe here to NOT SKIP tests (but will need to guarantee process isolation)
-  - if [ -n ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && workon python_${PYTHON}_ros && python -m nose pyros.tests -s"); fi
+  - if [ ! -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && workon python_${PYTHON}_ros && python -m nose pyros.tests -s"); fi
 
   - docker stop "${CONTAINER_ID}"
 
