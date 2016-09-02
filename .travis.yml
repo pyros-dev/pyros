@@ -1,27 +1,35 @@
 sudo: required
-dist: trusty
 language: generic
+services:
+  - docker
 
 branches:
   except:
     - gh-pages
 
 env:
-
-env:
-  # This will check any ROS distro with any python interpreter
-  # supported on this OS
-  - CI_ROS_DISTRO=indigo ROS_FLOW=devel
+  global:
+    - CONTAINER_NAME=pyros_docker
+  # This will check any ROS distro with any python interpreter supported on this OS
+  # checking devel and install separately so that they don't influence each other (dependencies, path, env, etc.)
+  matrix:
+  - ROS_DISTRO=indigo ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - CI_ROS_DISTRO=indigo ROS_FLOW=install
-  - CI_ROS_DISTRO=indigo PYTHON=2.7
-  - CI_ROS_DISTRO=indigo PYTHON=3.4
+  - ROS_DISTRO=indigo ROS_FLOW=install
+  - ROS_DISTRO=indigo PYTHON=2.7
+  - ROS_DISTRO=indigo PYTHON=3.4
 
-  - CI_ROS_DISTRO=jade ROS_FLOW=devel
+  - ROS_DISTRO=jade ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - CI_ROS_DISTRO=jade ROS_FLOW=install
-  - CI_ROS_DISTRO=jade PYTHON=2.7
-  - CI_ROS_DISTRO=jade PYTHON=3.4
+  - ROS_DISTRO=jade ROS_FLOW=install
+  - ROS_DISTRO=jade PYTHON=2.7
+  - ROS_DISTRO=jade PYTHON=3.4
+
+  - ROS_DISTRO=kinetic ROS_FLOW=devel
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - ROS_DISTRO=kinetic ROS_FLOW=install
+  - ROS_DISTRO=kinetic PYTHON=2.7
+  - ROS_DISTRO=kinetic PYTHON=3.4
   # TODO : pypy + pypy3
 
 
@@ -29,20 +37,44 @@ env:
 # from different ros environments, or
 # from different virtualenv using site-packages.
 before_install:
-  # Install ROS. We always need it for testing on system.
-  - bash rosutils/install_ros.sh
-  # Install python and required packages on system if needed
-  - if [ -z ${PYTHON+undef} ]; then echo "Python virtual env not used"; else sudo apt-get install python${PYTHON} virtualenvwrapper -y && source "/usr/share/virtualenvwrapper/virtualenvwrapper.sh"; fi
-  # Install package ROS dependencies
-  - rosdep install --default-yes --from-paths ./ --rosdistro $CI_ROS_DISTRO
-
+  # Getting docker ros image
+  - docker pull ros:${ROS_DISTRO}-ros-core
+  # Running as daemon
+  - docker run --name ${CONTAINER_NAME} -d -t ros:${ROS_DISTRO}-ros-core /bin/bash | tee container.id
+  # Checking current container
+  - docker ps -a
+  - docker exec -ti ${CONTAINER_NAME} hostname
+  - docker exec -ti ${CONTAINER_NAME} uname -a
+  - docker exec -ti ${CONTAINER_NAME} cat /etc/lsb-release
 
 install:
-  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_build.sh); else (mkvirtualenv --system-site-packages -i . -q python_${PYTHON}_ros); fi
+  # refreshing packages
+  - docker exec -ti ${CONTAINER_NAME} apt-get update
+  - docker exec -ti ${CONTAINER_NAME} rosdep update
+  # TMP Patch because rosdep doesnt declare a dependency to sudo yet (2016-08-25) and it doesnt come with xenial
+  - docker exec -ti ${CONTAINER_NAME} apt-get install sudo
+  # Install python and required packages on system if needed
+  - docker exec -ti ${CONTAINER_NAME} apt-get install python${PYTHON} virtualenvwrapper -y
+  # copying local clone to the running container (volume is currently broken)
+  - docker cp . ${CONTAINER_NAME}:/git_clone
+  # Installing package dependencies
+  - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
+  # getting virtualenv setup with dependencies is we need to work with pure python setup
+  - if [ -n ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
+
 
 script:
+  - CONTAINER_ID=$(cat container.id)
+  - docker ps -a
+  - if [ -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /opt/ros/ROS_DISTRO/setup.bash && rospack profile"); fi
+  # Passing env vars here since passing in docker run currently breaks (2016-08-25)
+
   # TODO : we need to call nose with --exe here to NOT SKIP tests (but will need to guarantee process isolation)
-  - if [ -z ${PYTHON+undef} ]; then (bash rosutils/travis_checks.sh); else (workon python_${PYTHON}_ros && python -m nose pyros -s); fi
+  - if [ -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "export ROS_DISTRO=$ROS_DISTRO && export ROS_FLOW=$ROS_FLOW && /git_clone/travis_checks.bash"); fi
+  - if [ -n ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && workon python_${PYTHON}_ros && python -m nose pyros.tests -s); fi
+
+  - docker stop "${CONTAINER_ID}"
+
 
 notifications:
   email: false
