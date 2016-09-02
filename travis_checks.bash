@@ -1,11 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
+# first we ensure we change to the directory where this script is.
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $DIR
+
+# This script run basic checks on this project.
+# It is used by travis and can also be used by a developer for checking his current working tree.
+#
 # These variables need to be setup before calling this script:
 # ROS_DISTRO [indigo | jade | kinetic]
 # ROS_FLOW [devel | install]
 
+# For travis docker, this is already done by the entrypoint in docker image.
+# However when using 'docker exec' we still need to source it ourselves.
+# Also it is mandatory when this script is run directly by the developer.
 source /opt/ros/$ROS_DISTRO/setup.bash
+
 mkdir -p build
 cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=./install
