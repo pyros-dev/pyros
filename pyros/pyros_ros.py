@@ -14,10 +14,6 @@ import unicodedata
 
 from .utils import deprecated
 
-# When importing this your environment should already be setup
-# and pyzmp should be found (from ROS packages or from python packages)
-import pyros_utils
-
 
 from . import config
 
@@ -46,12 +42,6 @@ class PyrosROS(PyrosBase):
         :param args: arguments to pass to the interface_class initializer. If provided, the first one is used as the ROS node name.
         :param kwargs: keyword arguments to pass to the interface_class initializer. If provided the 'argv' key will override the other 'argv' parameter.
         """
-
-        if pyros_config:
-            # Setting up imports for ros before loading rosinterface, if present in pyros_config
-            setup_config = pyros_config.get_namespace('ROS_SETUP_')
-            if setup_config:
-                pyros_setup.configurable_import().configure(setup_config).activate()
 
         # removing name from argv to avoid overriding specified name unintentionally
         argv = [arg for arg in (argv or []) if not arg.startswith('__name:=')]
@@ -165,11 +155,6 @@ class PyrosROS(PyrosBase):
         """
         Running in a zmp.Node process, providing zmp.services
         """
-
-        # master has to be running here or we just wait for ever
-        m, _ = pyros_utils.get_master(spawn=False)
-        while not m.is_online():
-            time.sleep(0.5)
 
         # TODO : install shutdown hook to shutdown if detected
 

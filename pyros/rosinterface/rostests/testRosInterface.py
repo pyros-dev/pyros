@@ -10,9 +10,57 @@ import pickle
 # And we need our current module to be found first.
 import time
 
-current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-# if not current_path in sys.path:
-sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
+# current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# # if not current_path in sys.path:
+# sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
+
+# setting up logging from this test
+import logging.config
+# Setting up logging for this test
+# TODO : solve multiprocess problems... this seems not enough to get on console...
+logging.config.dictConfig(
+    {
+        'version': 1,
+        'formatters': {
+            'verbose': {
+                'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            },
+            'simple': {
+                'format': '%(levelname)s %(name)s:%(message)s'
+            },
+        },
+        'handlers': {
+            'null': {
+                'level': 'DEBUG',
+                'class': 'logging.NullHandler',
+            },
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'simple'
+            },
+        },
+        'loggers': {
+            'pyros_config': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+            'pyros_setup': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            },
+            'pyros': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            },
+            'pyros.rosinterface': {
+                'handlers': ['console'],
+                'level': 'INFO',
+            }
+        }
+    }
+)
 
 
 # Unit test import (  will emulate ROS setup if needed )

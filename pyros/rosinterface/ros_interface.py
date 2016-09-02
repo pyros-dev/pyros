@@ -6,6 +6,7 @@ from copy import deepcopy, copy
 from itertools import ifilter
 import logging
 
+import pyros_utils
 import rospy
 import rosservice, rostopic, rosparam
 
@@ -16,6 +17,12 @@ import threading
 import Queue
 
 import time
+
+# create logger
+_logger = logging.getLogger(__name__)
+# and let it propagate to parent logger, or other handler
+# the user of pyros should configure handlers
+
 from ..baseinterface import BaseInterface, DiffTuple
 
 from .service import ServiceBack, ServiceTuple
@@ -35,6 +42,15 @@ class RosInterface(BaseInterface):
     """
     def __init__(self, node_name, services=None, topics=None, params=None, enable_cache=False, argv=None):
         # This runs in a child process (managed by PyrosROS) and as a normal ros node)
+
+        # First thing to do : find the rosmaster...
+        # master has to be running here or we just wait for ever
+        # TODO : improve...
+        m, _ = pyros_utils.get_master(spawn=False)
+        while not m.is_online():
+            _logger.warning("ROSMASTER not found !!!...")
+            time.sleep(0.5)
+
         # First thing to do : initialize the ros node and disable signals to avoid overriding callers behavior
         rospy.init_node(node_name, argv=argv, disable_signals=True)
         rospy.loginfo('RosInterface {name} node started with args : {argv}'.format(name=node_name, argv=argv))

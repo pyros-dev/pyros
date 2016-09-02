@@ -20,20 +20,18 @@ try:
     # this should work from python venv or from ROS environment already setup.
     import pkg_resources
     import pyzmp
-    import pyros_utils
 except (pkg_resources.DistributionNotFound, ImportError):
     # Handling hybrid usecase : package built in a devel workspace with catkin, and used from normal python
     import pyros_setup  # this has to be in your python environment.
     from . import config  # default config
 
     # Lets use the system configuration already setup by pyros-setup
-    pyros_setup.configurable_import().configure().activate()
+    #pyros_setup.configurable_import().configure().activate()
     # This will use default pyros_setup.cfg. see http://flask.pocoo.org/docs/0.11/config/#instance-folders
     # also pyros_setup should create the file if it doesnt exist.
 
     _logger.warning("Modified Python sys.path {0}".format(sys.path))
     import pyzmp
-    import pyros_utils
 
 from .exceptions import PyrosException
 from .pyros_ctx_server import pyros_ctx
