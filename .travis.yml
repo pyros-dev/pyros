@@ -41,6 +41,8 @@ before_install:
   - docker pull ros:${ROS_DISTRO}-ros-core
   # Running as daemon
   - docker run --name ${CONTAINER_NAME} -d -t ros:${ROS_DISTRO}-ros-core /bin/bash | tee container.id
+  # Switching to use ros shadow fixed packages
+  - docker exec -ti ${CONTAINER_NAME} /bin/bash -c "sed -i.bak -e s,packages.ros.org/ros/ubuntu,packages.ros.org/ros-shadow-fixed/ubuntu, /etc/apt/sources.list.d/ros-latest.list"
   # Checking current container
   - docker ps -a
   - docker exec -ti ${CONTAINER_NAME} hostname
