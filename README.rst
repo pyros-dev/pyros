@@ -37,11 +37,29 @@ When using the ros interface however, your `ROS`_ configuration will be dynamica
 
 Do not hesitate to get in touch by leaving an issue, if you think Pyros can help interfacing the multiprocess system you need to communicate with.
 
+Repository structure
+--------------------
+
+This repository has a few main branches:
+
+- master : main branch, python dev workflow, releasing version tags into a pip package.
+- indigo-devel : current indigo-based ongoing development. catkin dev workflow.
+- indigo : current indigo-based release (ROS pkg - tags attempting to match)
+- <ros_distro> : current <ros_distro>-based release (ROS pkg)
+
+Apart from these we follow a `feature branching workflow <https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow>`_
+
+WARNING: This repository structure is currently being implemented...
+
+
 ROS usage
 ---------
 Pyros is a blanket under which all the ROS tricks can remain hidden, and not break your usual python workflows.
 
 ROS needs to be installed on your machine for the rosinterface to work.
+All system & ROS dependencies need to match pyros expectations when launching Pyros from Python.
+Pyros currently cannot verify your current system and certify compatibility.
+
 This package includes :
 
 - a rosnode that will be launched in a separate process to maintain isolation.

@@ -1,3 +1,0 @@
-[submodule "deps/python-tblib"]
-	path = deps/python-tblib
-	url = https://github.com/ionelmc/python-tblib.git

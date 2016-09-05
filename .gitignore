@@ -1,1 +1,8 @@
 *.pyc
+.cache/
+.idea/
+.noseids
+build/
+dist/
+pyros.egg-info/
+.tox/
