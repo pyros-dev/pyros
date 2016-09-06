@@ -11,7 +11,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <url type="repository">https://github.com/asmodehn/pyros</url>
   <url type="bugtracker">https://github.com/asmodehn/pyros/issues</url>
 
-  <author email="benkehoe@somewhere.net">Ben Kehoe</author>
+  <author>Ben Kehoe</author>
   <author email="asmodehn@gmail.com">AlexV</author>
   <maintainer email="asmodehn@gmail.com">AlexV</maintainer>
 
@@ -30,6 +30,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <depend version_gte="0.1.2">pyros_utils</depend>
 
   <depend version_gte="1.5.2">python-six</depend>
+  <depend version_gte="0.1.0">python-tblib</depend>
 
   <!-- these dependencies are only for testing -->
 
