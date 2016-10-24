@@ -179,8 +179,8 @@ class RosInterface(BaseInterface):
     def param_type_resolver(self, param_name):  # function resolving the type of a param
         prm = self.params_available.get(param_name)
         if prm:
-            if prm.type is None:  # if the type is unknown, lets discover it (since the service is supposed to exist)
-                # TODO : param master API
+            if prm.type is None:  # if the type is unknown, lets discover it (since the param is supposed to exist)
+                prm.type = type(rospy.get_param(param_name))  # we use the detected python type here (since there is no rospy param type interface for this)
                 pass
             return prm.type  # return the first we find. enough.
         else:
@@ -280,17 +280,18 @@ class RosInterface(BaseInterface):
         called to update params from rospy.
         CAREFUL : this can be called from another thread (subscriber callback)
         """
+
         with self.params_available_lock:
-            for p in self.params_available:
-                pt = ParamTuple(name=p[0], type=None)
+            for p in params_dt.added:
+                pt = ParamTuple(name=p, type=None)
                 if pt.name in self.params_available:
                     if self.params_available[pt.name].type is None or pt.type is not None:
                         self.params_available[pt.name].type = pt.type
-                    else:
-                        self.params_available[pt.name] = pt
+                else:
+                    self.params_available[pt.name] = pt
 
-            for p in self.params_available:
-                pt = ParamTuple(name=p[0], type=None)
+            for p in params_dt.removed:
+                pt = ParamTuple(name=p, type=None)
                 if pt.name in self.params_available:
                     self.params_available.pop(pt.name, None)
 
@@ -488,7 +489,7 @@ class RosInterface(BaseInterface):
             params = set(rospy.get_param_names())
             params_dt = DiffTuple(
                 added=[p for p in params if p not in [pname for pname in self.params_available]],
-                removed=[p for p in self.params_available if p not in [ifilter(lambda pf: pf == p, params)]]
+                removed=[p for p in self.params_available if p not in params]
             )
             params_dt = self.compute_params(params_dt)
 
@@ -588,6 +589,12 @@ class RosInterface(BaseInterface):
 
                 # if we need to reset we do it right now and return.
                 if reset:
+                    # TODO : put that in debug log and show based on python logger configuration
+                    # print("Pyros ROS interface RESET")
+                    # print("Params : {0}".format(params))
+                    # print("Pubs : {0}".format([[k, [n[0] for n in nset]] for k, nset in added_publishers.iteritems()]))
+                    # print("Subs : {0}".format([[k, [n[0] for n in nset]] for k, nset in added_subscribers.iteritems()]))
+                    # print("Srvs : {0}".format([[k, [n[0] for n in nset]] for k, nset in added_services.iteritems()]))
                     # we will remove what we have now.
                     self.reset_params(params)
                     self.reset_system_state(  # here we need to get only the nodes' names
@@ -633,11 +640,22 @@ class RosInterface(BaseInterface):
                     if services_dt.added or services_dt.removed:
                         self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Services Delta {services_dt}".format(**locals()))
 
+                    # TODO : put that in debug log and show based on python logger configuration
+                    # print("Pyros ROS interface UPDATE")
+                    # print("Params ADDED : {0}".format([p for p in params_dt.added]))
+                    # print("Params GONE : {0}".format([p for p in params_dt.removed]))
+                    # print("Topics ADDED : {0}".format([t[0] for t in topics_dt.added] + early_topics_dt.added))
+                    # print("Topics GONE : {0}".format([t[0] for t in topics_dt.removed] + early_topics_dt.removed))
+                    # print("Srvs ADDED: {0}".format([s[0] for s in services_dt.added]))
+                    # print("Srvs GONE: {0}".format([s[0] for s in services_dt.removed]))
+
                     # update_on_diff wants only names
                     dt = super(RosInterface, self).update_on_diff(
                             DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
                             DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
-                            DiffTuple([p[0] for p in params_dt.added], [p[0] for p in params_dt.removed])
+                            # Careful params_dt has a different content than service and topics, due to different ROS API
+                            # TODO : make this as uniform as possible
+                            DiffTuple([p for p in params_dt.added], [p for p in params_dt.removed])
                     )
                 if dt.added or dt.removed:
                     self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Interface Update Delta {dt}".format(**locals()))

@@ -129,7 +129,7 @@ class TestRosInterface(unittest.TestCase):
 
     @classmethod
     def teardown_class(cls):
-        # finishing all process are finished
+        # ensuring all process are finished
         if TestRosInterface.empty_srv_process is not None:
             TestRosInterface.empty_srv_process.stop()
         if TestRosInterface.trigger_srv_process is not None:
@@ -851,6 +851,324 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(servicename not in self.interface.services_args)
         # service backend should NOT be there any longer
         self.assertTrue(servicename not in self.interface.services.keys())
+
+
+# EXPOSE PARAMS + UPDATE Interface
+
+    def test_param_appear_expose_update(self):
+        """
+        Test param exposing functionality for a param which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : APPEAR -> EXPOSE -> UPDATE
+        :return:
+        """
+
+        paramname = '/test/confirm_param'
+        dt = self.interface.expose_params([paramname])
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # param backend has not been created since the update didn't run yet
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # NOTE : We need to wait to make sure the tests nodes are started...
+        with Timeout(5) as t:
+            while not t.timed_out and paramname not in dt.added:
+                dt = self.interface.update()
+
+        self.assertTrue(not t.timed_out)
+        # every exposed param should remain in the list of args ( in case regex match another service )
+        self.assertTrue(paramname in self.interface.params_args)
+        # make sure the param backend has been created
+        self.assertTrue(paramname in self.interface.params.keys())
+
+        # cleaning up
+        self.interface.expose_params([])
+        # param should not be in the list of args any longer
+        self.assertTrue(paramname not in self.interface.params_args)
+        # param backend has been removed
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+    def test_param_appear_update_expose(self):
+        """
+        Test param exposing functionality for a param which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE?) -> APPEAR -> UPDATE -> EXPOSE (-> UPDATE?)
+        :return:
+        """
+        paramname = '/test/absentparam1'
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+        # First update should not change state
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # create the param and then try exposing the param again, simulating
+        # it coming online before expose call.
+        rospy.set_param(paramname, 'param_value')
+        try:
+            with Timeout(5) as t:
+                while not t.timed_out and paramname not in self.interface.params_available:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
+                    self.assertEqual(dt.removed, [])  # nothing removed
+
+            self.assertTrue(not t.timed_out)
+            # every added param should be in the list of args
+            self.assertTrue(paramname not in self.interface.params_args)
+            # the backend should not have been created
+            self.assertTrue(paramname not in self.interface.params.keys())
+
+            # here we are sure the interface knows the service is available
+            # it will be exposed right now
+            dt = self.interface.expose_params([paramname])
+            self.assertTrue(paramname in dt.added)  # paramname added
+            self.assertEqual(dt.removed, [])  # nothing removed
+
+            # every exposed param should remain in the list of args ( in case regex match another param )
+            self.assertTrue(paramname in self.interface.params_args)
+            # make sure the service backend has been created
+            self.assertTrue(paramname in self.interface.params.keys())
+        finally:
+            rospy.delete_param(paramname)
+
+    def test_param_expose_appear_update(self):
+        """
+        Test basic param adding functionality for a param which does not yet exist
+        in the ros environment ( + corner cases )
+        Sequence : (UPDATE? ->) -> EXPOSE -> (UPDATE? ->) APPEAR -> UPDATE
+        :return:
+        """
+        paramname = '/test/absentparam1'
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+        # First update should not change state
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        self.interface.expose_params([paramname])
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # make sure the param is STILL in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # make sure the param backend has STILL not been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # create the param and then try updating again, simulating
+        # it coming online after expose call.
+        rospy.set_param(paramname, 'param_value')
+        try:
+            with Timeout(5) as t:
+                dt = DiffTuple([], [])
+                while not t.timed_out and paramname not in dt.added:
+                    dt = self.interface.update()
+                    self.assertEqual(dt.removed, [])  # nothing removed
+
+            self.assertTrue(not t.timed_out)
+            self.assertTrue(paramname in dt.added)  # nonexistent_srv added
+            # every exposed param should remain in the list of args ( in case regex match another service )
+            self.assertTrue(paramname in self.interface.params_args)
+            # make sure the param backend has been created
+            self.assertTrue(paramname in self.interface.params.keys())
+        finally:
+            rospy.delete_param(paramname)
+
+    def test_param_withhold_update_disappear(self):
+        """
+        Test param witholding functionality for a param which doesnt exists anymore in
+        the ros environment. Normal usecase.
+        Sequence : (-> UPDATE ?) -> WITHHOLD -> UPDATE -> DISAPPEAR (-> UPDATE ?)
+        :return:
+        """
+        paramname = '/test/absentparam1'
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        self.interface.expose_params([paramname])
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # service backend has NOT been created yet
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # create the param and then try updating again, simulating
+        # it coming online after expose call.
+        rospy.set_param(paramname, 'param_value')
+        try:
+            dt = self.interface.update()
+            self.assertTrue(paramname in dt.added)  # paramname added
+            self.assertEqual(dt.removed, [])  # nothing removed
+
+            # every withhold param should STILL be in the list of args
+            self.assertTrue(paramname in self.interface.params_args)
+            # param backend has been created
+            self.assertTrue(paramname in self.interface.params.keys())
+
+            dt = self.interface.expose_params([])
+            self.assertEqual(dt.added, [])  # nothing added
+            self.assertTrue(paramname in dt.removed)  # paramname removed
+            # every withhold param should NOT be in the list of args
+            self.assertTrue(paramname not in self.interface.params_args)
+            # param backend should be GONE
+            self.assertTrue(paramname not in self.interface.params.keys())
+
+            dt = self.interface.update()
+            self.assertEqual(dt.added, [])  # nothing added
+            self.assertEqual(dt.removed, [])  # nothing removed
+            # every withhold param should STILL NOT be in the list of args
+            self.assertTrue(paramname not in self.interface.params)
+            # param backend should be GONE
+            self.assertTrue(paramname not in self.interface.params.keys())
+        finally:
+            rospy.delete_param(paramname)
+
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nonexistent_srv already removed
+        # every withhold service should STILL NOT be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # service backend should be GONE
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+    def test_param_disappear_update_withhold(self):
+        """
+        Test param exposing functionality for a param which already exists in
+        the ros environment. Normal usecase
+        Sequence : (UPDATE? ->) DISAPPEAR -> UPDATE -> WITHHOLD (-> UPDATE ?)
+        :return:
+        """
+        paramname = '/test/absentparam1'
+        # param should not be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        self.interface.expose_params([paramname])
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # param backend has NOT been created yet
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # create the param and then try updating again, simulating
+        # it coming online after expose call.
+        rospy.set_param(paramname, 'param_value')
+        try:
+            dt = self.interface.update()
+            self.assertTrue(paramname in dt.added)  # paramname added
+            self.assertEqual(dt.removed, [])  # nothing removed
+
+            # param should be in the list of args
+            self.assertTrue(paramname in self.interface.params_args)
+            # the backend should have been created
+            self.assertTrue(paramname in self.interface.params.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearance / withholding test
+        finally:
+            rospy.delete_param(paramname)
+
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # the backend should STILL be there
+        self.assertTrue(paramname in self.interface.params.keys())
+        # Note the param implementation should take care of possible errors in this case
+
+        # wait here until param actually disappear from cache proxy
+        with Timeout(5) as t:
+            while not t.timed_out and paramname not in dt.removed:
+                dt = self.interface.update()
+                self.assertEqual(dt.added, [])  # nothing added
+
+        self.assertTrue(not t.timed_out)
+        self.assertTrue(paramname in dt.removed)  # nonexistent_srv removed
+        # every exposed param should remain in the list of args ( in case regex match another service )
+        self.assertTrue(paramname in self.interface.params_args)
+        # make sure the param backend should NOT be there any longer
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # TODO : test that coming back actually works
+
+        self.interface.expose_params([])
+        # every withhold param should NOT be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # param backend has not been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        dt = self.interface.update()
+        self.assertEqual(dt.added, [])  # nothing added
+        self.assertEqual(dt.removed, [])  # nothing removed
+        # every withhold param should NOT be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # make sure the param backend has been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+    def test_param_update_disappear_withhold(self):
+        """
+        Test param exposing functionality for a param which already exists in
+        the ros environment. Simple Normal usecase
+        Sequence : UPDATE -> DISAPPEAR -> WITHHOLD
+        :return:
+        """
+        paramname = '/test/absentparam1'
+        # every added param should be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # the backend should not have been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        self.interface.expose_params([paramname])
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # param backend has not been created
+        self.assertTrue(paramname not in self.interface.params.keys())
+
+        # create the param and then try updating again, simulating
+        # it coming online after expose call.
+        rospy.set_param(paramname, 'param_value')
+        try:
+            dt = self.interface.update()
+            self.assertTrue(paramname in dt.added)  # paramname added
+            self.assertEqual(dt.removed, [])  # nothing removed
+
+            # every added param should be in the list of args
+            self.assertTrue(paramname in self.interface.params_args)
+            # param backend has been created
+            self.assertTrue(paramname in self.interface.params.keys())
+
+        # up to here possible sequences should have been already tested by previous tests
+        # Now comes our actual disappearance / withholding test
+        finally:
+            rospy.delete_param(paramname)
+
+        # every added param should be in the list of args
+        self.assertTrue(paramname in self.interface.params_args)
+        # the backend should STILL be there
+        self.assertTrue(paramname in self.interface.params.keys())
+        # Note the param implementation should take care of possible errors in this case
+
+        self.interface.expose_params([])
+        # every withhold param should NOT be in the list of args
+        self.assertTrue(paramname not in self.interface.params_args)
+        # param backend should NOT be there any longer
+        self.assertTrue(paramname not in self.interface.params.keys())
 
 
 @nose.tools.istest
