@@ -180,8 +180,10 @@ class RosInterface(BaseInterface):
         prm = self.params_available.get(param_name)
         if prm:
             if prm.type is None:  # if the type is unknown, lets discover it (since the param is supposed to exist)
-                prm.type = type(rospy.get_param(param_name))  # we use the detected python type here (since there is no rospy param type interface for this)
-                pass
+                try:
+                    prm.type = type(rospy.get_param(param_name))  # we use the detected python type here (since there is no rospy param type interface for this)
+                except KeyError:  # exception can occur -> just reraise
+                    raise
             return prm.type  # return the first we find. enough.
         else:
             rospy.logerr("ERROR while resolving {param_name}. Param not known as available. Ignoring".format(**locals()))
@@ -363,6 +365,7 @@ class RosInterface(BaseInterface):
         :param subscribers_dt:
         :return:
         """
+        self._debug_logger.debug("compute_system_state(self, {publishers_dt}, {subscribers_dt}, {services_dt}, {topic_types_dt}, {service_types_dt})".format(**locals()))
         iftopics = self._get_pyros_topics()
         filtered_added_publishers, filtered_added_subscribers = self._filter_out_pyros_topics(publishers_dt.added, subscribers_dt.added, if_topics=iftopics)
         # this is called with difference tuples
@@ -404,7 +407,7 @@ class RosInterface(BaseInterface):
             added=[[k, v] for k, v in added_topics.iteritems()],
             removed=[[k, v] for k, v in removed_topics.iteritems()]
         )
-
+        self._debug_logger.debug("topics_dt : {topics_dt}".format(**locals()))
         with self.topics_available_lock:
             for t in topics_dt.added:
                 tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.added), [])

@@ -56,8 +56,8 @@ class ServiceBack(object):
         self.rostype_resp = getattr(srv_module, service_type_name + 'Response')
 
         self.srvtype = get_service_srv_dict(self)
-        #rospy.logwarn('srvtype : %r', self.srvtype)
 
+        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface service {name} {typename}".format(name=self.fullname, typename=self.rostype_name))
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
 
     def cleanup(self):

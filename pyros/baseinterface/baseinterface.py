@@ -98,18 +98,26 @@ class BaseInterface(object):
 
     # staticmethod because we do not need the class here.
     @staticmethod
-    def _update_transients(add_names, remove_names, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _update_transients(add_names, remove_names, transient_desc, resolved_dict,
+                           type_resolve_func,
+                           class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
-        Adds transients (service, topic, etc) named in add_names and removes transients named in remove_names  exposed transients resolved_dict
-        :param transient_desc: a string describing the transient type ( service, topic, etc. )
-        :param regex_set: the list of regex to filter transients to update
+        Adds transients (service, topic, etc) named in add_names if they are not exposed in resolved_dict
+        and removes transients named in remove_names if they are exposed in resolved_dict
+
+        This method can be used to force exposing/withholding any transient, bypassing other mechanisms.
+        No extra check is made here regarding regex or system status to try to guess if it should be added/removed.
+        This is left ot the caller.
+
         :param add_names: the names of the transients to add
         :param remove_names: the names of the transients to remove
+        :param transient_desc: a string describing the transient type ( service, topic, etc. )
         :param resolved_dict: the list to add the resolved transient(s) to
-        :param get_list_func: the function to get the list of all transients currently available to be exposed
         :param type_resolve_func: the function to retrieve the message type used by the transient
+        :param class_clean_func: the class cleaning function to be able to safely remove a transient
         :param class_build_func: the class constructor function to be able to create a resolved transient
         :param class_build_args: the args to pass to the resolved transient constructor
+        :param class_build_kwargs: the kwargs to pass to the resolved transient constructor
         :return: the list of transients exposed
         """
         # Important : no effect if names is empty list. only return empty. functional style.
@@ -177,21 +185,23 @@ class BaseInterface(object):
             regex_set.remove(tst_regex)
 
         return cls._transient_change_detect(
-                                transient_desc,
-                                regex_set,
-                                resolved_dict,
-                                last_got_set,
-                                get_list_func,
-                                type_resolve_func,
-                                class_clean_func,
-                                class_build_func,
-                                *class_build_args,
-                                **class_build_kwargs
-                             )
+            transient_desc=transient_desc,
+            regex_set=regex_set,
+            resolved_dict=resolved_dict,
+            last_got_set=last_got_set,
+            get_list_func=get_list_func,
+            type_resolve_func=type_resolve_func,
+            class_clean_func=class_clean_func,
+            class_build_func=class_build_func,
+            *class_build_args,
+            **class_build_kwargs
+         )
 
 
     @classmethod
-    def _transient_change_detect(cls, transient_desc, regex_set, resolved_dict, last_got_set, get_list_func, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _transient_change_detect(cls, transient_desc, regex_set, resolved_dict,
+                                 last_got_set, get_list_func, type_resolve_func,
+                                 class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
         This function also applies changes due to regex_set updates if needed
@@ -222,9 +232,11 @@ class BaseInterface(object):
         return dt
 
     @classmethod
-    def _transient_change_diff(cls, transient_appeared, transient_gone, transient_desc, regex_set, resolved_dict, type_resolve_func, class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+    def _transient_change_diff(cls, transient_appeared, transient_gone, transient_desc, regex_set, resolved_dict,
+                               type_resolve_func,
+                               class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
-        This should be called when we want to process a change in the status of the system (if we already have a the diff)
+        This should be called when we want to process a change in the status of the system (if we already have the diff)
         This function also applies changes due to regex_set updates if needed
         _transient_change_diff -> _update_transients
         """
@@ -234,17 +246,16 @@ class BaseInterface(object):
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
         return cls._update_transients(
-                    to_add,
-                    to_remove,
-                    transient_desc,
-                    regex_set,
-                    resolved_dict,
-                    type_resolve_func,
-                    class_clean_func,
-                    class_build_func,
-                    *class_build_args,
-                    **class_build_kwargs
-                 )
+            add_names=to_add,
+            remove_names=to_remove,
+            transient_desc=transient_desc,
+            resolved_dict=resolved_dict,
+            type_resolve_func=type_resolve_func,
+            class_clean_func=class_clean_func,
+            class_build_func=class_build_func,
+            *class_build_args,
+            **class_build_kwargs
+        )
 
     # Abstract methods to override for services ("RPC / request / call type" communication channel)
     @abc.abstractmethod
@@ -335,7 +346,6 @@ class BaseInterface(object):
         # use is mostly internal ( and child classes )
         self.update_services = partial(self._update_transients,
                                        transient_desc="service",
-                                       regex_set=self.services_args,
                                        resolved_dict=self.services,
                                        type_resolve_func=self.service_type_resolver,
                                        class_clean_func=self.ServiceCleaner,
@@ -384,7 +394,6 @@ class BaseInterface(object):
 
         self.update_topics = partial(self._update_transients,
                                      transient_desc="topic",
-                                     regex_set=self.topics_args,
                                      resolved_dict=self.topics,
                                      type_resolve_func=self.topic_type_resolver,
                                      class_clean_func=self.TopicCleaner,
@@ -427,7 +436,6 @@ class BaseInterface(object):
 
         self.update_params = partial(self._update_transients,
                                      transient_desc="param",
-                                     regex_set=self.params_args,
                                      resolved_dict=self.params,
                                      type_resolve_func=self.param_type_resolver,
                                      class_clean_func=self.ParamCleaner,
@@ -489,11 +497,14 @@ class BaseInterface(object):
 
     def update_on_diff(self, services_dt, topics_dt, params_dt):
 
+        # For added transients we need to check they match the regex, otherwise we skip it.
+        # For removed transients we need to check that they have disappeared from system before removing, otherwise we skip it.
+
         sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
                                    remove_names=services_dt.removed
                                    )
         tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
-                                 remove_names=topics_dt.removed
+                                 remove_names=[t for t in topics_dt.removed if t not in self.get_topic_list()]
                                  )
         pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
                                  remove_names=params_dt.removed

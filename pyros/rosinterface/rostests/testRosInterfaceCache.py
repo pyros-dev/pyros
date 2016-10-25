@@ -95,10 +95,6 @@ class TestRosInterfaceCache(TestRosInterface):
 
         assert node_api is not None  # make sure the connection cache node is started before moving on.
 
-
-
-
-
     def tearDown(self):
         self.interface = None
 
@@ -108,14 +104,83 @@ class TestRosInterfaceCache(TestRosInterface):
         assert not self.connection_cache_proc.is_alive()
         time.sleep(1)  # TODO : investigate : we shouldnt need this
 
-
     # explicitely added here only needed to help the debugger.
-    # This will fail because of https://github.com/ros/ros_comm/issues/111
-    # The topic from previous test is still registered on master...
+
+    # TOPICS
+    def test_topic_appear_expose_update(self):
+        super(TestRosInterfaceCache, self).test_topic_appear_expose_update()
+        time.sleep(5)
+
+    def test_topic_appear_update_expose(self):
+        super(TestRosInterfaceCache, self).test_topic_appear_update_expose()
+        time.sleep(5)
+
     def test_topic_expose_appear_update(self):
         super(TestRosInterfaceCache, self).test_topic_expose_appear_update()
+        time.sleep(5)
 
-        
+    def test_topic_withhold_update_disappear(self):
+        super(TestRosInterfaceCache, self).test_topic_withhold_update_disappear()
+        time.sleep(5)
+
+    def test_topic_disappear_update_withhold(self):
+        super(TestRosInterfaceCache, self).test_topic_disappear_update_withhold()
+        time.sleep(5)
+
+    def test_topic_update_disappear_withhold(self):
+        super(TestRosInterfaceCache, self).test_topic_update_disappear_withhold()
+        time.sleep(5)
+
+    # SERVICES
+    def test_service_appear_expose_update(self):
+        super(TestRosInterfaceCache, self).test_service_appear_expose_update()
+        time.sleep(5)
+
+    def test_service_appear_update_expose(self):
+        super(TestRosInterfaceCache, self).test_service_appear_update_expose()
+        time.sleep(5)
+
+    def test_service_expose_appear_update(self):
+        super(TestRosInterfaceCache, self).test_service_expose_appear_update()
+        time.sleep(5)
+
+    def test_service_withhold_update_disappear(self):
+        super(TestRosInterfaceCache, self).test_service_withhold_update_disappear()
+        time.sleep(5)
+
+    def test_service_disappear_update_withhold(self):
+        super(TestRosInterfaceCache, self).test_service_disappear_update_withhold()
+        time.sleep(5)
+
+    def test_service_update_disappear_withhold(self):
+        super(TestRosInterfaceCache, self).test_service_update_disappear_withhold()
+        time.sleep(5)
+
+    # PARAMS
+    def test_param_appear_expose_update(self):
+        super(TestRosInterfaceCache, self).test_param_appear_expose_update()
+        time.sleep(5)
+
+    def test_param_appear_update_expose(self):
+        super(TestRosInterfaceCache, self).test_param_appear_update_expose()
+        time.sleep(5)
+
+    def test_param_expose_appear_update(self):
+        super(TestRosInterfaceCache, self).test_param_expose_appear_update()
+        time.sleep(5)
+
+    def test_param_withhold_update_disappear(self):
+        super(TestRosInterfaceCache, self).test_param_withhold_update_disappear()
+        time.sleep(5)
+
+    def test_param_disappear_update_withhold(self):
+        super(TestRosInterfaceCache, self).test_param_disappear_update_withhold()
+        time.sleep(5)
+
+    def test_param_update_disappear_withhold(self):
+        super(TestRosInterfaceCache, self).test_param_update_disappear_withhold()
+        time.sleep(5)
+
 if __name__ == '__main__':
 
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )

@@ -276,7 +276,23 @@ class TestRosInterface(unittest.TestCase):
         # make sure the topic backend has been created
         self.assertTrue(topicname in self.interface.topics.keys())
 
-        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        # removing publisher
+        TopicBack._remove_pub(nonexistent_pub)  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+
+        # and update should be enough to cleanup
+        with Timeout(5) as t:
+            while not t.timed_out and not topicname in dt.removed:
+                dt = self.interface.update()
+                self.assertEqual(dt.added, [])  # nothing added
+
+        self.assertTrue(not t.timed_out)
+        self.assertTrue(topicname in dt.removed)
+        self.assertTrue(topicname not in self.interface.topics_available)
+
+        # every exposed topic should still be in the list of args
+        self.assertTrue(topicname in self.interface.topics_args)
+        # the backend should not be there any longer
+        self.assertTrue(topicname not in self.interface.topics.keys())
 
     def test_topic_withhold_update_disappear(self):
         """
@@ -358,6 +374,11 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname not in self.interface.topics_args)
         # topic backend should be GONE
         self.assertTrue(topicname not in self.interface.topics.keys())
+
+        # Waiting a bit until the system state is back as expected (with connection cache this can be delayed)
+        with Timeout(5) as t:
+            while not t.timed_out and not topicname in self.interface.topics_available:
+                time.sleep(1)
 
     def test_topic_disappear_update_withhold(self):
         """

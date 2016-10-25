@@ -21,6 +21,8 @@ class ParamBack(object):
         # getting the fullname to make sure we start with /
         self.fullname = self.name if self.name.startswith('/') else '/' + self.name
 
+        # TODO : should we here manage how to get param values with rospy (same as for service and topic ?)
+
     def cleanup(self):
         pass
 

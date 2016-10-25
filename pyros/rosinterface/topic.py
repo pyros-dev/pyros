@@ -71,7 +71,7 @@ class TopicBack(object):
     @staticmethod
     def _create_pub(name, rostype, *args, **kwargs):
         """
-        Creating a publisherm and adding it to the pub instance count.
+        Creating a publisher and adding it to the pub instance count.
         Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
         :return: the ros publisher
         """
@@ -122,8 +122,7 @@ class TopicBack(object):
     @staticmethod
     def _remove_sub(sub):
         """
-        Creating a publisher and adding it to the pub instance count.
-        Useful in case we need multiple similar publisher in one process ( tests, maybe future cases )
+        Removing a subscriber and substracting it from the sub instance count.
         :return: None
         """
         # counting subscriber instance remove per topic name
@@ -135,6 +134,7 @@ class TopicBack(object):
         # Be aware of https://github.com/ros/ros_comm/issues/111
         return sub.unregister()
 
+    # USED !
     @staticmethod
     def is_sub_interface_last(name, ros_num_connections):
         """
@@ -144,8 +144,11 @@ class TopicBack(object):
         :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.sub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
+        res = TopicBack.sub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
+        #print("is_sub_interface_last({name},{ros_num_connections}) => {res}".format(**locals()))
+        return res
 
+    # USED !
     @staticmethod
     def more_than_sub_interface_added(name, ros_num_connections):
         """
@@ -155,8 +158,11 @@ class TopicBack(object):
         :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.sub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
+        res = TopicBack.sub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.sub_instance_rem_count.get(name, 0)
+        #print("more_than_sub_interface_added({name},{ros_num_connections}) => {res}".format(**locals()))
+        return res
 
+    # UNUSED. here for completeness sake
     @staticmethod
     def more_than_sub_interface_removed(name):
         """
@@ -168,6 +174,7 @@ class TopicBack(object):
         return TopicBack.sub_instance_rem_count.get(name, 0) > TopicBack.sub_instance_add_count.get(name, 0)
 
     # We need this because we cannot really trust get_num_connections() (updated only after message is published)
+    # USED !
     @staticmethod
     def is_pub_interface_last(name, ros_num_connections):
         """
@@ -177,8 +184,11 @@ class TopicBack(object):
         :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.pub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
+        res = TopicBack.pub_instance_add_count.get(name, 0) == ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
+        #print("is_pub_interface_last({name},{ros_num_connections}) => {res}".format(**locals()))
+        return res
 
+    # USED !
     @staticmethod
     def more_than_pub_interface_added(name, ros_num_connections):
         """
@@ -188,8 +198,11 @@ class TopicBack(object):
         :param ros_num_connections: num_connections for this sub, as reported by rospy
         :return: True/False
         """
-        return TopicBack.pub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
+        res = TopicBack.pub_instance_add_count.get(name, 0) > ros_num_connections + TopicBack.pub_instance_rem_count.get(name, 0)
+        #print("more_than_pub_interface_added({name},{ros_num_connections}) => {res}".format(**locals()))
+        return res
 
+    # UNUSED. here for completeness sake
     @staticmethod
     def more_than_pub_interface_removed(name):
         """
@@ -200,6 +213,7 @@ class TopicBack(object):
         """
         return TopicBack.pub_instance_rem_count.get(name, 0) > TopicBack.pub_instance_add_count.get(name, 0)
 
+    # UNUSED. here for completeness sake
     @staticmethod
     def collapse_sub_count(name):
         """
@@ -211,6 +225,7 @@ class TopicBack(object):
         TopicBack.sub_instance_add_count[name] -= TopicBack.sub_instance_rem_count.get(name, 0)
         TopicBack.sub_instance_rem_count[name] = 0
 
+    # UNUSED. here for completeness sake
     @staticmethod
     def collapse_pub_count(name):
         """
@@ -244,7 +259,7 @@ class TopicBack(object):
 
         self.pub = None
 
-        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype.__name__))
+        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype_name))
         self.pub = self._create_pub(self.fullname, self.rostype, queue_size=1)
         # CAREFUL ROS publisher doesnt guarantee messages to be delivered
         # stream-like design spec -> loss is acceptable.
@@ -267,6 +282,11 @@ class TopicBack(object):
         if start - time.time() > timeout:
             raise TopicBackTimeout()
 
+        # this returns :
+        # [(c.id, c.endpoint_id, c.direction, c.transport_type, self.resolved_name, True, c.get_transport_info()) for c in connections]
+        rospy.logdebug(self.pub.impl.get_stats_info())
+        rospy.logdebug(self.sub.impl.get_stats_info())
+        rospy.logdebug("Pub connections : {0} Sub connections : {1}".format(self.pub.get_num_connections(), self.sub.get_num_connections()))
         self.empty_cb = None
 
     def cleanup(self):
@@ -281,6 +301,13 @@ class TopicBack(object):
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics)
 
         rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Deleting rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype.__name__))
+
+        # this returns :
+        # [(c.id, c.endpoint_id, c.direction, c.transport_type, self.resolved_name, True, c.get_transport_info()) for c in connections]
+        rospy.logdebug(self.pub.impl.get_stats_info())
+        rospy.logdebug(self.sub.impl.get_stats_info())
+        rospy.logdebug("Pub connections : {0} Sub connections : {1}".format(self.pub.get_num_connections(), self.sub.get_num_connections()))
+
         # cleanup pub and sub, so we can go through another create / remove cycle properly
         self._remove_pub(self.pub)
         self._remove_sub(self.sub)
