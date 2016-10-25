@@ -278,7 +278,7 @@ class TopicBack(object):
             self.pub.get_num_connections() < 1 or
             self.sub.get_num_connections() < 1
         ):
-            rospy.rostime.wallsleep(1)
+            rospy.rostime.wallsleep(0.1)
         if start - time.time() > timeout:
             raise TopicBackTimeout()
 
