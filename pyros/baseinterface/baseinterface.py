@@ -501,13 +501,13 @@ class BaseInterface(object):
         # For removed transients we need to check that they have disappeared from system before removing, otherwise we skip it.
 
         sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
-                                   remove_names=services_dt.removed
+                                   remove_names=[s for s in services_dt.removed if s not in self.get_svc_list()]
                                    )
         tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
                                  remove_names=[t for t in topics_dt.removed if t not in self.get_topic_list()]
                                  )
         pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
-                                 remove_names=params_dt.removed
+                                 remove_names=[p for p in params_dt.removed if p not in self.get_param_list()]
                                  )
 
         return DiffTuple(

@@ -260,32 +260,34 @@ class TopicBack(object):
         self.pub = None
 
         rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface topic {name} {typename}".format(name=self.fullname, typename=self.rostype_name))
-        self.pub = self._create_pub(self.fullname, self.rostype, queue_size=1)
-        # CAREFUL ROS publisher doesnt guarantee messages to be delivered
-        # stream-like design spec -> loss is acceptable.
         self.sub = self._create_sub(self.fullname, self.rostype, self.topic_callback)
 
         # Advertising ROS system wide, which topic are interfaced with this process
         # TODO : make this thread safe
         if_topics = rospy.get_param('~' + TopicBack.IF_TOPIC_PARAM, [])
         rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, if_topics + [self.fullname])
+        # TODO : make this visible for all pyros instance in this ROS system, to be able to share the connection count...
 
-        # Here making sure the publisher / subscriber pair is actually connected
+        self.pub = self._create_pub(self.fullname, self.rostype, queue_size=1)
+        # CAREFUL ROS publisher doesnt guarantee messages to be delivered
+        # stream-like design spec -> loss is acceptable.
+
+        # Here making sure the publisher is actually connected
         # before returning to ensure RAII
+        # Note : The sub should be immediately usable.
         start = time.time()
         timeout = start_timeout
+        # REMEMBER sub connections is a list of pubs and pub connections is the list of subs...
         while time.time() - start < timeout and (
-            self.pub.get_num_connections() < 1 or
-            self.sub.get_num_connections() < 1
+            self.pub.get_num_connections() < 1  # at least our own subscriber should connect here
         ):
             rospy.rostime.wallsleep(0.1)
-        if start - time.time() > timeout:
+        if not time.time() - start < timeout:
             raise TopicBackTimeout()
 
         # this returns :
         # [(c.id, c.endpoint_id, c.direction, c.transport_type, self.resolved_name, True, c.get_transport_info()) for c in connections]
         rospy.logdebug(self.pub.impl.get_stats_info())
-        rospy.logdebug(self.sub.impl.get_stats_info())
         rospy.logdebug("Pub connections : {0} Sub connections : {1}".format(self.pub.get_num_connections(), self.sub.get_num_connections()))
         self.empty_cb = None
 
@@ -309,8 +311,12 @@ class TopicBack(object):
         rospy.logdebug("Pub connections : {0} Sub connections : {1}".format(self.pub.get_num_connections(), self.sub.get_num_connections()))
 
         # cleanup pub and sub, so we can go through another create / remove cycle properly
-        self._remove_pub(self.pub)
+        # Sub needs to be removed first if we want the pub removal to not throw errors
         self._remove_sub(self.sub)
+        # The pub is not going to detect the sub is gone, unless a message is send
+        # which will refresh the connections list.
+        # => we need to remove it without waiting
+        self._remove_pub(self.pub)
 
     def asdict(self):
         """
