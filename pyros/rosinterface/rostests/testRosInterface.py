@@ -188,7 +188,7 @@ class TestRosInterface(unittest.TestCase):
 
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
-        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
         with Timeout(5) as t:
             while not t.timed_out and nonexistent_pub.resolved_name not in self.interface.topics_available:
                 dt = self.interface.update()
@@ -210,10 +210,10 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics.keys())
 
         # removing publisher
-        TopicBack._remove_pub(nonexistent_pub)  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
         # and update should be enough to cleanup
-        with Timeout(5) as t:
+        with Timeout(500) as t:
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
@@ -277,7 +277,7 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(topicname in self.interface.topics.keys())
 
         # removing publisher
-        TopicBack._remove_pub(nonexistent_pub)  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
+        nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
         # and update should be enough to cleanup
         with Timeout(5) as t:
@@ -317,7 +317,7 @@ class TestRosInterface(unittest.TestCase):
 
         # create the publisher and then try exposing the topic again, simulating
         # it coming online before expose call.
-        nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+        nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
         with Timeout(5) as t:
             while not t.timed_out and topicname not in self.interface.topics_available:
                 dt = self.interface.update()
@@ -365,7 +365,7 @@ class TestRosInterface(unittest.TestCase):
         # topic backend should be GONE
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        TopicBack._remove_pub(nonexistent_pub)
+        nonexistent_pub.unregister()
 
         dt = self.interface.update()
         self.assertEqual(dt.added, [])  # nothing added
@@ -413,7 +413,7 @@ class TestRosInterface(unittest.TestCase):
         def appear_disappear():
             # create the publisher and then try exposing the topic again, simulating
             # it coming online before expose call.
-            nonexistent_pub = TopicBack._create_pub(topicname, Empty, queue_size=1)
+            nonexistent_pub = rospy.Publisher(topicname, Empty, queue_size=1)
 
             with Timeout(5) as t:
                 dt = DiffTuple([], [])
@@ -432,7 +432,7 @@ class TestRosInterface(unittest.TestCase):
 
             # up to here possible sequences should have been already tested by previous tests
             # Now comes our actual disappearance / withholding test
-            TopicBack._remove_pub(nonexistent_pub)
+            nonexistent_pub.unregister()
 
             # every added topic should be in the list of args
             self.assertTrue(topicname in self.interface.topics_args)

@@ -149,6 +149,7 @@ class PyrosROS(PyrosBase):
         Node we cannot pass the name here as it should be set only once, the first time
         """
         # we get self.name and self.argv from the duplicated parent process memory.
+        # this will create self.interface
         super(PyrosROS, self).setup(node_name=self.name, services=services, topics=topics, params=params, enable_cache=enable_cache, argv=self.argv)
 
     def run(self, *args, **kwargs):

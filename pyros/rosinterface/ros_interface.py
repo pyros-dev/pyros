@@ -101,9 +101,6 @@ class RosInterface(BaseInterface):
         # TODO : double check : maybe useless now since we completely reinit the interface for dynamic update...
         self.connection_cache = None
 
-        # Setting our list of interfaced topic right when we start
-        rospy.set_param('~' + TopicBack.IF_TOPIC_PARAM, [])
-
         # Setup our debug log
         # We need this debug log since rospy.logdebug does NOT store debug messages in the log.
         # But it should Ref : http://wiki.ros.org/rospy/Overview/Logging#Reading_log_messages
@@ -195,15 +192,6 @@ class RosInterface(BaseInterface):
     def ParamCleaner(self, param):  # the param class implementation
         return param.cleanup()
 
-    def _get_pyros_topics(self):
-        if_topics = {}
-        for par in self.params_available:
-            if par.endswith(TopicBack.IF_TOPIC_PARAM):
-                # extract process name from param name ( removing extra slash )
-                pname = par[:- len('/' + TopicBack.IF_TOPIC_PARAM)]
-                if_topics[pname] = rospy.get_param(par, [])
-        return  if_topics
-
     def _filter_out_pyros_topics(self, publishers, subscribers, if_topics=None):
         """
         This method filter out the topic pubs / subs that are due to pyros behavior itself.
@@ -214,7 +202,7 @@ class RosInterface(BaseInterface):
         :return:
         """
         # getting the list of interfaced topics from well known node param
-        if_topics = if_topics or self._get_pyros_topics()
+        if_topics = if_topics or TopicBack.get_all_interfaces()
 
         # Examination of topics :
         # We keep publishers that are provided by something else ( not our exposed topic pub if present )
@@ -222,9 +210,8 @@ class RosInterface(BaseInterface):
         filtered_publishers = []
         for p in publishers:
             # keeping only nodes that are not pyros interface for this topic
-            # when added pub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
-            # TODO : 1 here is a magic number. we should get_num_connections() instead
-            nonif_pub_providers = [pp for pp in p[1] if (p[0] not in if_topics.get(pp, []) or TopicBack.more_than_pub_interface_added(p[0], 1))]
+            # when added pub, also keeping interface nodes that have more than one interface instance (useful for tests and nodelets, etc. )
+            nonif_pub_providers = [pp for pp in p[1] if (not if_topics.get(pp, {}).get(p[0], False) or TopicBack.get_impl_ref_count(p[0]) > 1)]
             if nonif_pub_providers:
                 filtered_publishers.append([p[0], nonif_pub_providers])
 
@@ -233,9 +220,9 @@ class RosInterface(BaseInterface):
         filtered_subscribers = []
         for s in subscribers:
             # keeping only nodes that are not pyros interface for this topic
-            # when added sub, also keeping interface nodes that have more than one interface (useful for tests and nodelets, etc. )
+            # when added sub, also keeping interface nodes that have more than one interface instance (useful for tests and nodelets, etc. )
             # TODO : 1 here is a magic number. we should get_num_connections() instead
-            nonif_sub_providers = [sp for sp in s[1] if (s[0] not in if_topics.get(sp, []) or TopicBack.more_than_sub_interface_added(s[0], 1))]
+            nonif_sub_providers = [sp for sp in s[1] if (not if_topics.get(sp, {}).get(s[0], False) or TopicBack.get_impl_ref_count(s[0]) > 1)]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
 
@@ -252,7 +239,8 @@ class RosInterface(BaseInterface):
         """
         lone_topics = []
         for tname, t in self.topics.iteritems():
-            if TopicBack.is_pub_interface_last(tname, t.pub.get_num_connections()) and TopicBack.is_sub_interface_last(tname, t.sub.get_num_connections()):
+            # TODO : separate pub and sub
+            if TopicBack.get_impl_ref_count(tname) > 1:
                 lone_topics.append([tname, [rospy.get_name()]])
                 self.topics_available.pop(tname)  # without this, the topic will remain in self.topics_available until the cache node can update, etc. -> delay
         return lone_topics
@@ -335,7 +323,8 @@ class RosInterface(BaseInterface):
         :param service_types:
         :return:
         """
-        iftopics = self._get_pyros_topics()
+        # TODO : separate pub and sub
+        iftopics = TopicBack.get_all_interfaces()
         filtered_publishers, filtered_subscribers = self._filter_out_pyros_topics(publishers, subscribers, if_topics=iftopics)
         # this is used with full list : we only need to filter out from that list.
 
@@ -366,7 +355,7 @@ class RosInterface(BaseInterface):
         :return:
         """
         self._debug_logger.debug("compute_system_state(self, {publishers_dt}, {subscribers_dt}, {services_dt}, {topic_types_dt}, {service_types_dt})".format(**locals()))
-        iftopics = self._get_pyros_topics()
+        iftopics = TopicBack.get_all_interfaces()
         filtered_added_publishers, filtered_added_subscribers = self._filter_out_pyros_topics(publishers_dt.added, subscribers_dt.added, if_topics=iftopics)
         # this is called with difference tuples
         # we need to add removed topics that are only exposed by this pyros interface.
@@ -445,7 +434,7 @@ class RosInterface(BaseInterface):
         # We still need to return DiffTuples
         return services_dt, topics_dt
 
-    def update(self, system_state=None):
+    def update(self, shutting_down):
 
         # Destroying connection cache proxy if needed
         if self.connection_cache is not None and not self.enable_cache:
@@ -609,7 +598,7 @@ class RosInterface(BaseInterface):
                     )
                     # we still need to return a diff to report on our behavior
                     # update() will compute diffs and do the job for us
-                    dt = super(RosInterface, self).update()
+                    dt = super(RosInterface, self).update(shutting_down)
                 else:  # if we have any change, we process it
                     # converting data format. Here we want only the names/keys.
                     # Resolving the details will be done as usual
@@ -653,7 +642,7 @@ class RosInterface(BaseInterface):
                     # print("Srvs GONE: {0}".format([s[0] for s in services_dt.removed]))
 
                     # update_on_diff wants only names
-                    dt = super(RosInterface, self).update_on_diff(
+                    dt = super(RosInterface, self).update_on_diff(shutting_down,
                             DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
                             DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
                             # Careful params_dt has a different content than service and topics, due to different ROS API
@@ -670,7 +659,7 @@ class RosInterface(BaseInterface):
         else:  # default retrieve full system state (cache or master otherwise)
             self.retrieve_params()
             self.retrieve_system_state()  # This will call the master if needed
-            return super(RosInterface, self).update()
+            return super(RosInterface, self).update(shutting_down)
 
     def _proxy_cb(self, system_state, added_system_state, lost_system_state):
         with self.cb_lock:

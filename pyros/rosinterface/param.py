@@ -16,10 +16,8 @@ class ParamBack(object):
     ParamBack is the class handling conversion from REST API to ROS Param
     """
     def __init__(self, param_name, param_type):
-        self.name = param_name
+        self.name = rospy.resolve_name(param_name)
         self.prmtype = param_type  # defining a type on param to unify API for topic, services and param.
-        # getting the fullname to make sure we start with /
-        self.fullname = self.name if self.name.startswith('/') else '/' + self.name
 
         # TODO : should we here manage how to get param values with rospy (same as for service and topic ?)
 
@@ -36,7 +34,6 @@ class ParamBack(object):
 
         return OrderedDict({
             'name': self.name,
-            'fullname': self.fullname,
             'prmtype': self.prmtype,
         })
 

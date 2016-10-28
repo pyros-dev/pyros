@@ -97,6 +97,8 @@ def teardown_module():
 #  -> means we probably need an option to RLE compress messages in very fast topic rates ( "blahblah" arrived 5 times )
 #  -> means we probably need a way to keep but greatly compress old messages ( logrotate style )
 
+
+#TODO : split this in publisher and subscriber testing...
 class TestStringTopic(unittest.TestCase):
     """ Testing the TopicBack class with String message """
     # misc method
@@ -186,9 +188,9 @@ class TestStringTopic(unittest.TestCase):
             self.echo_topic = TopicBack(self.echo_topic_name, echo_topic_type)
 
             # Making sure the topic interface is ready to be used just after creation
-            subs_connected = self.pub_topic.pub.get_num_connections() > 0  # no local subs
+            subs_connected = self.pub_topic.if_pub.topic.get_num_connections() > 0  # no local subs
             assert_true(subs_connected)
-            pubs_connected = self.echo_topic.sub.get_num_connections() > 0  # no local pub
+            pubs_connected = self.echo_topic.if_sub.topic.get_num_connections() > 0  # no local pub
             assert_true(pubs_connected)
 
             # Topics are up. Use them.

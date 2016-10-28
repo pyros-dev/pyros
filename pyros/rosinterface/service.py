@@ -42,9 +42,7 @@ class ServiceBack(object):
     ServiceBack is the class handling conversion from Python API to ROS Service
     """
     def __init__(self, service_name, service_type):
-        self.name = service_name
-        # getting the fullname to make sure we start with /
-        self.fullname = self.name if self.name.startswith('/') else '/' + self.name
+        self.name = rospy.resolve_name(service_name)
 
         service_type_module, service_type_name = tuple(service_type.split('/'))
         roslib.load_manifest(service_type_module)
@@ -57,7 +55,7 @@ class ServiceBack(object):
 
         self.srvtype = get_service_srv_dict(self)
 
-        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface service {name} {typename}".format(name=self.fullname, typename=self.rostype_name))
+        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface service {name} {typename}".format(name=self.name, typename=self.rostype_name))
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
 
     def cleanup(self):
@@ -73,12 +71,11 @@ class ServiceBack(object):
 
         return OrderedDict({
             'name': self.name,
-            'fullname': self.fullname,
             'rostype_name': self.rostype_name,
             'srvtype': self.srvtype,
         })
 
-    def call(self, rosreq_content = None):
+    def call(self, rosreq_content=None):
         try:
             rqst = self.rostype_req()
             populate_instance(rosreq_content, rqst)

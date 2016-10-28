@@ -495,33 +495,45 @@ class BaseInterface(object):
         else:
             pdt = DiffTuple([], [])  # no change in exposed services
 
-    def update_on_diff(self, services_dt, topics_dt, params_dt):
+    def update_on_diff(self, shutting_down, services_dt, topics_dt, params_dt):
 
         # For added transients we need to check they match the regex, otherwise we skip it.
         # For removed transients we need to check that they have disappeared from system before removing, otherwise we skip it.
-
-        sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
-                                   remove_names=[s for s in services_dt.removed if s not in self.get_svc_list()]
-                                   )
-        tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
-                                 remove_names=[t for t in topics_dt.removed if t not in self.get_topic_list()]
-                                 )
-        pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
-                                 remove_names=[p for p in params_dt.removed if p not in self.get_param_list()]
-                                 )
+        if shutting_down:
+            # We force removing all interfaces by calling directly update services
+            sdt = self.update_services(add_names=[], remove_names=[s for s in self.services])
+            tdt = self.update_topics(add_names=[], remove_names=[t for t in self.topics])
+            pdt = self.update_params(add_names=[], remove_names=[p for p in self.params])
+        else:
+            sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
+                                       remove_names=[s for s in services_dt.removed if s not in self.get_svc_list()]
+                                       )
+            tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
+                                     remove_names=[t for t in topics_dt.removed if t not in self.get_topic_list()]
+                                     )
+            pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
+                                     remove_names=[p for p in params_dt.removed if p not in self.get_param_list()]
+                                     )
 
         return DiffTuple(
             added=sdt.added+tdt.added+pdt.added,
             removed=sdt.removed+tdt.removed+pdt.removed
         )
 
-    def update(self):
+    def update(self, shutting_down):
         """
         :return: the difference between the transients recently added/removed
         """
-        sdt = self.services_change_detect()
-        tdt = self.topics_change_detect()
-        pdt = self.params_change_detect()
+        if shutting_down:
+            # We force removing all interfaces by calling directly update services
+            sdt = self.update_services(add_names=[], remove_names=[s for s in self.services])
+            tdt = self.update_topics(add_names=[], remove_names=[t for t in self.topics])
+            pdt = self.update_params(add_names=[], remove_names=[p for p in self.params])
+
+        else:
+            sdt = self.services_change_detect()
+            tdt = self.topics_change_detect()
+            pdt = self.params_change_detect()
 
         return DiffTuple(
             added=sdt.added+tdt.added+pdt.added,
@@ -533,3 +545,11 @@ class BaseInterface(object):
     # TODO : Maybe similar to a async_detect ( hooked up to the detected transient, not the exposed ones )
     # TODO : Exposed interface is for direct control flow => async not really needed
     # TODO : Detect/Update interface is inversed control flow ( from update loop ) => Needed
+
+    def stop(self):
+        """
+        whenever this instance is cleaned up, we need to stop interfacing
+        :return:
+        """
+        self.stopping = True
+
