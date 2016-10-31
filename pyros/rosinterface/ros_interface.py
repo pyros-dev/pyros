@@ -221,7 +221,6 @@ class RosInterface(BaseInterface):
         for s in subscribers:
             # keeping only nodes that are not pyros interface for this topic
             # when added sub, also keeping interface nodes that have more than one interface instance (useful for tests and nodelets, etc. )
-            # TODO : 1 here is a magic number. we should get_num_connections() instead
             nonif_sub_providers = [sp for sp in s[1] if (not if_topics.get(sp, {}).get(s[0], False) or TopicBack.get_impl_ref_count(s[0]) > 1)]
             if nonif_sub_providers:
                 filtered_subscribers.append([s[0], nonif_sub_providers])
