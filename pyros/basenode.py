@@ -197,7 +197,7 @@ class PyrosBase(pyzmp.Node):
 
         return super(PyrosBase, self).shutdown(join, timeout=timeout)
 
-    def update(self, timedelta, shutting_down, *args, **kwargs):
+    def update(self, timedelta, *args, **kwargs):
         """
         Update function to call from a looping thread.
         Note : the interface is lazily constructed here
@@ -209,12 +209,13 @@ class PyrosBase(pyzmp.Node):
         # TODO move time management somewhere else...
         self.last_update += timedelta
         # if shutdown we want to bypass the update_interval check
-        if shutting_down:
-            self.interface.update(shutting_down=shutting_down)
-            return 0  # return 0 as success since we arrived here without exception
-        elif self.last_update > self.update_interval:
+        # if shutting_down:
+        #     self.interface.update(shutting_down=shutting_down)
+        #     return 0  # return 0 as success since we arrived here without exception
+        # else
+        if self.last_update > self.update_interval:
             self.last_update = 0
-            self.interface.update(shutting_down=shutting_down)
+            self.interface.update()
 
         # No return here means we need to keep looping
 

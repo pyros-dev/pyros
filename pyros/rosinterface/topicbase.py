@@ -68,6 +68,7 @@ class TopicBase(object):
         """
         return {
             'name': self.name,
+            'fullname': self.name,  # for BWcompat
             'msgtype': self.msgtype,
             'rostype_name': self.rostype_name,
         }

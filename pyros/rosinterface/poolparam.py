@@ -53,7 +53,8 @@ class PoolParam(object):
         topic_name = rospy.resolve_name(topic_name)
         if topic_name not in self.topics:
             # Asserting this topic interface is also not registered on ROS param server
-            assert (not rospy.get_param(self.param_namespace + topic_name, False))
+            # TODO : fix this. This currently can assert because cleanup is not happening when it should (check for shutting_down argument to update()).
+            #assert (not rospy.get_param(self.param_namespace + topic_name, False))
             # build a new instance only if needed
             self.topics[topic_name] = self.topic_class(topic_name, topic_type, *args, **kwargs)
 
@@ -99,7 +100,7 @@ class PoolParam(object):
         if name in self.topics:
             res = self.topics[name].impl.ref_count
             # TODO : how about topic counter ?
-        print("get_impl_ref_count({name}) => {res}".format(**locals()))
+        #print("get_impl_ref_count({name}) => {res}".format(**locals()))
         return res
 
     def get_all_interfaces(self):

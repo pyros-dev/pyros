@@ -71,6 +71,7 @@ class ServiceBack(object):
 
         return OrderedDict({
             'name': self.name,
+            'fullname': self.name,  # for BWcompat
             'rostype_name': self.rostype_name,
             'srvtype': self.srvtype,
         })

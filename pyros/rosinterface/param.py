@@ -34,6 +34,7 @@ class ParamBack(object):
 
         return OrderedDict({
             'name': self.name,
+            'fullname': self.name,  # for BWcompat
             'prmtype': self.prmtype,
         })
 

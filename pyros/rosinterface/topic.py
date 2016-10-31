@@ -149,7 +149,9 @@ class TopicBack(object):
         :return:
         """
         # simple merge for now...
-        return self.if_pub.asdict().update(self.if_sub.asdict())
+        d = self.if_pub.asdict()
+        d.update(self.if_sub.asdict())
+        return d
 
     # TMP...
     @property

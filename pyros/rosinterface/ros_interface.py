@@ -434,7 +434,7 @@ class RosInterface(BaseInterface):
         # We still need to return DiffTuples
         return services_dt, topics_dt
 
-    def update(self, shutting_down):
+    def update(self):
 
         # Destroying connection cache proxy if needed
         if self.connection_cache is not None and not self.enable_cache:
@@ -598,7 +598,7 @@ class RosInterface(BaseInterface):
                     )
                     # we still need to return a diff to report on our behavior
                     # update() will compute diffs and do the job for us
-                    dt = super(RosInterface, self).update(shutting_down)
+                    dt = super(RosInterface, self).update()
                 else:  # if we have any change, we process it
                     # converting data format. Here we want only the names/keys.
                     # Resolving the details will be done as usual
@@ -642,7 +642,7 @@ class RosInterface(BaseInterface):
                     # print("Srvs GONE: {0}".format([s[0] for s in services_dt.removed]))
 
                     # update_on_diff wants only names
-                    dt = super(RosInterface, self).update_on_diff(shutting_down,
+                    dt = super(RosInterface, self).update_on_diff(
                             DiffTuple([s[0] for s in services_dt.added], [s[0] for s in services_dt.removed]),
                             DiffTuple([t[0] for t in topics_dt.added] + early_topics_dt.added, [t[0] for t in topics_dt.removed] + early_topics_dt.removed),
                             # Careful params_dt has a different content than service and topics, due to different ROS API
@@ -659,7 +659,7 @@ class RosInterface(BaseInterface):
         else:  # default retrieve full system state (cache or master otherwise)
             self.retrieve_params()
             self.retrieve_system_state()  # This will call the master if needed
-            return super(RosInterface, self).update(shutting_down)
+            return super(RosInterface, self).update()
 
     def _proxy_cb(self, system_state, added_system_state, lost_system_state):
         with self.cb_lock:
