@@ -12,71 +12,34 @@ from functools import partial
 # module wide to be pickleable
 DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
-
-# Utility methods to work with regexes
-def cap_match_string(match):
-    """
-    Attach beginning of line and end of line characters to the given string.
-    Ensures that raw topics like /test do not match other topics containing
-    the same string (e.g. /items/test would result in a regex match at char 7)
-    regex goes through each position in the string to find matches - this
-    forces it to consider only the first position
-    :param match: a regex
-    :return:
-    """
-    return '^' + match + '$'
-
-
-def find_first_regex_match(key, regex_candidates):
-    """
-    find the first regex that match with the key
-    :param key: a key to try to match against multiple regex
-    :param match_candidates: a list of regexes to check if they match the key
-    :return: the first candidate found
-    """
-    for cand in regex_candidates:
-        try:
-            pattern = re.compile(cap_match_string(cand))
-            if pattern.match(key):
-                return cand
-        except:
-            logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(cand))
-
-    return None
-
-
-def regex_match_sublist(regex, match_candidates):
-    """
-    Filter the match_candidates list to return only the candidate that match the regex
-    :param regex: a regex used to filter the list of candidates
-    :param match_candidates: the list of candidates
-    :return: the filtered list of only the candidates that match the regex
-    """
-    matches = []
-    try:
-        pattern = re.compile(cap_match_string(regex))
-        matches = [cand for cand in match_candidates if pattern.match(cand)]
-    except:
-        logging.warn('[ros_interface] Ignoring invalid regex string "{0!s}"!'.format(regex))
-    return matches
-
-
-def regexes_match_sublist(regexes, match_candidates):
-    """
-    Filter the match_candidates list to return only the candidate that match the regex
-    :param regexes: a list of regex used to filter the list of candidates
-    :param match_candidates: the list of candidates
-    :return: the filtered list of only the candidates that match the regex
-    """
-
-    return [match for sublist in [regex_match_sublist(rgx, match_candidates) for rgx in regexes] for match in sublist]
+from .regex_tools import regex_match_sublist, regexes_match_sublist, find_first_regex_match
 
 
 #TODO Entity Component System design for interface loop. cf https://pypi.python.org/pypi/esper (py3 + py2 in fork)
 # Entities are transients (ex : for ROS : pubs, subs, svcs, params, and more can be added),
 # Systems store logic about when/how a transient should be represented in the interface.
 # GOALS : clarity, testability and flexibility
-class BaseInterface(object):
+class TransientIfPool(object):
+    """
+
+    The BaseInterface class maintains :
+
+    - Available transients collection:
+    {
+      transient1_name: transient1_type,
+      transient2_name: transient2_type,
+      transient3_name: transient3_type
+    }
+
+    - Interfaced transients collection:
+    {
+      transient1_name: transient1_interface_class_instance,
+      transient3_name: transient3_interface_class_instance
+    }
+
+    update() checks (or get fed) the recent system state (or diff), and the interface store internally what transients are available.
+    Also the interface creates/destroy the transients interface class instance when needed.
+    """
 
     # This is a local cache of the system state because we don't want to ask everytime.
     # TODO: find a way to make interface development easier by allowing developer to compare and worry only about local state representation versus interface
@@ -151,8 +114,8 @@ class BaseInterface(object):
 
     @classmethod
     def _expose_transients_regex(cls, regexes, transient_desc, regex_set, resolved_dict,
-                            last_got_set, get_list_func, type_resolve_func,
-                            class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
+                                 last_got_set, get_available, type_resolve_func,
+                                 class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         Exposes a list of transients regexes. resolved transients not matching the regexes will be removed.
         _expose_transients_regex -> _transient_change_detect -> _transient_change_diff -> _update_transients
@@ -161,7 +124,7 @@ class BaseInterface(object):
                Note: regexes = [] remove all registered regexes.
         :param regex_set: the list of regex already existing
         :param resolved_dict: the list to add the resolved transient(s) to
-        :param get_list_func: the function to get the list of all transients currently available to be exposed
+        :param get_available: the function to get the list of all transients currently available to be exposed
         :param add_func: the function used to add the transient to the list of exposed ones
         :param rem_func: the function used to remove the transient form the list of exposed ones
         :return: the list of transients exposed
@@ -189,7 +152,7 @@ class BaseInterface(object):
             regex_set=regex_set,
             resolved_dict=resolved_dict,
             last_got_set=last_got_set,
-            get_list_func=get_list_func,
+            get_available=get_available,
             type_resolve_func=type_resolve_func,
             class_clean_func=class_clean_func,
             class_build_func=class_build_func,
@@ -200,7 +163,7 @@ class BaseInterface(object):
 
     @classmethod
     def _transient_change_detect(cls, transient_desc, regex_set, resolved_dict,
-                                 last_got_set, get_list_func, type_resolve_func,
+                                 last_got_set, get_available, type_resolve_func,
                                  class_clean_func, class_build_func, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
@@ -208,7 +171,7 @@ class BaseInterface(object):
         _transient_change_detect -> _transient_change_diff -> _update_transients
         """
 
-        transient_detected = set(get_list_func())
+        transient_detected = set(get_available())
         #TODO : unify that last_got_set with the *_available. they are essentially the same
         tst_gone = last_got_set - transient_detected
 
@@ -241,7 +204,7 @@ class BaseInterface(object):
         _transient_change_diff -> _update_transients
         """
 
-        to_add = {m for m in regexes_match_sublist(regex_set, transient_appeared)}
+        to_add = set(regexes_match_sublist(regex_set, transient_appeared))
         lost_matches = {n for n in resolved_dict.keys() if find_first_regex_match(n, regex_set) is None}
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
@@ -259,7 +222,7 @@ class BaseInterface(object):
 
     # Abstract methods to override for services ("RPC / request / call type" communication channel)
     @abc.abstractmethod
-    def get_svc_list(self):  # function returning all services available on the system
+    def get_svc_available(self):  # function returning all services available on the system
         return
 
     @abc.abstractmethod
@@ -280,7 +243,7 @@ class BaseInterface(object):
 
     # Abstract methods to override for topics ("pub/sub type" communication channel)
     @abc.abstractmethod
-    def get_topic_list(self):  # function returning all topics available on the system
+    def get_topic_available(self):  # function returning all topics available on the system
         return
 
     @abc.abstractmethod
@@ -301,7 +264,7 @@ class BaseInterface(object):
 
     # Abstract methods to override for params ( "global" get/set objects )
     @abc.abstractmethod
-    def get_param_list(self):  # function returning all topics available on the system
+    def get_param_available(self):  # function returning all topics available on the system
         return
 
     @abc.abstractmethod
@@ -361,7 +324,7 @@ class BaseInterface(object):
                                        regex_set=self.services_args,
                                        resolved_dict=self.services,
                                        last_got_set=self.last_services_detected,
-                                       get_list_func=self.get_svc_list,
+                                       get_available=self.get_svc_available,
                                        type_resolve_func=self.service_type_resolver,
                                        class_clean_func=self.ServiceCleaner,
                                        class_build_func=self.ServiceMaker,
@@ -374,7 +337,7 @@ class BaseInterface(object):
                                               regex_set=self.services_args,
                                               resolved_dict=self.services,
                                               last_got_set=self.last_services_detected,
-                                              get_list_func=self.get_svc_list,
+                                              get_available=self.get_svc_available,
                                               type_resolve_func=self.service_type_resolver,
                                               class_clean_func=self.ServiceCleaner,
                                               class_build_func=self.ServiceMaker,
@@ -409,7 +372,7 @@ class BaseInterface(object):
                                      regex_set=self.topics_args,
                                      resolved_dict=self.topics,
                                      last_got_set=self.last_topics_detected,
-                                     get_list_func=self.get_topic_list,
+                                     get_available=self.get_topic_available,
                                      type_resolve_func=self.topic_type_resolver,
                                      class_clean_func=self.TopicCleaner,
                                      class_build_func=self.TopicMaker,
@@ -420,7 +383,7 @@ class BaseInterface(object):
                                             regex_set=self.topics_args,
                                             resolved_dict=self.topics,
                                             last_got_set=self.last_topics_detected,
-                                            get_list_func=self.get_topic_list,
+                                            get_available=self.get_topic_available,
                                             type_resolve_func=self.topic_type_resolver,
                                             class_clean_func=self.TopicCleaner,
                                             class_build_func=self.TopicMaker,
@@ -451,7 +414,7 @@ class BaseInterface(object):
                                      regex_set=self.params_args,
                                      resolved_dict=self.params,
                                      last_got_set=self.last_params_detected,
-                                     get_list_func=self.get_param_list,
+                                     get_available=self.get_param_available,
                                      type_resolve_func=self.param_type_resolver,
                                      class_clean_func=self.ParamCleaner,
                                      class_build_func=self.ParamMaker,
@@ -462,7 +425,7 @@ class BaseInterface(object):
                                             regex_set=self.params_args,
                                             resolved_dict=self.params,
                                             last_got_set=self.last_params_detected,
-                                            get_list_func=self.get_param_list,
+                                            get_available=self.get_param_available,
                                             type_resolve_func=self.param_type_resolver,
                                             class_clean_func=self.ParamCleaner,
                                             class_build_func=self.ParamMaker,
@@ -506,14 +469,14 @@ class BaseInterface(object):
         #     tdt = self.update_topics(add_names=[], remove_names=[t for t in self.topics])
         #     pdt = self.update_params(add_names=[], remove_names=[p for p in self.params])
         #else:
-        sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
-                                   remove_names=[s for s in services_dt.removed if s not in self.get_svc_list()]
+        sdt = self.update_services(add_names=regexes_match_sublist(self.services_args, services_dt.added),
+                                   remove_names=[s for s in services_dt.removed if s not in self.get_svc_available()]
                                    )
-        tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
-                                 remove_names=[t for t in topics_dt.removed if t not in self.get_topic_list()]
+        tdt = self.update_topics(add_names=regexes_match_sublist(self.topics_args, topics_dt.added),
+                                 remove_names=[t for t in topics_dt.removed if t not in self.get_topic_available()]
                                  )
-        pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
-                                 remove_names=[p for p in params_dt.removed if p not in self.get_param_list()]
+        pdt = self.update_params(add_names=regexes_match_sublist(self.params_args, params_dt.added),
+                                 remove_names=[p for p in params_dt.removed if p not in self.get_param_available()]
                                  )
 
         return DiffTuple(

@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
-from ..baseinterface import BaseTopic
-
 TopicType = namedtuple("TopicType", "msgtype")
 
 statusecho_topic = TopicType("StatusMsg")
 
 
-class MockTopic(BaseTopic):
+class MockTopic(object):
     """
     MockTopic is a mock of the class handling conversion from Python API to Topic call
     """
@@ -18,7 +16,12 @@ class MockTopic(BaseTopic):
     _msg_content = None
 
     def __init__(self, topic_name, topic_type, queue_size=1):
-        super(MockTopic, self).__init__(topic_name, topic_type)
+
+        self.name = topic_name
+        # getting the fullname to make sure we start with /
+        self.fullname = self.name if self.name.startswith('/') else '/' + self.name
+
+        self.msgtype = topic_type.msgtype
         self.msg = deque([], queue_size)
 
         self.empty_cb = None
@@ -58,4 +61,3 @@ class MockTopic(BaseTopic):
     def topic_callback(self, msg):
         self.msg.appendleft(msg)
 
-BaseTopic.register(MockTopic)

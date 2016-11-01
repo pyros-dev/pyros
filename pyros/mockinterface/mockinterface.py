@@ -29,14 +29,14 @@ class MockInterface(BaseInterface):
         if params is None:
             params = []
 
-        # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
+        # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(MockInterface, self).__init__(services, topics, params)
 
     # mock functions that simulate/mock similar interface than what is found on multiprocess framework supported
     # We should try our best to go for the lowest common denominator here
     # SERVICES
-    def get_svc_list(self):  # function returning all services available on the system
-        return [s for s in self.services_available.keys()]
+    def get_svc_available(self):  # function returning all services available on the system
+        return self.services_available
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
         svc = self.services_available.get(service_name)
@@ -50,8 +50,8 @@ class MockInterface(BaseInterface):
 
 
     # TOPICS
-    def get_topic_list(self):  # function returning all topics available on the system
-        return [t for t in self.topics_available.keys()]
+    def get_topic_available(self):  # function returning all topics available on the system
+        return self.topics_available
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
         tpc = self.topics_available.get(topic_name)
@@ -64,8 +64,8 @@ class MockInterface(BaseInterface):
         return topic.cleanup()
 
     # PARAMS
-    def get_param_list(self):  # function returning all params available on the system
-        return [p for p in self.params_available.keys()]
+    def get_param_available(self):  # function returning all params available on the system
+        return self.params_available
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
         prm = self.params_available.get(param_name)

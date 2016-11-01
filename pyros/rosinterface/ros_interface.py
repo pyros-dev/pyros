@@ -91,7 +91,7 @@ class RosInterface(BaseInterface):
                             enable_cache=enable_cache)
                       )
 
-        # This base constructor assumes the system to interface with is already available ( can do a get_svc_list() )
+        # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(RosInterface, self).__init__(services or [], topics or [], params or [])
 
         # connecting to the master via proxy object
@@ -120,8 +120,8 @@ class RosInterface(BaseInterface):
         self._debug_logger.addHandler(file_handler)
     # ros functions that should connect with the ros system we want to interface with
     # SERVICES
-    def get_svc_list(self):  # function returning all services available on the system
-        return [s for s in self.services_available]
+    def get_svc_available(self):  # function returning all services available on the system
+        return self.services_available
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
         # get first matching service
@@ -145,8 +145,8 @@ class RosInterface(BaseInterface):
         return service.cleanup()
 
     # TOPICS
-    def get_topic_list(self):  # function returning all topics available on the system
-        return [t for t in self.topics_available]
+    def get_topic_available(self):  # function returning all topics available on the system
+        return self.topics_available
 
     def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
         # get first matching service
@@ -170,8 +170,8 @@ class RosInterface(BaseInterface):
         return topic.cleanup()
 
     # PARAMS
-    def get_param_list(self):  # function returning all params available on the system
-        return [p for p in self.params_available]
+    def get_param_available(self):  # function returning all params available on the system
+        return self.params_available
 
     def param_type_resolver(self, param_name):  # function resolving the type of a param
         prm = self.params_available.get(param_name)
@@ -482,7 +482,7 @@ class RosInterface(BaseInterface):
             # determining params diff despite lack of API
             params = set(rospy.get_param_names())
             params_dt = DiffTuple(
-                added=[p for p in params if p not in [pname for pname in self.params_available]],
+                added=[p for p in params if p not in self.params_available],
                 removed=[p for p in self.params_available if p not in params]
             )
             params_dt = self.compute_params(params_dt)
@@ -497,7 +497,7 @@ class RosInterface(BaseInterface):
                 self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface : Early Topics Delta {early_topics_dt}".format(**locals()))
 
             # If we have a callback setup we process the diff we got since last time
-            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or self.cb_ss.qsize() > 0:
+            if (len(early_topics_dt.added) > 0 or len(early_topics_dt.removed) > 0) or (len(params_dt.added) > 0 or len(params_dt.removed) > 0) or (self.cb_ss.qsize() > 0 or self.cb_ss_dt.qsize() > 0):
 
                 # This will be set if we need to ignore current state, and reset it from list
                 reset = False
@@ -515,71 +515,78 @@ class RosInterface(BaseInterface):
                 removed_service_types = []
 
                 with self.cb_lock:
-                    stop = False
-                    while not stop:  # TODO we need to make sure we consume faster than we get fed.
+                    while self.cb_ss.qsize() > 0 or self.cb_ss_dt.qsize() > 0:
                         try:
-                            cb_ss = self.cb_ss.get_nowait()
                             cb_ss_dt = self.cb_ss_dt.get_nowait()
 
                             # if there was no change but we got a callback,
                             # it means it s the first and we need to set the whole list
                             if cb_ss_dt.added is None and cb_ss_dt.removed is None:
-                                # we need to break here already and reset
-                                # and the previous diff we got dont matter any longer
+                                try:
+                                    cb_ss = self.cb_ss.get_nowait()
+                                    # we need to break here already and reset
+                                    # and the previous diff we got dont matter any longer
 
-                                for k, v in cb_ss.services.iteritems():
-                                    added_services[k] = added_services.get(k, set()) | v.nodes
+                                    for k, v in cb_ss.services.iteritems():
+                                        added_services[k] = added_services.get(k, set()) | v.nodes
 
-                                for k, v in cb_ss.publishers.iteritems():
-                                    added_publishers[k] = added_publishers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss.publishers.iteritems():
+                                        added_publishers[k] = added_publishers.get(k, set()) | v.nodes
 
-                                for k, v in cb_ss.services.iteritems():
-                                    added_subscribers[k] = added_subscribers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss.services.iteritems():
+                                        added_subscribers[k] = added_subscribers.get(k, set()) | v.nodes
 
-                                pubset = {(name, chan.type) for name, chan in cb_ss.publishers.iteritems()}
-                                subset = {(name, chan.type) for name, chan in cb_ss.subscribers.iteritems()}
-                                added_topic_types = [list(t) for t in (pubset | subset)]
+                                    pubset = {(name, chan.type) for name, chan in cb_ss.publishers.iteritems()}
+                                    subset = {(name, chan.type) for name, chan in cb_ss.subscribers.iteritems()}
+                                    added_topic_types = [list(t) for t in (pubset | subset)]
 
-                                svcset = {(name, chan.type) for name, chan in cb_ss.services.iteritems()}
-                                added_service_types = [list(t) for t in svcset]
+                                    svcset = {(name, chan.type) for name, chan in cb_ss.services.iteritems()}
+                                    added_service_types = [list(t) for t in svcset]
 
-                                reset = True
-                                stop = True
+                                    reset = True
+                                except Queue.Empty as exc:
+                                    raise  # should not happen
 
-                            else:
-                                for k, v in cb_ss_dt.added.services.iteritems():
-                                    added_services[k] = added_services.get(k, set()) | v.nodes
-                                for k, v in cb_ss_dt.removed.services.iteritems():
-                                    removed_services[k] = removed_services.get(k, set()) | v.nodes
+                            else:  # we have a delta
+                                try:
+                                    # we can skip the full list
+                                    self.cb_ss.get_nowait()
 
-                                for k, v in cb_ss_dt.added.publishers.iteritems():
-                                    added_publishers[k] = added_publishers.get(k, set()) | v.nodes
-                                for k, v in cb_ss_dt.removed.publishers.iteritems():
-                                    removed_publishers[k] = removed_publishers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss_dt.added.services.iteritems():
+                                        added_services[k] = added_services.get(k, set()) | v.nodes
+                                    for k, v in cb_ss_dt.removed.services.iteritems():
+                                        removed_services[k] = removed_services.get(k, set()) | v.nodes
 
-                                for k, v in cb_ss_dt.added.subscribers.iteritems():
-                                    added_subscribers[k] = added_subscribers.get(k, set()) | v.nodes
-                                for k, v in cb_ss_dt.removed.subscribers.iteritems():
-                                    removed_subscribers[k] = removed_subscribers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss_dt.added.publishers.iteritems():
+                                        added_publishers[k] = added_publishers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss_dt.removed.publishers.iteritems():
+                                        removed_publishers[k] = removed_publishers.get(k, set()) | v.nodes
 
-                                # Careful here the previous loop produced result that still matters
-                                pubset = {(name, chan.type) for name, chan in cb_ss_dt.added.publishers.iteritems()}
-                                subset = {(name, chan.type) for name, chan in cb_ss_dt.added.subscribers.iteritems()}
-                                added_topic_types += [list(t) for t in (pubset | subset)]
+                                    for k, v in cb_ss_dt.added.subscribers.iteritems():
+                                        added_subscribers[k] = added_subscribers.get(k, set()) | v.nodes
+                                    for k, v in cb_ss_dt.removed.subscribers.iteritems():
+                                        removed_subscribers[k] = removed_subscribers.get(k, set()) | v.nodes
 
-                                pubset = {(name, chan.type) for name, chan in cb_ss_dt.removed.publishers.iteritems()}
-                                subset = {(name, chan.type) for name, chan in cb_ss_dt.removed.subscribers.iteritems()}
-                                removed_topic_types += [list(t) for t in (pubset | subset)]
+                                    # Careful here the previous loop produced result that still matters
+                                    pubset = {(name, chan.type) for name, chan in cb_ss_dt.added.publishers.iteritems()}
+                                    subset = {(name, chan.type) for name, chan in cb_ss_dt.added.subscribers.iteritems()}
+                                    added_topic_types += [list(t) for t in (pubset | subset)]
 
-                                svcset = {(name, chan.type) for name, chan in cb_ss_dt.added.services.iteritems()}
-                                added_service_types += [list(t) for t in svcset]
+                                    pubset = {(name, chan.type) for name, chan in cb_ss_dt.removed.publishers.iteritems()}
+                                    subset = {(name, chan.type) for name, chan in cb_ss_dt.removed.subscribers.iteritems()}
+                                    removed_topic_types += [list(t) for t in (pubset | subset)]
 
-                                svcset = {(name, chan.type) for name, chan in cb_ss_dt.removed.services.iteritems()}
-                                removed_service_types += [list(t) for t in svcset]
+                                    svcset = {(name, chan.type) for name, chan in cb_ss_dt.added.services.iteritems()}
+                                    added_service_types += [list(t) for t in svcset]
+
+                                    svcset = {(name, chan.type) for name, chan in cb_ss_dt.removed.services.iteritems()}
+                                    removed_service_types += [list(t) for t in svcset]
+
+                                except Queue.Empty as exc:
+                                    raise  # should not happen
 
                         except Queue.Empty as exc:
-                            # we re done here
-                            stop = True
+                            raise  # should not happen
 
                 # if we need to reset we do it right now and return.
                 if reset:
