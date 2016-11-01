@@ -433,6 +433,9 @@ class RosInterface(BaseInterface):
         # We still need to return DiffTuples
         return services_dt, topics_dt
 
+    # for use with line_profiler or memory_profiler
+    # Not working yet... need to solve multiprocess profiling issues...
+    #@profile
     def update(self):
 
         # Destroying connection cache proxy if needed
