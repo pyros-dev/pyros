@@ -23,7 +23,8 @@ _logger = logging.getLogger(__name__)
 # and let it propagate to parent logger, or other handler
 # the user of pyros should configure handlers
 
-from ..baseinterface import BaseInterface, DiffTuple
+from ..baseinterface import DiffTuple
+from .baseinterface import BaseInterface
 
 from .service import ServiceBack, ServiceTuple
 from .topic import TopicBack, TopicTuple

@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from pyros.mockinterface import MockInterface, mock_service
+from pyros.mockinterface import MockInterface
 from pyros.mockinterface.mockservice import statusecho_service, MockService
 
 import nose
@@ -29,7 +29,7 @@ def test_mockinterface_update_services_c1():
     assert_false(diffupdate.removed)  # service not added cannot be removed
 
     # simulating services appearing
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
         mockif.services_args.update(svc_names)  # adding it to regex list to allow it to be exposed
 
         diffupdate = mockif.update_services(add_names=svc_names, remove_names=[])
@@ -66,7 +66,7 @@ def test_mockinterface_update_services_c2():
     assert_false(diffupdate.removed)  # service not added cannot be removed
 
     # simulating service appearing
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
         mockif.services_args.update(svc_names)  # adding it to regex list to allow it to be exposed
 
         diffupdate = mockif.update_services(add_names=svc_names, remove_names=[])
@@ -106,7 +106,7 @@ def test_mockinterface_expose_update_services_fullname():
     assert_false(diffupdate.removed)
 
     # simulating service appearing
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
 
         diffupdate = mockif.expose_services(svc_names)
         assert_false(diffupdate.removed)
@@ -151,7 +151,7 @@ def test_mockinterface_update_expose_services_fullname():
     assert_false(diffupdate.added)  # service not available is not detected and not added
     assert_false(diffupdate.removed)  # service not added previously is not removed
 
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
 
         diffupdate = mockif.services_change_detect()
         assert_false(diffupdate.removed)
@@ -227,7 +227,7 @@ def test_mockinterface_expose_services_regex():
     assert_false(diffupdate.added)  # service not detected cannot be added
     assert_false(diffupdate.removed)
 
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
 
         diffupdate = mockif.services_change_detect()
         assert_false(diffupdate.removed)
@@ -256,7 +256,7 @@ def test_mockinterface_update_expose_services_fullname_diff():
     assert_false(diffupdate.added)  # service not passed in diff is not detected and not added
     assert_false(diffupdate.removed)  # service not added previously is not removed
 
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
 
         diffupdate = mockif.services_change_diff(svc_names, [])
         assert_false(diffupdate.removed)
@@ -332,7 +332,7 @@ def test_mockinterface_expose_services_regex_diff():
     assert_false(diffupdate.added)  # service not detected cannot be added
     assert_false(diffupdate.removed)
 
-    with mock_service(svc_names[0], statusecho_service), mock_service(svc_names[1], statusecho_service):
+    with mockif.mock_service(svc_names[0], statusecho_service), mockif.mock_service(svc_names[1], statusecho_service):
 
         diffupdate = mockif.services_change_diff(svc_names, [])
         assert_false(diffupdate.removed)

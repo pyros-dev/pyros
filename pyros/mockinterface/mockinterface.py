@@ -1,143 +1,98 @@
 from __future__ import absolute_import
 
-from contextlib import contextmanager
-
-from ..baseinterface import BaseInterface
-from .mocksystem import (
-    services_available_remote, services_available_type_remote,
-    topics_available_remote, topics_available_type_remote,
-    params_available_remote, params_available_type_remote,
-)
+from .mockservicepool import MockServicePool
+from .mocktopicpool import MockTopicPool
+from .mockparampool import MockParamPool
 
 
-from .mockservice import MockService
-from .mocktopic import MockTopic
-from .mockparam import MockParam
-
-
-class MockInterface(BaseInterface):
+class MockInterface(object):
 
     """
     MockInterface.
     """
     def __init__(self, services=None, topics=None, params=None):
-        # Current mock implementation of services, topics and params
-        if services is None:
-            services = []
-        if topics is None:
-            topics = []
-        if params is None:
-            params = []
+        self.service_pool = MockServicePool(services)
+        self.topic_pool = MockTopicPool(topics)
+        self.param_pool = MockParamPool(params)
 
-        # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
-        super(MockInterface, self).__init__(services, topics, params)
+    # REQUESTED
+    @property
+    def services_args(self):
+        return self.service_pool.transients_args
 
-    # mock functions that simulate/mock similar interface than what is found on multiprocess framework supported
-    # We should try our best to go for the lowest common denominator here
-    # SERVICES
-    def get_svc_available(self):  # function returning all services available on the system
-        return self.services_available
+    @property
+    def topics_args(self):
+        return self.topic_pool.transients_args
 
-    def service_type_resolver(self, service_name):  # function resolving the type of a service
-        svc = self.services_available.get(service_name)
-        return svc  # None is returned if not found
+    @property
+    def params_args(self):
+        return self.param_pool.transients_args
 
-    def ServiceMaker(self, service_name, service_type, *args, **kwargs):  # the service class implementation
-        return MockService(service_name, service_type, *args, **kwargs)
+    # INTERFACED
+    @property
+    def services(self):
+        return self.service_pool.transients
 
-    def ServiceCleaner(self, service):  # the service class cleanup implementation
-        return service.cleanup()
+    @property
+    def topics(self):
+        return self.topic_pool.transients
 
+    @property
+    def params(self):
+        return self.param_pool.transients
 
-    # TOPICS
-    def get_topic_available(self):  # function returning all topics available on the system
-        return self.topics_available
+    # EXPOSE
+    def expose_services(self, svc_regex):
+        return self.service_pool.expose_transients_regex(svc_regex)
 
-    def topic_type_resolver(self, topic_name):  # function resolving the type of a topic
-        tpc = self.topics_available.get(topic_name)
-        return tpc  # None is returned if not found
+    def expose_topics(self, tpc_regex):
+        return self.topic_pool.expose_transients_regex(tpc_regex)
 
-    def TopicMaker(self, topic_name, topic_type, *args, **kwargs):  # the topic class implementation
-        return MockTopic(topic_name, topic_type, *args, **kwargs)
+    def expose_params(self, prm_regex):
+        return self.param_pool.expose_transients_regex(prm_regex)
 
-    def TopicCleaner(self, topic):  # the topic class implementation
-        return topic.cleanup()
+    #MOCK
+    def mock_service(self, svc_name, svc_type):
+        return self.service_pool.mock(svc_name, svc_type)
 
-    # PARAMS
-    def get_param_available(self):  # function returning all params available on the system
-        return self.params_available
+    def mock_topic(self, tpc_name, tpc_type):
+        return self.topic_pool.mock(tpc_name, tpc_type)
 
-    def param_type_resolver(self, param_name):  # function resolving the type of a param
-        prm = self.params_available.get(param_name)
-        return prm  # None is returned if not found
+    def mock_param(self, prm_name, prm_type):
+        return self.param_pool.mock(prm_name, prm_type)
 
-    def ParamMaker(self, param_name, param_type, *args, **kwargs):  # the param class implementation
-        return MockParam(param_name, param_type, *args, **kwargs)
+    #CHANGE DIFF
+    def services_change_diff(self, appeared, gone):
+        return self.service_pool.transient_change_diff(appeared, gone)
 
-    def ParamCleaner(self, param):  # the param class implementation
-        return param.cleanup()
+    def topics_change_diff(self, appeared, gone):
+        return self.topic_pool.transient_change_diff(appeared, gone)
+
+    def params_change_diff(self, appeared, gone):
+        return self.param_pool.transient_change_diff(appeared, gone)
+
+    #CHAGNE DETECT
+    def services_change_detect(self):
+        return self.service_pool.transient_change_detect()
+
+    def topics_change_detect(self):
+        return self.topic_pool.transient_change_detect()
+
+    def param_change_detect(self):
+        return self.param_pool.transient_change_detect()
+
+    #UPDATE
+    def update_services(self, add_names, remove_names):
+        return self.service_pool.update_transients(add_names, remove_names)
+
+    def update_topics(self, add_names, remove_names):
+        return self.topic_pool.update_transients(add_names, remove_names)
+
+    def update_params(self, add_names, remove_names):
+        return self.param_pool.update_transients(add_names, remove_names)
+
 
     def update(self):
-        with self.topics_available_lock:
-            for t in topics_available_remote:
-                self.topics_available[t] = topics_available_type_remote.get(t)
-
-        with self.services_available_lock:
-            for s in services_available_remote:
-                self.services_available[s] = services_available_type_remote.get(s)
-
-        with self.params_available_lock:
-            for p in params_available_remote:
-                self.params_available[p] = params_available_type_remote.get(p)
-
-        return super(MockInterface, self).update()
-
-
-
-BaseInterface.register(MockInterface)
-
-# Mock functions to force changes in interface local cache.
-
-@contextmanager
-def mock_service(svc_name, svc_type):
-    print(" -> Mock Service {svc_name} appear".format(**locals()))
-    MockInterface.services_available_lock.acquire()
-    # Service appears
-    MockInterface.services_available[svc_name] = svc_type
-    MockInterface.services_available_lock.release()
-    yield
-    MockInterface.services_available_lock.acquire()
-    # Service disappear
-    MockInterface.services_available.pop(svc_name)
-    MockInterface.services_available_lock.release()
-    print(" -> Mock Service {svc_name} disappear".format(**locals()))
-
-
-@contextmanager
-def mock_topic(topic_name, topic_type):
-    print(" -> Mock Topic {topic_name} appear".format(**locals()))
-    MockInterface.topics_available_lock.acquire()
-    # Topic appears
-    MockInterface.topics_available[topic_name] = topic_type
-    MockInterface.topics_available_lock.release()
-    yield
-    MockInterface.topics_available_lock.acquire()
-    # Topic disappears
-    MockInterface.topics_available.pop(topic_name)
-    MockInterface.topics_available_lock.release()
-    print(" -> Mock Topic {topic_name} disappear".format(**locals()))
-
-
-@contextmanager
-def mock_param(param_name, param_type):
-    print(" -> Mock Param {param_name} appear".format(**locals()))
-    MockInterface.params_available_lock.acquire()
-    # Param appears
-    MockInterface.params_available[param_name] = param_type
-    MockInterface.params_available_lock.release()
-    yield
-    MockInterface.params_available_lock.acquire()
-    # Param disappears
-    MockInterface.params_available.pop(param_name)  # Param disappears
-    MockInterface.params_available_lock.release()
-    print(" -> Mock Param {param_name} disappear".format(**locals()))
+        self.topic_pool.transient_change_detect()
+        self.service_pool.transient_change_detect()
+        self.param_pool.transient_change_detect()

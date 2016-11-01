@@ -10,7 +10,7 @@
 #
 from __future__ import absolute_import
 
-from .mockinterface import MockInterface, mock_service, mock_topic, mock_param
+from .mockinterface import MockInterface
 from .mockmessage import (
     extract_values,
     populate_instance,
