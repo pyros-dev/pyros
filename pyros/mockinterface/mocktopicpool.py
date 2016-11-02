@@ -16,10 +16,6 @@ class MockTopicPool(TransientIfPool):
     MockInterface.
     """
     def __init__(self, topics=None):
-        # Current mock implementation of topics
-        if topics is None:
-            topics = []
-
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(MockTopicPool, self).__init__(topics)
 

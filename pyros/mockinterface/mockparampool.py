@@ -16,10 +16,6 @@ class MockParamPool(TransientIfPool):
     MockInterface.
     """
     def __init__(self, params=None):
-        # Current mock implementation of services, topics and params
-        if params is None:
-            params = []
-
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(MockParamPool, self).__init__(params)
 

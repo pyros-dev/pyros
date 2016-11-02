@@ -89,11 +89,9 @@ class PoolParam(object):
 
     def get_impl_ref_count(self, name):
         """
-        Check whether the topic interface is the last pub/sub instance present
-        returns False if not present
+        Returns the reference counter for this topic interface
         :param name: name of the topic
-        :param ros_num_connections: num_connections for this sub, as reported by rospy
-        :return: True/False
+        :return: reference count of topic interface implementation
         """
 
         res = 0

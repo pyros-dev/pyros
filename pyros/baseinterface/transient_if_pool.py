@@ -131,6 +131,9 @@ class TransientIfPool(object):
         #TODO : unify that last_got_set with the *_available. they are essentially the same
         tst_gone = self.last_transients_detected - transient_detected
 
+        # print("INTERFACING + {transient_detected}".format(**locals()))
+        # print("INTERFACING - {tst_gone}".format(**locals()))
+
         dt = self.transient_change_diff(
             # we start interfacing with new matches,
             # but we also need to update old matches that match regex now
@@ -185,7 +188,7 @@ class TransientIfPool(object):
     def TransientCleaner(self, transient):  # the transient class implementation
         return
 
-    def __init__(self, transients = None, transients_desc = None):
+    def __init__(self, transients=None, transients_desc=None):
         """
         Initializes the interface instance, to expose services, topics, and params
         """

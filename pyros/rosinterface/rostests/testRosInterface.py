@@ -56,7 +56,11 @@ logging.config.dictConfig(
             },
             'pyros.rosinterface': {
                 'handlers': ['console'],
-                'level': 'INFO',
+                'level': 'DEBUG',
+            },
+            'pyros.ros_interface': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
             }
         }
     }
@@ -203,17 +207,18 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.expose_topics([topicname])
+        dt = self.interface.expose_topics([topicname])
         # every exposed topic should remain in the list of args ( in case regex match another topic )
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend has been created
+        self.assertTrue(topicname in dt.added)
         self.assertTrue(topicname in self.interface.topics.keys())
 
         # removing publisher
         nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
         # and update should be enough to cleanup
-        with Timeout(500) as t:
+        with Timeout(5) as t:
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added

@@ -28,6 +28,19 @@ class MockInterface(object):
     def params_args(self):
         return self.param_pool.transients_args
 
+    # AVAILABLE
+    @property
+    def services_available(self):
+        return self.service_pool.available
+
+    @property
+    def topics_available(self):
+        return self.topic_pool.available
+
+    @property
+    def params_available(self):
+        return self.param_pool.available
+
     # INTERFACED
     @property
     def services(self):

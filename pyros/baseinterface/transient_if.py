@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 class TransientIf(object):
-
+    #TODO : we can probably replace this with ducktyping and check for name and some "cleanup" callable...
     """
     TransientIf is a base class handling conversion from python API to Multiprocess concept.
     This concept can be a service, a param, a publisher, etc.
