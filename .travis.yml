@@ -43,11 +43,12 @@ env:
   - ROS_DISTRO=kinetic PYTHON=2.7
   - ROS_DISTRO=kinetic PYTHON=3.4
 
-  - ROS_DISTRO=kinetic ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=kinetic ROS_FLOW=install OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=kinetic PYTHON=2.7 OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=kinetic PYTHON=3.4 OPTION_ROCON_CACHE=ON
+  # rocon_python_comms is not available on kinetic yet.
+  # - ROS_DISTRO=kinetic ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+  # # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  # - ROS_DISTRO=kinetic ROS_FLOW=install OPTION_ROCON_CACHE=ON
+  # - ROS_DISTRO=kinetic PYTHON=2.7 OPTION_ROCON_CACHE=ON
+  # - ROS_DISTRO=kinetic PYTHON=3.4 OPTION_ROCON_CACHE=ON
 
   # TODO : pypy + pypy3
 
