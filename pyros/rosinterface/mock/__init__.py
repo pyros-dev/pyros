@@ -10,7 +10,7 @@
 #
 from __future__ import absolute_import
 
-from .mockinterface import MockInterface, mock_service, mock_topic, mock_param
+from .mockinterface import MockInterface
 from .mockmessage import (
     extract_values,
     populate_instance,
@@ -22,6 +22,9 @@ from .mockparam import MockParam
 from .mockservice import MockService, statusecho_service
 from .mocktopic import MockTopic, statusecho_topic
 
+
+# Since this mock interface follows ROS design (params, service, topics)
+# We decided to make it part of ROS interface
 
 # TODO : We should probably use mock library for this and test against it...
 

@@ -56,7 +56,11 @@ logging.config.dictConfig(
             },
             'pyros.rosinterface': {
                 'handlers': ['console'],
-                'level': 'INFO',
+                'level': 'DEBUG',
+            },
+            'pyros.ros_interface': {
+                'handlers': ['console'],
+                'level': 'DEBUG',
             }
         }
     }
@@ -83,13 +87,21 @@ from pyros_utils import rostest_nose
 import unittest
 
 
-
-# This should have the same effect as the <name>.test file for rostest. Should be used only by nose ( or other python test tool )
+# This should have the same effect as the <name>.test file for rostest.
+# Should be used only by nose ( or other python test tool )
 # CAREFUL with comments, copy paste mistake are real...
 # CAREFUL dont use assertFalse -> easy to miss when reviewing code
 def setup_module():
     if not rostest_nose.is_rostest_enabled():
         rostest_nose.rostest_nose_setup_module()
+
+
+def interface_reset(enable_cache=False):
+    interface = RosInterface('test_rosinterface', enable_cache=enable_cache)
+    # CAREFUL : this is doing a rospy.init_node, and it should be done only once per PROCESS (or with same arguments)
+    # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
+
+    return interface
 
 
 def teardown_module():
@@ -101,6 +113,10 @@ def teardown_module():
 def srv_cb(req):
     return req.request
 
+
+# TODO : This currently duplicates the test_*_if_pool. We should do something different here...
+# TODO : Probably creating mocks for *_if_pool, and make sure the interface calls it the properway.
+# TODO : And some integration test (use case focused, instead of having all possible combinations like in test_*if_pool)
 @nose.tools.nottest
 class TestRosInterface(unittest.TestCase):
     """
@@ -194,6 +210,7 @@ class TestRosInterface(unittest.TestCase):
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # TODO : do we need a test with subscriber ?
@@ -203,20 +220,22 @@ class TestRosInterface(unittest.TestCase):
         # the backend should not have been created
         self.assertTrue(topicname not in self.interface.topics.keys())
 
-        self.interface.expose_topics([topicname])
+        dt = self.interface.expose_topics([topicname])
         # every exposed topic should remain in the list of args ( in case regex match another topic )
         self.assertTrue(topicname in self.interface.topics_args)
         # make sure the topic backend has been created
+        self.assertTrue(topicname in dt.added)
         self.assertTrue(topicname in self.interface.topics.keys())
 
         # removing publisher
         nonexistent_pub.unregister()  # https://github.com/ros/ros_comm/issues/111 ( topic is still registered on master... )
 
         # and update should be enough to cleanup
-        with Timeout(500) as t:
+        with Timeout(5) as t:
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.removed)
@@ -266,6 +285,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and topicname not in dt.added:
                 dt = self.interface.update()
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.added)  # detected
@@ -284,6 +304,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.removed)
@@ -323,6 +344,7 @@ class TestRosInterface(unittest.TestCase):
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed)
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
         # TODO : do we need a test with subscriber ?
 
         self.assertTrue(not t.timed_out)
@@ -420,6 +442,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(nonexistent_pub.resolved_name in dt.added)  # detected
@@ -440,11 +463,12 @@ class TestRosInterface(unittest.TestCase):
             self.assertTrue(topicname in self.interface.topics.keys())
             # Note the Topic implementation should take care of possible errors in this case
 
-            with Timeout(5) as t:
+            with Timeout(500) as t:
                 dt = DiffTuple([], [])
                 while not t.timed_out and topicname not in dt.removed:
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(topicname in dt.removed)  # detected lost
@@ -524,6 +548,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                 dt = self.interface.update()
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(nonexistent_pub.resolved_name in dt.added)  # added now because it just appeared
@@ -576,6 +601,7 @@ class TestRosInterface(unittest.TestCase):
         with Timeout(5) as t:
             while not t.timed_out and servicename not in dt.added:
                 dt = self.interface.update()
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # every exposed service should remain in the list of args ( in case regex match another service )
@@ -620,6 +646,7 @@ class TestRosInterface(unittest.TestCase):
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             # every added service should be in the list of args
@@ -683,6 +710,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and nonexistent_srv.resolved_name not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
@@ -799,6 +827,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and nonexistent_srv.resolved_name not in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
@@ -895,6 +924,7 @@ class TestRosInterface(unittest.TestCase):
         with Timeout(5) as t:
             while not t.timed_out and paramname not in dt.added:
                 dt = self.interface.update()
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # every exposed param should remain in the list of args ( in case regex match another service )
@@ -939,6 +969,7 @@ class TestRosInterface(unittest.TestCase):
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             # every added param should be in the list of args
@@ -1002,6 +1033,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and paramname not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(paramname in dt.added)  # nonexistent_srv added
@@ -1118,6 +1150,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and paramname not in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(paramname in dt.removed)  # nonexistent_srv removed
@@ -1192,13 +1225,18 @@ class TestRosInterface(unittest.TestCase):
         self.assertTrue(paramname not in self.interface.params.keys())
 
 
+#TODO : here we always test the full update => test the diff algorithm as well !
+
 @nose.tools.istest
-class TestRosInterfaceNoCache(TestRosInterface):
+class TestRosInterface1NoCache(TestRosInterface):
     def setUp(self):
+        global interface
+
         self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
         self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
 
-        self.interface = RosInterface('test_rosinterface', enable_cache=False)
+        # dynamically setup our interface to not use the cache
+        self.interface = interface_reset(enable_cache=False)
 
         # CAREFUL : this is doing a rospy.init_node, and it should be done only once per PROCESS
         # Here we enforce TEST RUN 1<->1 MODULE 1<->1 PROCESS. ROStest style.
@@ -1206,8 +1244,61 @@ class TestRosInterfaceNoCache(TestRosInterface):
     def tearDown(self):
         self.interface = None
 
+
+# Testing with Connection Cache
+@nose.tools.istest
+class TestRosInterfaceCache(TestRosInterface):
+    def setUp(self):
+
+        # first we setup our publishers and our node (used by rospy.resolve_name calls to remap topics)
+        self.strpub = rospy.Publisher('/test/string', String, queue_size=1)
+        self.emppub = rospy.Publisher('/test/empty', Empty, queue_size=1)
+
+        # dynamically setup our interface to use the cache
+        self.interface = interface_reset(enable_cache=True)
+
+        # we need to speed fast enough for the tests to not fail on timeout...
+        rospy.set_param('/connection_cache/spin_freq', 2)  # 2 Hz
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py',
+                                                         name='connection_cache',
+                                                         remap_args=[('~list', rospy.resolve_name('~connections_list')),
+                                                                     (
+                                                                     '~diff', rospy.resolve_name('~connections_diff'))])
+
+        # Easier to remap the node topic to the proxy ones, instead of the opposite, since there is no dynamic remapping.
+        # However for normal usecase, remapping the proxy handles is preferable.
+        try:
+            self.connection_cache_proc = self.launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
+
+        assert self.connection_cache_proc.is_alive()
+
+        # wait for node to be started
+        node_api = None
+        with Timeout(5) as t:
+            while not t.timed_out and node_api is None:
+                node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
+
+        assert node_api is not None  # make sure the connection cache node is started before moving on.
+
+    def tearDown(self):
+        self.interface = None
+
+        self.connection_cache_proc.stop()
+        while self.connection_cache_proc.is_alive():
+            time.sleep(0.2)  # waiting for cache node to die
+        assert not self.connection_cache_proc.is_alive()
+        time.sleep(1)  # TODO : investigate : we shouldnt need this
+
+    # explicitely added here only needed to help the debugger.
+
+
 if __name__ == '__main__':
 
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
-    rostest_nose.rostest_or_nose_main('test_ros_interface', 'test_all', TestRosInterface)
+    rostest_nose.rostest_or_nose_main('test_ros_interface_no_cache', 'test_all', TestRosInterface1NoCache)
+
+    # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
+    rostest_nose.rostest_or_nose_main('test_ros_interface_cache', 'test_all', TestRosInterfaceCache)
 

@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import rospy
 from collections import OrderedDict
 
+from ..baseinterface import TransientIf
+
 
 class ParamTuple(object):
     def __init__(self, name, type):
@@ -11,18 +13,20 @@ class ParamTuple(object):
 # TODO: make that the pickled representation of ParamBack (check asdict())
 
 
-class ParamBack(object):
+class ParamBack(TransientIf):
     """
     ParamBack is the class handling conversion from REST API to ROS Param
     """
     def __init__(self, param_name, param_type):
-        self.name = rospy.resolve_name(param_name)
-        self.prmtype = param_type  # defining a type on param to unify API for topic, services and param.
+        param_name = rospy.resolve_name(param_name)
+
+        # defining a type on param to unify API for topic, services and param.
+        super(ParamBack, self).__init__(param_name, param_type)
 
         # TODO : should we here manage how to get param values with rospy (same as for service and topic ?)
 
     def cleanup(self):
-        pass
+        super(ParamBack, self).cleanup()
 
     def asdict(self):
         """
@@ -35,7 +39,7 @@ class ParamBack(object):
         return OrderedDict({
             'name': self.name,
             'fullname': self.name,  # for BWcompat
-            'prmtype': self.prmtype,
+            'prmtype': self.type,
         })
 
     def setval(self, val):

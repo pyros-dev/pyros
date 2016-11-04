@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
+from ...baseinterface import TransientIf
+
 TopicType = namedtuple("TopicType", "msgtype")
 
 statusecho_topic = TopicType("StatusMsg")
 
 
-class MockTopic(object):
+class MockTopic(TransientIf):
     """
     MockTopic is a mock of the class handling conversion from Python API to Topic call
     """
@@ -17,11 +19,13 @@ class MockTopic(object):
 
     def __init__(self, topic_name, topic_type, queue_size=1):
 
-        self.name = topic_name
         # getting the fullname to make sure we start with /
-        self.fullname = self.name if self.name.startswith('/') else '/' + self.name
+        topic_name = topic_name if topic_name.startswith('/') else '/' + topic_name
 
-        self.msgtype = topic_type.msgtype
+        topic_type = topic_type.msgtype
+
+        super(MockTopic, self).__init__(topic_name, topic_type)
+
         self.msg = deque([], queue_size)
 
         self.empty_cb = None

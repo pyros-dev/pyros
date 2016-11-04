@@ -13,14 +13,14 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 
 import time
 
-from pyros.mockinterface.mocksystem import (
+from pyros.rosinterface.mock.mocksystem import (
     mock_service_remote, mock_topic_remote, mock_param_remote,
     services_available_remote, services_available_type_remote,
     topics_available_remote, topics_available_type_remote,
     params_available_remote, params_available_type_remote,
 )
 from pyros import PyrosMock
-from pyros.mockinterface.mocktopic import statusecho_topic, MockTopic
+from pyros.rosinterface.mock.mocktopic import statusecho_topic, MockTopic
 import pyzmp
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
 

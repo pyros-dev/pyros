@@ -10,9 +10,11 @@
 #
 from __future__ import absolute_import
 
-from .baseinterface import BaseInterface, DiffTuple
+from .transient_if import TransientIf
+from .transient_if_pool import TransientIfPool, DiffTuple
 
 __all__ = [
     'DiffTuple',
-    'BaseInterface',
+    'TransientIf',
+    'TransientIfPool',
 ]
