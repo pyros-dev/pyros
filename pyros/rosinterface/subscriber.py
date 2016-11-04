@@ -42,9 +42,11 @@ class SubscriberBack(TopicBase):
             rospy.get_name() + " Pyros.rosinterface : Adding subscriber {name} {typename}".format(
                 name=self.name, typename=self.rostype))
 
-        self.topic = self.pool.acquire(self.name, self.rostype, self.topic_callback, queue_size=1)
-
+        # this message queue should be ready before we setup the callback
+        # TODO : change to a proper Queue
         self.msg = deque([], msg_queue_size)
+
+        self.topic = self.pool.acquire(self.name, self.rostype, self.topic_callback, queue_size=1)
 
         self.empty_cb = None
 

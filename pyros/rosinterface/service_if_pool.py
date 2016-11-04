@@ -82,8 +82,6 @@ class RosServiceIfPool(TransientIfPool):
         return self.TransientCleaner(service)
     ###########
 
-
-
     def reset_state(self, services, service_types):
         """
         Reset internal system state representation.
@@ -95,12 +93,11 @@ class RosServiceIfPool(TransientIfPool):
         :param service_types:
         :return:
         """
-        with self.available_lock:
-            self.available = dict()
-            for s in services:  # We assume s[1] is never empty here
-                st = next(ifilter(lambda lst: s[0] == lst[0], service_types), [])
-                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
-                self.available[stp.name] = stp
+        self.available = dict()
+        for s in services:  # We assume s[1] is never empty here
+            st = next(ifilter(lambda lst: s[0] == lst[0], service_types), [])
+            stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+            self.available[stp.name] = stp
 
         # We still need to return DiffTuples
         return services
@@ -113,25 +110,23 @@ class RosServiceIfPool(TransientIfPool):
         :param subscribers_dt:
         :return:
         """
-        with self.available_lock:
-            for s in services_dt.added:
-                st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
-                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
-                if stp.name in self.available:
-                    if self.available[stp.name].type is None and stp.type is not None:
-                        self.available[stp.name].type = stp.type
-                else:
-                    self.available[stp.name] = stp
+        for s in services_dt.added:
+            st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
+            stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+            if stp.name in self.available:
+                if self.available[stp.name].type is None and stp.type is not None:
+                    self.available[stp.name].type = stp.type
+            else:
+                self.available[stp.name] = stp
 
-            for s in services_dt.removed:
-                st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
-                stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
-                if stp.name in self.available:
-                    self.available.pop(stp.name, None)
+        for s in services_dt.removed:
+            st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
+            stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+            if stp.name in self.available:
+                self.available.pop(stp.name, None)
 
         # We still need to return DiffTuples
         return services_dt
-
 
     # for use with line_profiler or memory_profiler
     # Not working yet... need to solve multiprocess profiling issues...
@@ -140,23 +135,20 @@ class RosServiceIfPool(TransientIfPool):
         services_dt = self.compute_state(services_dt, service_types_dt or [])
 
         if services_dt.added or services_dt.removed:
-            self._debug_logger.debug(
-                rospy.get_name() + " Pyros.rosinterface.service_if_pool : Services Delta {services_dt}".format(**locals()))
-
-        # TODO : put that in debug log and show based on python logger configuration
-        # print("Pyros ROS interface UPDATE")
-        # print("Srvs ADDED: {0}".format([s[0] for s in services_dt.added]))
-        # print("Srvs GONE: {0}".format([s[0] for s in services_dt.removed]))
+            _logger.debug(
+                rospy.get_name() + " Services Delta {services_dt}".format(**locals()))
 
         # update_services wants only names
-        dt = self.update_transients(
-            add_names=regexes_match_sublist(self.transients_args, [s[0] for s in services_dt.added]),
-            remove_names=[s[0] for s in services_dt.removed if s[0] not in self.get_transients_available()]
-            )
+        dt = self.transient_change_diff(
+            transient_appeared=[s[0] for s in services_dt.added],
+            transient_gone=[s[0] for s in services_dt.removed]
+            # add_names=regexes_match_sublist(self.transients_args, [s[0] for s in services_dt.added]),
+            # remove_names=[s[0] for s in services_dt.removed if s[0] not in self.get_transients_available()]
+        )
 
         if dt.added or dt.removed:
-            self._debug_logger.debug(
-                rospy.get_name() + " Pyros.rosinterface.service_if_pool : Update Delta {dt}".format(**locals()))
+            _logger.debug(
+                rospy.get_name() + " Update Delta {dt}".format(**locals()))
         return dt
 
 
@@ -167,9 +159,17 @@ class RosServiceIfPool(TransientIfPool):
         # First we need to reflect the external system state in internal cache
         self.reset_state(services, service_types)
 
+        if services:
+            _logger.debug(
+                rospy.get_name() + " Services List {services}".format(**locals()))
+
         # Second we update our interfaces based on that new system state
         # TODO : pass full services state here to avoid having to retrieve indirectly
         dt = self.transient_change_detect()
+
+        if dt.added or dt.removed:
+            _logger.debug(
+                rospy.get_name() + " Update Delta {dt}".format(**locals()))
 
         return dt
 

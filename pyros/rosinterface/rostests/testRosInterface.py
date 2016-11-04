@@ -425,6 +425,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(nonexistent_pub.resolved_name in dt.added)  # detected
@@ -450,6 +451,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and topicname not in dt.removed:
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(topicname in dt.removed)  # detected lost
@@ -1196,6 +1198,8 @@ class TestRosInterface(unittest.TestCase):
         # param backend should NOT be there any longer
         self.assertTrue(paramname not in self.interface.params.keys())
 
+
+#TODO : here we always test the full update => test the diff algorithm as well !
 
 @nose.tools.istest
 class TestRosInterfaceNoCache(TestRosInterface):

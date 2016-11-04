@@ -24,19 +24,19 @@ from .regex_tools import regex_match_sublist, regexes_match_sublist, find_first_
 class TransientIfPool(object):
     """
 
-    The BaseInterface class maintains :
+    The TransientIfPool class maintains :
 
     - Available transients collection:
     {
-      transient1_name: transient1_type,
-      transient2_name: transient2_type,
-      transient3_name: transient3_type
+      transient1_name: transient1_class_instance,
+      transient2_name: transient2_class_instance,
+      transient3_name: transient3_class_instance,
     }
 
     - Interfaced transients collection:
     {
-      transient1_name: transient1_interface_class_instance,
-      transient3_name: transient3_interface_class_instance
+      transient1_name: transient_if1_class_instance,
+      transient3_name: transient_if3_class_instance
     }
 
     update() checks (or get fed) the recent system state (or diff), and the interface store internally what transients are available.
@@ -120,6 +120,7 @@ class TransientIfPool(object):
             **class_build_kwargs
          )
 
+    # TODO: pass hte status as arguments instead of using self.get_transient_avialable
     def transient_change_detect(self, *class_build_args, **class_build_kwargs):
         """
         This should be called when we want to detect a change in the status of the system regarding the transient list
@@ -160,6 +161,7 @@ class TransientIfPool(object):
         lost_matches = {n for n in self.transients if find_first_regex_match(n, self.transients_args) is None}
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
+
         return self.update_transients(
             add_names=to_add,
             remove_names=to_remove,
@@ -196,7 +198,6 @@ class TransientIfPool(object):
         # This is a local cache of the system state because we don't want to ask everytime.
         # TODO: find a way to make interface development easier by allowing developer to compare and worry only about local state representation versus interface
         # NOT about how to synchronize remote state with local state...
-        self.available_lock = threading.Lock()  # writer lock (because we have subscribers on another thread)
         self.available = dict()
         # This stays always in sync with the system (via interface update call)
         # but the interface instance can be created and recreated independently
@@ -211,6 +212,7 @@ class TransientIfPool(object):
         self.transients_args = set()
 
         # to allow comparison with previously detected services / topics/ params
+        # TODO : get rid of this
         self.last_transients_detected = set()
 
         # First update() will re-detect previously found names, but when trying to update, no duplicates should happen.
@@ -221,6 +223,52 @@ class TransientIfPool(object):
         else:
             tdt = DiffTuple([], [])  # no change in exposed services
 
+    # TODO : implement this to abstract from lower logic
+    # TODO : split this into a separate transient_pool
+    # def reset_state(self, transients, transients_type):
+    #     """
+    #     Reset internal system state representation.
+    #     expect lists in format similar to masterAPI. <= TODO : change this so data transform is done once only, outside of generic code
+    #     :param transients:
+    #     :param transients_data:
+    #     :return:
+    #     """
+    #     self.available = dict()
+    #     for s in services:  # We assume s[1] is never empty here
+    #         st = next(ifilter(lambda lst: s[0] == lst[0], service_types), [])
+    #         stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+    #         self.available[stp.name] = stp
+    #
+    #     # We still need to return DiffTuples
+    #     return services
+    #
+    # def compute_state(self, transients_added, transients_removed, service_types_dt):
+    #     """
+    #     This is called only if there is a cache proxy with a callback, and expects DiffTuple filled up with names or types
+    #     :param services_dt:
+    #     :param publishers_dt:
+    #     :param subscribers_dt:
+    #     :return:
+    #     """
+    #     for s in services_dt.added:
+    #         st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.added), [])
+    #         stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+    #         if stp.name in self.available:
+    #             if self.available[stp.name].type is None and stp.type is not None:
+    #                 self.available[stp.name].type = stp.type
+    #         else:
+    #             self.available[stp.name] = stp
+    #
+    #     for s in services_dt.removed:
+    #         st = next(ifilter(lambda lst: s[0] == lst[0], service_types_dt.removed), [])
+    #         stp = ServiceTuple(name=s[0], type=st[1] if len(st) > 0 else None)
+    #         if stp.name in self.available:
+    #             self.available.pop(stp.name, None)
+    #
+    #     # We still need to return DiffTuples
+    #     return services_dt
+
+
     @contextmanager
     def mock(self, tst_name, tst_type):
         """
@@ -230,36 +278,32 @@ class TransientIfPool(object):
         :return:
         """
         print(" -> Mock {tst_name} appear".format(**locals()))
-        self.available_lock.acquire()
         # Service appears
         self.available[tst_name] = tst_type
-        self.available_lock.release()
         yield
-        self.available_lock.acquire()
         # Service disappear
         self.available.pop(tst_name)
-        self.available_lock.release()
         print(" -> Mock {tst_name} disappear".format(**locals()))
 
-    def update_on_diff(self, transients_dt):
-
-        # For added transients we need to check they match the regex, otherwise we skip it.
-        # For removed transients we need to check that they have disappeared from system before removing, otherwise we skip it.
-        # TODO : investigate shutdown behavior more in details
-        # if shutting_down:
-        #     # We force removing all interfaces by calling directly update services
-        #     sdt = self.update_services(add_names=[], remove_names=[s for s in self.services])
-        #     tdt = self.update_topics(add_names=[], remove_names=[t for t in self.topics])
-        #     pdt = self.update_params(add_names=[], remove_names=[p for p in self.params])
-        #else:
-        tdt = self.update_services(add_names=regexes_match_sublist(self.transients_args, transients_dt.added),
-                                   remove_names=[s for s in transients_dt.removed if s not in self.get_transients_available()]
-                                   )
-
-        return DiffTuple(
-            added=tdt.added,
-            removed=tdt.removed,
-        )
+    # def update_on_diff(self, transients_dt):
+    #
+    #     # For added transients we need to check they match the regex, otherwise we skip it.
+    #     # For removed transients we need to check that they have disappeared from system before removing, otherwise we skip it.
+    #     # TODO : investigate shutdown behavior more in details
+    #     # if shutting_down:
+    #     #     # We force removing all interfaces by calling directly update services
+    #     #     sdt = self.update_services(add_names=[], remove_names=[s for s in self.services])
+    #     #     tdt = self.update_topics(add_names=[], remove_names=[t for t in self.topics])
+    #     #     pdt = self.update_params(add_names=[], remove_names=[p for p in self.params])
+    #     #else:
+    #     tdt = self.update_services(add_names=regexes_match_sublist(self.transients_args, transients_dt.added),
+    #                                remove_names=[s for s in transients_dt.removed if s not in self.get_transients_available()]
+    #                                )
+    #
+    #     return DiffTuple(
+    #         added=tdt.added,
+    #         removed=tdt.removed,
+    #     )
 
 
     # TODO : "wait_for_it" methods that waits for hte detection of a topic/service on the system

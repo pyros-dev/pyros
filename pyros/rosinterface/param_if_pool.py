@@ -95,12 +95,11 @@ class RosParamIfPool(TransientIfPool):
         called to update params from rospy.
         CAREFUL : this can be called from another thread (subscriber callback)
         """
-        with self.available_lock:
-            self.available = dict()
-            for p in params:
-                pt = []
-                ptp = ParamTuple(name=p, type=pt[1] if len(pt) > 0 else None)
-                self.available[ptp.name] = ptp
+        self.available = dict()
+        for p in params:
+            pt = []
+            ptp = ParamTuple(name=p, type=pt[1] if len(pt) > 0 else None)
+            self.available[ptp.name] = ptp
 
     def compute_state(self, params_dt):
         """
@@ -108,19 +107,18 @@ class RosParamIfPool(TransientIfPool):
         CAREFUL : this can be called from another thread (subscriber callback)
         """
 
-        with self.params_available_lock:
-            for p in params_dt.added:
-                pt = ParamTuple(name=p, type=None)
-                if pt.name in self.params_available:
-                    if self.params_available[pt.name].type is None or pt.type is not None:
-                        self.params_available[pt.name].type = pt.type
-                else:
-                    self.params_available[pt.name] = pt
+        for p in params_dt.added:
+            pt = ParamTuple(name=p, type=None)
+            if pt.name in self.available:
+                if self.available[pt.name].type is None or pt.type is not None:
+                    self.available[pt.name].type = pt.type
+            else:
+                self.available[pt.name] = pt
 
-            for p in params_dt.removed:
-                pt = ParamTuple(name=p, type=None)
-                if pt.name in self.params_available:
-                    self.params_available.pop(pt.name, None)
+        for p in params_dt.removed:
+            pt = ParamTuple(name=p, type=None)
+            if pt.name in self.available:
+                self.available.pop(pt.name, None)
 
         return params_dt
 
@@ -131,16 +129,23 @@ class RosParamIfPool(TransientIfPool):
     def update_delta(self, params_dt):
 
         # First we need to reflect the external system state in internal cache
-        self.compute_state(params_dt)
+        params_dt = self.compute_state(params_dt)
 
-        self._debug_logger.debug("Params ADDED : {0}".format([p for p in params_dt.added]))
-        self._debug_logger.debug("Params GONE : {0}".format([p for p in params_dt.removed]))
+        if params_dt.added or params_dt.removed:
+            _logger.debug(
+                rospy.get_name() + " Params Delta {params_dt}".format(**locals()))
+
+        # _logger.debug("Params ADDED : {0}".format([p for p in available_dt.added]))
+        # _logger.debug("Params GONE : {0}".format([p for p in available_dt.removed]))
 
         # Second we update our interfaces based on that system state difference
-        dt = self.update_transients(params_dt.added, params_dt.removed)
+        dt = self.transient_change_diff(
+            transient_appeared=[p[0] for p in params_dt.added],
+            transient_gone=[p[0] for p in params_dt.removed]
+        )
 
         if dt.added or dt.removed:
-            self._debug_logger.debug(rospy.get_name() + " Pyros.rosinterface.param_if_pool : Update Delta {dt}".format(**locals()))
+            _logger.debug(rospy.get_name() + " Update Delta {dt}".format(**locals()))
         return dt
 
     # for use with line_profiler or memory_profiler
@@ -151,10 +156,16 @@ class RosParamIfPool(TransientIfPool):
         # First we need to reflect the external system state in internal cache
         self.reset_state(params)
 
+        if params:
+            _logger.debug(
+                rospy.get_name() + " Params List {params}".format(**locals()))
+
         # Second we update our interfaces based on that new system state
         # TODO : pass full params state here to avoid having to retrieve indirectly
         dt = self.transient_change_detect()
 
+        if dt.added or dt.removed:
+            _logger.debug(rospy.get_name() + " Update Delta {dt}".format(**locals()))
         return dt
 
 

@@ -4,6 +4,7 @@ import time
 
 import roslib
 import rospy
+import rosnode
 
 from importlib import import_module
 from collections import Counter
@@ -24,6 +25,20 @@ class PoolParam(object):
     """
     This is a pool, supported by the param server in ROS
     It optimizes transient (pub/sub, etc.) creation and reuse, and should play nicely with multiple pyros processes.
+
+    The param name for one interface is :
+    - /pyros to gather all pyros instances
+    - /<node_name> to gather interfaces by pyros node instances
+    - /<if_description> to gather different kind of interfaces (pubs, subs, etc.)
+    - /<if_name>
+
+    The param state follows this :
+    INTERFACE ON -> param created and set to True -> means currently active
+      => if exists and set to true we can ignore the "added interface" from a potential delayed diff feedback
+    INTERFACE OFF -> param set to False -> means was active before, currently deactivated
+      => if exists and set to false we can ignore the "removed interface" from a potential delayed diff feedback
+    param not set means interface was never activated.
+
     """
 
     # need to wait for ROS to start before we can get a name...
@@ -101,7 +116,22 @@ class PoolParam(object):
         #print("get_impl_ref_count({name}) => {res}".format(**locals()))
         return res
 
-    def get_all_interfaces(self):
+    def get_impl_connections(self, name):
+        """
+        Returns the connections for this topic interface
+        :param name: name of the topic
+        :return: connections of topic interface implementation
+        """
+
+        res = []
+        if name in self.topics:
+            # get usable connection representation as tuple
+            res = self.topics[name].impl.get_stats_info()
+            # TODO : how about topic counter ?
+        #print("get_impl_connections({name}) => {res}".format(**locals()))
+        return res
+
+    def get_all_interfaces(self, ros_node=None):
         # Parameters will interpret / as a sub mapping collection
         # We need to flatten it to retrieve topic names...
         def flatten_dict(d):
@@ -116,11 +146,15 @@ class PoolParam(object):
             return dict(items)
 
         # Inspect params to find who also interface this publisher
+        # TODO : use hte param internal interface instead of doing a request here...
         pyros_if = rospy.get_param('/pyros', {})
         if_map = {}
         for k, v in pyros_if.iteritems():
             # we need to reconstruct the slashes, lost when storing as params...
-            if_map["/" + k] = {"/" + tn: tv for tn, tv in flatten_dict(v.get(self.topic_descr, {})).iteritems()}
+            if_map["/" + k] = {
+                'uri': rosnode.get_api_uri(rospy.get_master(), "/" + k)[2],
+                self.topic_descr: {"/" + tn: tv for tn, tv in flatten_dict(v.get(self.topic_descr, {})).iteritems()}
+            }
         return if_map
 
     def __del__(self):

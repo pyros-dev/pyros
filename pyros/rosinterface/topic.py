@@ -8,7 +8,7 @@ import rospy
 from importlib import import_module
 from collections import deque, OrderedDict
 
-
+from ..baseinterface import TransientIf
 from .message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException
 
 from .publisher import PublisherBack
@@ -32,7 +32,7 @@ class TopicTuple(object):
 # TODO: make that the pickled representation of TopicBack (check asdict())
 
 
-class TopicBack(object):
+class TopicBack(TransientIf):
     """
     TopicBack is the class handling conversion from Python to ROS Topic
     This is a basic temporary implementation to provide same API as previous 0.2 versions
@@ -96,7 +96,7 @@ class TopicBack(object):
     # We need this because we cannot really trust get_num_connections() (updated only after message is published)
     # USED !
     @staticmethod
-    def get_impl_ref_count(name):
+    def get_pub_impl_ref_count(name):
         """
         Return the number of internal references to that publisher implementation
         Useful to keep track of multiple instance of publisher in one process(for tests for examples)
@@ -106,13 +106,42 @@ class TopicBack(object):
         :param name: name of the topic
         :return: impl.ref_count() for that topic
         """
+
         return PublisherBack.pool.get_impl_ref_count(name)
 
+    # USED !
+    @staticmethod
+    def get_sub_impl_ref_count(name):
+        return SubscriberBack.pool.get_impl_ref_count(name)
+
+    # We still need the list of connections to find out if this topic is currently in system or not...
+    # USED !
+    @staticmethod
+    def get_pub_impl_connections(name):
+        """
+        Return the number of internal conection to that publisher (from the subscriber point of view)
+        Useful to keep track of publisher in multiple processes
+        :param name: name of the topic
+        :return: impl.get_stats_info() for that topic SUBSCRIBER
+        """
+        # TODO : separate pub and sub
+        return PublisherBack.pool.get_impl_connections(name)
+
+    # USED !
+    @staticmethod
+    def get_sub_impl_connections(name):
+        return SubscriberBack.pool.get_impl_connections(name)
+
     def __init__(self, topic_name, topic_type, sub_queue_size=1, pub_start_timeout=2):
+
+        super(TopicBack, self).__init__(topic_name, topic_type)
+
         # We need to create sub first
         self.if_sub = SubscriberBack(topic_name, topic_type, sub_queue_size)
+        print("REF DEBUG : {name} ref_count : {ref_count}".format(name=topic_name, ref_count=self.if_sub.topic.impl.ref_count))
 
         self.if_pub = PublisherBack(topic_name, topic_type)
+        print("REF DEBUG : {name} ref_count : {ref_count}".format(name=topic_name, ref_count=self.if_pub.topic.impl.ref_count))
 
         # Here making sure the publisher is actually connected
         # before returning to ensure RAII
@@ -141,6 +170,8 @@ class TopicBack(object):
         # => we need to remove it without waiting
         self.if_pub.cleanup()
 
+        super(TopicBack, self).cleanup()
+
     def asdict(self):
         """
         Here we provide a dictionary suitable for a representation of the Topic instance
@@ -154,14 +185,187 @@ class TopicBack(object):
         return d
 
     # TMP...
-    @property
-    def name(self):
-        return self.if_pub.name
-
-    # TMP...
     @staticmethod
-    def get_all_interfaces():
+    def get_all_pub_interfaces():
         return PublisherBack.pool.get_all_interfaces()
+
+    @staticmethod
+    def get_all_sub_interfaces():
+        return SubscriberBack.pool.get_all_interfaces()
+
+
+    # TMP... IMPL1
+    @staticmethod
+    def get_interface_only_topics(): #_by_implconn():
+        if_topics = {}
+        if_pubs = TopicBack.get_interface_only_publishers_by_implconn()
+        if_subs = TopicBack.get_interface_only_subscribers_by_implconn()
+        for node in if_pubs:
+            if_topics[node] = if_pubs.get('publishers',{})
+        for node in if_subs:
+            for t, if_only in if_subs[node].get('subscribers', {}).iteritems():
+                if t in if_topics[node]:
+                    if_topics[node][t] = if_only and if_topics[node][t]  # CAREFUL with lazy evaluation
+                else:
+                    if_topics[node][t] = if_only
+
+        print("IF TOPICS : {0}".format(if_topics))
+
+        # inversing mapping, filtering only active interface, and checking node unicity (to match other APIs)
+        inv_if_topics = {}
+        for node, topicdict in if_topics.iteritems():
+            for t in topicdict:
+                if topicdict[t]:
+                    keys = inv_if_topics.setdefault(t, set())
+                    keys.add(node)
+
+        print("REMAPPED IF TOPICS : {0}".format(inv_if_topics))
+
+        return inv_if_topics
+
+
+    # # TMP... IMPL2
+    # @staticmethod
+    # def get_interface_only_topics_by_ifparam():
+    #     return TopicBack.get_interface_only_publishers_by_ifparam() + TopicBack.get_interface_only_subscribers()
+
+    # TMP... IMPL 1
+    @staticmethod
+    def get_interface_only_publishers_by_implconn():
+
+        # First we get all publisher interfaces
+        pubs_if = TopicBack.get_all_pub_interfaces()
+        #print("\nget_interface_only_publishers_by_implconn IN: {0}".format(pubs_if))
+
+        # Second we "turn off" the ones that have non-pyros-interface connections to mark them as needed
+        for node_name, node_data in pubs_if.iteritems():
+            node_pubs = node_data.get('publishers',{})
+            for pub_name in node_pubs:
+                if node_pubs[pub_name]:
+                    # REMINDER : this list the connections ie, the list of subscribers
+                    # CAREFUL : this is not really reliable (publisher doesnt update until it publish a message...)
+                    pub_conns = TopicBack.get_pub_impl_connections(pub_name)
+                    # Then we need to turn off the ones not from this process interface
+                    nonif_pub_conns_node = [c[1] for c in pub_conns if c[1] not in pubs_if] # we need to check for ALL node names
+                    if nonif_pub_conns_node:  # if the list is not empty
+                        # it means we have connections -> we need to set it to False here (not interfaced)
+                        node_pubs[pub_name] = False
+
+        # Third we "turn off" the ones that have more than one ref in this process
+        mypubs = pubs_if.get(rospy.get_name(), {}).get('publishers', {})
+        for pub_name in mypubs:
+            if mypubs[pub_name] and TopicBack.get_pub_impl_ref_count(pub_name) > 1:
+                mypubs[pub_name] = False
+
+        #print("get_interface_only_publishers_by_implconn OUT: {0}".format(pubs_if))
+        return pubs_if
+
+        # TMP... IMPL 1
+    @staticmethod
+    def get_interface_only_subscribers_by_implconn():
+
+        # First we get all publisher interfaces
+        subs_if = TopicBack.get_all_sub_interfaces()
+        #print("\nget_interface_only_subscribers_by_implconn IN: {0}".format(subs_if))
+
+        # Second we "turn off" the ones that have non-pyros-interface connections to mark them as needed
+        for node_name, node_data in subs_if.iteritems():
+            node_subs = node_data.get('subscribers', {})
+            for sub_name in node_subs:
+                if node_subs[sub_name]:
+                    # REMINDER : this list the connections ie, the list of publishers
+                    sub_conns = TopicBack.get_sub_impl_connections(sub_name)
+                    # Then we need to turn off the ones not from this process interface
+                    subs_if_uri = [subs_if[n].get('uri', "") for n in subs_if]  # we need to check for ALL node uris
+                    nonif_sub_conns_node = [c[1] for c in sub_conns if c[1] not in subs_if_uri]
+                    if nonif_sub_conns_node:  # if the list is not empty
+                        # it means we have connections -> we need to set it to False here (not interfaced)
+                        node_subs[sub_name] = False
+
+        # Third we "turn off" the ones that have more than one ref in this process
+        mysubs = subs_if.get(rospy.get_name(), {}).get('subscribers', {})
+        for sub_name in mysubs:
+            if mysubs[sub_name] and TopicBack.get_sub_impl_ref_count(sub_name) > 1:
+                mysubs[sub_name] = False
+
+        #print("get_interface_only_subscribers_by_implconn OUT: {0}".format(subs_if))
+        return subs_if
+
+
+    # # TMP... IMPL 2
+    # @staticmethod
+    # def get_interface_only_publishers_by_ifparam():
+    #
+    #     # First we get all publisher interfaces
+    #     pubs_if = TopicBack.get_all_pub_interfaces()
+    #     print("get_interface_only_publishers_by_ifparam IN : {0}".format(pubs_if))
+    #
+    #     # Second we verify which ones need to be kept, based on this process alone.
+    #     if_only_list = {}
+    #     for node, tifs in pubs_if.iteritems():
+    #         if node == rospy.get_name():
+    #             # For our interface, only keep if the ref_count is <= 1
+    #             # More means we have another pub|sub instance somewhere, and we should reflect it as part of the system.
+    #             # This is used by tests for example, to simulate a pub|sub without having to spawn a different process.
+    #             # But IT IS NOT A NORMAL USECASE. For pyros to work multiprocess it needs to stick to ONE interface instance per process.
+    #             for tifname, tifon in tifs.get('interfaces', {}).iteritems():
+    #                 # In theory : tifon is False <=> ref_count == 0
+    #                 # but if not tifon, we probably want to keep the topic in the list...
+    #                 if tifon and TopicBack.get_pub_impl_ref_count(tifname) <= 1 and TopicBack.get_sub_impl_ref_count(tifname) <= 1:
+    #                     # Note we could also : self.topics_pool.available[tname].get_impl_ref_count()
+    #
+    #                     # now checking non-pyros connections :
+    #                     pub_conns = TopicBack.get_pub_impl_connections(tifname)
+    #                     if node not in [c[1] for c in pub_conns]]
+    #                     print("RESULT : {0}".format(non_pubif_nodes))
+    #
+    #                     sub_conns = TopicBack.get_sub_impl_connections(tifname)
+    #
+    #
+    #
+    #
+    #                     # We can drop this node from topics list
+    #                     if_only_list[tifname] = if_only_list.get(tifname, []) + [node]
+    #                     # elif not tifon:
+    #                     #     # useful to drop lingering publishers
+    #                     #     drop_list[tifname] += [node]
+    #                     print("{tifname} is interface only because impl_ref_count is pub: {pub_ref_count}, sub: {sub_ref_count} ".format(tifname = tifname, pub_ref_count= TopicBack.get_pub_impl_ref_count(tifname), sub_ref_count= TopicBack.get_sub_impl_ref_count(tifname)))
+    #         else:
+    #             # For other pyros interface we can only assume they intend to drop the interface as soon as the system lose that topic
+    #             # And we are not interested in communication between pyros instances.
+    #             # We can drop this node from topics list, for all topics
+    #             for tifname, tifon in tifs.get('interfaces', {}).iteritems():
+    #                 if tifon:
+    #                     if_only_list[tifname] = if_only_list.get(tifname, []) + [node]
+    #                     # elif not tifon: # if not tifon, the presence of the node does NOT reflect an interface...
+    #                     #     # but maybe useful to drop lingering publishers ?
+    #                     #     drop_list[tifname] += [node]
+    #                     print("{tifname} is interface only because node is {node} != {mynode}".format(tifname=tifname, node=node, mynode = rospy.get_name() ))
+    #
+    #     # Second we check existing connections to these interfaces, and if there is something else connected, we cannot drop it
+    #     # Extracting the dict of topics that are only interface, in this process, and not from the system.
+    #     drop_list = {}
+    #     for name, nodes in if_only_list.iteritems():
+    #         pub_conns = TopicBack.get_pub_impl_connections(name)
+    #
+    #         print("FROM: {0}".format(nodes))
+    #         print("FILTERING OUT PUB CONNS NODES: {0}".format([c[1] for c in pub_conns]))
+    #         non_pubif_nodes = [n for n in nodes if n not in [c[1] for c in pub_conns]]
+    #         print("RESULT : {0}".format(non_pubif_nodes))
+    #
+    #         sub_conns = TopicBack.get_sub_impl_connections(name)
+    #
+    #         print("FROM: {0}".format([topics_if[n].get('uri', "") for n in nodes]))
+    #         print("FILTERING OUT SUB CONNS URI : {0}".format([c[1] for c in sub_conns]))
+    #         non_subif_nodes = [n for n in nodes if topics_if[n].get('uri', "") not in [c[1] for c in sub_conns]]
+    #         print("RESULT : {0}".format(non_subif_nodes))
+    #
+    #         if non_pubif_nodes or non_subif_nodes:
+    #             drop_list[name] = non_subif_nodes + non_subif_nodes
+    #
+    #     print("TOPIC EARLY DROPLIST : {0}".format(drop_list))
+    #     return drop_list
+
 
     def publish(self, msg_content):
         """
