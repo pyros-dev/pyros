@@ -159,15 +159,8 @@ class RosTopicIfPool(TransientIfPool):
         # We still need to return DiffTuples
         return topics_dt
 
-    # for use with line_profiler or memory_profiler
-    # Not working yet... need to solve multiprocess profiling issues...
-    # @profile
-    def update_delta(self, topics_dt, topic_types_dt=None):
+    def get_pub_interfaces_only_nodes(self):
 
-        # FILTERING TOPICS CREATED BY INTERFACE :
-
-        # First we get all pubs/subs interfaces
-        subs_if = TopicBack.get_all_sub_interfaces()
         pubs_if = TopicBack.get_all_pub_interfaces()
 
         # inverting mapping for nodes ON and OFF separately:
@@ -177,11 +170,20 @@ class RosTopicIfPool(TransientIfPool):
             for t, ifon in data.get('publishers', {}).iteritems():
                 if ifon:
                     keys = pubs_if_nodes_on.setdefault(t, set())
-                    keys.add(node)
+                    # we also need to count the number of instance
+                    # to avoid dropping Pub/Sub from tests or other annex code.
+                    # SPECIAL CASE : normal pyros run should have only one reference to a Pub/sub
+                    if TopicBack.get_pub_impl_ref_count(t) <= 1:
+                        keys.add(node)
                 else:
                     keys = pubs_if_nodes_off.setdefault(t, set())
                     keys.add(node)
 
+        return pubs_if_nodes_on, pubs_if_nodes_off
+
+    def get_sub_interfaces_only_nodes(self):
+
+        subs_if = TopicBack.get_all_sub_interfaces()
 
         subs_if_nodes_on = {}
         subs_if_nodes_off = {}
@@ -189,10 +191,40 @@ class RosTopicIfPool(TransientIfPool):
             for t, ifon in data.get('subscribers', {}).iteritems():
                 if ifon:
                     keys = subs_if_nodes_on.setdefault(t, set())
-                    keys.add(node)
+                    # we also need to count the number of instance
+                    # to avoid dropping Pub/Sub from tests or other annex code.
+                    # SPECIAL CASE : normal pyros run should have only one reference to a Pub/sub
+                    if TopicBack.get_sub_impl_ref_count(t) <= 1:
+                        keys.add(node)
                 else:
                     keys = subs_if_nodes_off.setdefault(t, set())
                     keys.add(node)
+
+        return subs_if_nodes_on, subs_if_nodes_off
+
+    # for use with line_profiler or memory_profiler
+    # Not working yet... need to solve multiprocess profiling issues...
+    # @profile
+    def update_delta(self, topics_dt, topic_types_dt=None):
+
+        # FILTERING TOPICS CREATED BY INTERFACE :
+
+        # First we get all pubs/subs interfaces only nodes
+        pubs_if_nodes_on, pubs_if_nodes_off = self.get_pub_interfaces_only_nodes()
+        subs_if_nodes_on, subs_if_nodes_off = self.get_sub_interfaces_only_nodes()
+
+        # TMP : a Topic interface is currently a pub AND a sub
+        # Merging interface only lists with INTERSECTION of nodes to keep ON interface only nodes
+        topics_if_nodes_on = {t: set.intersection(pub_node_set, sub_node_set)
+                              for t, pub_node_set in pubs_if_nodes_on.iteritems()
+                              for ts, sub_node_set in subs_if_nodes_on.iteritems()
+                              if t == ts}
+
+        # Merging interface only lists with INTERSECTION of nodes to keep OFF interface only nodes
+        topics_if_nodes_off = {t: set.intersection(pub_node_set, sub_node_set)
+                               for t, pub_node_set in pubs_if_nodes_off.iteritems()
+                               for ts, sub_node_set in subs_if_nodes_off.iteritems()
+                               if t == ts}
 
         print("\n")
         print(topics_dt.added)
@@ -200,7 +232,7 @@ class RosTopicIfPool(TransientIfPool):
         # Second we filter out ON interface topics from received ADDED topics list
         topics_dt_added = [
             [t[0], [n for n in t[1]
-                    if n not in pubs_if_nodes_on.get(t[0], set()) and n not in subs_if_nodes_on.get(t[0], set())
+                    if n not in topics_if_nodes_on.get(t[0], set())
                     ]
              ]
             for t in topics_dt.added
@@ -218,7 +250,9 @@ class RosTopicIfPool(TransientIfPool):
         # Second we filter out OFF interface topics from received REMOVED topics list
         topics_dt_removed = [
             [t[0], [n for n in t[1]
-                    if n not in pubs_if_nodes_off.get(t[0], set()) and n not in subs_if_nodes_off.get(t[0], set())
+                    #if n not in topics_if_nodes_off.get(t[0], set())
+                    # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
+                    # Probably better to fix flow between direct update and callback first...
                     ]
              ]
             for t in topics_dt.removed
@@ -246,8 +280,8 @@ class RosTopicIfPool(TransientIfPool):
         # print("Topics ADDED: {0}".format([s[0] for s in topics_dt.added]))
         # print("Topics GONE: {0}".format([s[0] for s in topics_dt.removed]))
 
-        print("\nTOPIC APPEARED: {topics_dt.added}".format(**locals()))
-        print("TOPIC GONE : {topics_dt.removed}".format(**locals()))
+        #print("\nTOPIC APPEARED: {topics_dt.added}".format(**locals()))
+        #print("TOPIC GONE : {topics_dt.removed}".format(**locals()))
 
         # update_services wants only names
         dt = self.transient_change_diff(
@@ -269,32 +303,22 @@ class RosTopicIfPool(TransientIfPool):
 
         # FILTERING TOPICS CREATED BY INTERFACE :
 
-        # First we get all pubs/subs interfaces
-        subs_if = TopicBack.get_all_sub_interfaces()
-        pubs_if = TopicBack.get_all_pub_interfaces()
+        # First we get all pubs/subs interfaces only nodes
+        pubs_if_nodes_on, pubs_if_nodes_off = self.get_pub_interfaces_only_nodes()
+        subs_if_nodes_on, subs_if_nodes_off = self.get_sub_interfaces_only_nodes()
 
-        # inverting mapping :
-        pubs_if_nodes_on = {}
-        pubs_if_nodes_off = {}
-        for node, data in pubs_if.iteritems():
-            for t, ifon in data.get('publishers', {}).iteritems():
-                if ifon:
-                    keys = pubs_if_nodes_on.setdefault(t, set())
-                    keys.add(node)
-                else:
-                    keys = pubs_if_nodes_off.setdefault(t, set())
-                    keys.add(node)
+        # TMP : a Topic interface is currently a pub AND a sub
+        # Merging interface only lists with INTERSECTION of nodes to keep ON interface only nodes
+        topics_if_nodes_on = {t: set.intersection(pub_node_set, sub_node_set)
+                              for t, pub_node_set in pubs_if_nodes_on.iteritems()
+                              for ts, sub_node_set in subs_if_nodes_on.iteritems()
+                              if t == ts}
 
-        subs_if_nodes_on = {}
-        subs_if_nodes_off = {}
-        for node, data in subs_if.iteritems():
-            for t, ifon in data.get('subscribers', {}).iteritems():
-                if ifon:
-                    keys = subs_if_nodes_on.setdefault(t, set())
-                    keys.add(node)
-                else:
-                    keys = subs_if_nodes_off.setdefault(t, set())
-                    keys.add(node)
+        # Merging interface only lists with INTERSECTION of nodes to keep OFF interface only nodes
+        topics_if_nodes_off = {t: set.intersection(pub_node_set, sub_node_set)
+                              for t, pub_node_set in pubs_if_nodes_off.iteritems()
+                              for ts, sub_node_set in subs_if_nodes_off.iteritems()
+                              if t == ts}
 
         #print("\n")
         #print(topics)
@@ -302,14 +326,17 @@ class RosTopicIfPool(TransientIfPool):
         # Second we filter out ALL current and previous interface topics from received topics list
         topics = [
             [t[0], [n for n in t[1]
-                     if (n not in pubs_if_nodes_on.get(t[0], set()) and  # filter out ON interfaces to avoid detecting interface only topic
-                         n not in subs_if_nodes_on.get(t[0], set()) and
-                         n not in pubs_if_nodes_off.get(t[0], set()) and  # filter out OFF interface to avoid detecting interface that has been recently dropped
-                         n not in subs_if_nodes_on.get(t[0], set()))
-                     ]
+                     if (n not in topics_if_nodes_on.get(t[0], set())  # filter out ON interfaces to avoid detecting interface only topic
+                         #n not in topics_if_nodes_off.get(t[0], set())  # filter out OFF interface to avoid re-adding interface that has been recently dropped
+                         # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
+                         # Probably better to fix flow between direct update and callback first...
+                        )
+                    ]
             ]
             for t in topics
         ]
+
+        # TODO : maybe we need to reset the param once the dropped interface have been detected as droped (to be able to start the cycle again)
 
         #print("\n")
         #print(topics)
@@ -320,7 +347,7 @@ class RosTopicIfPool(TransientIfPool):
         # First we need to reflect the external system state in internal cache
         self.reset_state(topics, topic_types)
 
-        print("\nFULL TOPICS LIST: {topics}".format(**locals()))
+        #print("\nFULL TOPICS LIST: {topics}".format(**locals()))
 
         # Second we update our interfaces based on that new system state
         # TODO : pass full topic state here to avoid having to retrieve indirectly

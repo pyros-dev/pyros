@@ -198,6 +198,7 @@ class TestRosInterface(unittest.TestCase):
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # TODO : do we need a test with subscriber ?
@@ -222,6 +223,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.removed)
@@ -271,6 +273,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and topicname not in dt.added:
                 dt = self.interface.update()
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.added)  # detected
@@ -289,6 +292,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and not topicname in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(topicname in dt.removed)
@@ -328,6 +332,7 @@ class TestRosInterface(unittest.TestCase):
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added (not exposed)
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
         # TODO : do we need a test with subscriber ?
 
         self.assertTrue(not t.timed_out)
@@ -531,6 +536,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and nonexistent_pub.resolved_name not in dt.added:
                 dt = self.interface.update()
                 self.assertEqual(dt.removed, [])  # nothing removed
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(nonexistent_pub.resolved_name in dt.added)  # added now because it just appeared
@@ -583,6 +589,7 @@ class TestRosInterface(unittest.TestCase):
         with Timeout(5) as t:
             while not t.timed_out and servicename not in dt.added:
                 dt = self.interface.update()
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # every exposed service should remain in the list of args ( in case regex match another service )
@@ -627,6 +634,7 @@ class TestRosInterface(unittest.TestCase):
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             # every added service should be in the list of args
@@ -690,6 +698,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and nonexistent_srv.resolved_name not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(nonexistent_srv.resolved_name in dt.added)  # nonexistent_srv added
@@ -806,6 +815,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and nonexistent_srv.resolved_name not in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(nonexistent_srv.resolved_name in dt.removed)  # nonexistent_srv removed
@@ -902,6 +912,7 @@ class TestRosInterface(unittest.TestCase):
         with Timeout(5) as t:
             while not t.timed_out and paramname not in dt.added:
                 dt = self.interface.update()
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         # every exposed param should remain in the list of args ( in case regex match another service )
@@ -946,6 +957,7 @@ class TestRosInterface(unittest.TestCase):
                     dt = self.interface.update()
                     self.assertEqual(dt.added, [])  # nothing added (not exposed yet)
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             # every added param should be in the list of args
@@ -1009,6 +1021,7 @@ class TestRosInterface(unittest.TestCase):
                 while not t.timed_out and paramname not in dt.added:
                     dt = self.interface.update()
                     self.assertEqual(dt.removed, [])  # nothing removed
+                    time.sleep(0.1)  # to avoid spinning out of control
 
             self.assertTrue(not t.timed_out)
             self.assertTrue(paramname in dt.added)  # nonexistent_srv added
@@ -1125,6 +1138,7 @@ class TestRosInterface(unittest.TestCase):
             while not t.timed_out and paramname not in dt.removed:
                 dt = self.interface.update()
                 self.assertEqual(dt.added, [])  # nothing added
+                time.sleep(0.1)  # to avoid spinning out of control
 
         self.assertTrue(not t.timed_out)
         self.assertTrue(paramname in dt.removed)  # nonexistent_srv removed

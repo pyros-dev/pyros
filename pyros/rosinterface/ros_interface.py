@@ -682,12 +682,11 @@ class RosInterface(BaseInterface):
         #print("SERVICE IF DT : {services_if_dt}".format(**locals()))
 
         # TODO : separate pubs and subs
-        topics = publishers
+        topics = [pl for pl in publishers]
         # TODO : passing dictionaries everywhere will avoid this mess...
-        found = False
         for s in subscribers:
             found = True
-            for t in topics:
+            for t in publishers:
                 if t[0] == s[0] and t[1] != s[1]:
                     t[1] += s[1]
                     found = True

@@ -209,7 +209,7 @@ class TopicBack(TransientIf):
                 else:
                     if_topics[node][t] = if_only
 
-        print("IF TOPICS : {0}".format(if_topics))
+        #print("IF TOPICS : {0}".format(if_topics))
 
         # inversing mapping, filtering only active interface, and checking node unicity (to match other APIs)
         inv_if_topics = {}
@@ -219,7 +219,7 @@ class TopicBack(TransientIf):
                     keys = inv_if_topics.setdefault(t, set())
                     keys.add(node)
 
-        print("REMAPPED IF TOPICS : {0}".format(inv_if_topics))
+        #print("REMAPPED IF TOPICS : {0}".format(inv_if_topics))
 
         return inv_if_topics
 
