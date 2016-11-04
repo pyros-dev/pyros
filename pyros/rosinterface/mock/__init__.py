@@ -23,6 +23,9 @@ from .mockservice import MockService, statusecho_service
 from .mocktopic import MockTopic, statusecho_topic
 
 
+# Since this mock interface follows ROS design (params, service, topics)
+# We decided to make it part of ROS interface
+
 # TODO : We should probably use mock library for this and test against it...
 
 __all__ = [

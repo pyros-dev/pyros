@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-from ..baseinterface import TransientIfPool
+from ...baseinterface import TransientIfPool
 from .mocksystem import (
     topics_available_remote, topics_available_type_remote,
 )
@@ -36,9 +36,8 @@ class MockTopicPool(TransientIfPool):
         return topic.cleanup()
 
     def update(self):
-        with self.available_lock:
-            for t in topics_available_remote:
-                self.available[t] = topics_available_type_remote.get(t)
+        for t in topics_available_remote:
+            self.available[t] = topics_available_type_remote.get(t)
 
         dt = self.transient_change_detect()
 

@@ -409,14 +409,49 @@ class TestPyrosROS(object):
 # TODO : Test appearing / disappearing ROS topics / services
 
 @nose.tools.istest
-class TestPyrosROSNoCache(TestPyrosROS):
+class TestPyrosROS1NoCache(TestPyrosROS):
 
     # Methods fixtures ( once per test method )
     def setUp(self):
-        super(TestPyrosROSNoCache, self).setUp()
+        super(TestPyrosROS1NoCache, self).setUp()
 
     def tearDown(self):
-        super(TestPyrosROSNoCache, self).tearDown()
+        super(TestPyrosROS1NoCache, self).tearDown()
+
+
+# Testing with Connection Cache
+@nose.tools.istest
+class TestPyrosROSCache(TestPyrosROS):
+
+    def setUp(self):
+        # we need to speed fast enough for the tests to not fail on timeout...
+        rospy.set_param('/connection_cache/spin_freq', 2)  # 2 Hz
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+                                                         remap_args=[('~list', '/pyros_ros/connections_list'),
+                                                                     ('~diff', '/pyros_ros/connections_diff'),
+                                                                     ])
+        try:
+            self.connection_cache_proc = self.launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
+
+        node_api = None
+        with Timeout(5) as t:
+            while not t.timed_out and node_api is None:
+                node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
+
+        assert node_api is not None  # make sure the connection cache node is started before moving on.
+
+        super(TestPyrosROSCache, self).setUp(enable_cache=True)
+
+    def tearDown(self):
+        super(TestPyrosROSCache, self).tearDown()
+
+        self.connection_cache_proc.stop()
+        while self.connection_cache_proc.is_alive():
+            time.sleep(0.2)  # waiting for cache node to die
+        assert not self.connection_cache_proc.is_alive()
+        time.sleep(1)  # TODO : investigate : we shouldnt need this
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-from ..baseinterface import TransientIfPool
+from ...baseinterface import TransientIfPool
 from .mocksystem import (
     services_available_remote, services_available_type_remote,
 )
@@ -36,12 +36,9 @@ class MockServicePool(TransientIfPool):
     def TransientCleaner(self, service):  # the service class cleanup implementation
         return service.cleanup()
 
-    # Mock functions to force changes in interface local cache.
-
     def update(self):
-        with self.available_lock:
-            for s in services_available_remote:
-                self.available[s] = services_available_type_remote.get(s)
+        for s in services_available_remote:
+            self.available[s] = services_available_type_remote.get(s)
 
         dt = self.transient_change_detect()
 

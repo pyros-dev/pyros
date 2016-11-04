@@ -1,22 +1,7 @@
 from __future__ import absolute_import
 
-import logging
-import six
-import sys
-import threading
-import collections
-import re
-import abc
-from functools import partial
 
-from ..baseinterface.regex_tools import regexes_match_sublist
-from ..baseinterface import TransientIfPool
-from .param_if_pool import RosParamIfPool
-from .service_if_pool import RosServiceIfPool
-from .topic_if_pool import RosTopicIfPool
-
-
-#TODO Entity Component System design for interface loop. cf https://pypi.python.org/pypi/esper (py3 + py2 in fork)
+# TODO Entity Component System design for interface loop. cf https://pypi.python.org/pypi/esper (py3 + py2 in fork)
 # Entities are transients (ex : for ROS : pubs, subs, svcs, params, and more can be added),
 # Systems store logic about when/how a transient should be represented in the interface.
 # GOALS : clarity, testability and flexibility
@@ -26,7 +11,6 @@ class BaseInterface(object):
     BaseInterface.
     Assumption : we only deal with absolute names here. The users should resolve them
     """
-    __metaclass__ = abc.ABCMeta
 
     def get_svc_list(self):  # function returning all services available on the system
         return self.services_pool.get_transients_available()
@@ -74,16 +58,16 @@ class BaseInterface(object):
     def ParamCleaner(self, param):  # the param class implementation
         return self.params_pool.TransientCleaner(param)
 
-    def __init__(self, services, topics, params):
+    def __init__(self, services_pool, topics_pool, params_pool):
         """
         Initializes the interface instance, to expose services, topics, and params
         """
         # Current transients exposed, i.e. those which are
         # active in the system.
 
-        self.params_pool = RosParamIfPool(params)
-        self.services_pool = RosServiceIfPool(services)
-        self.topics_pool = RosTopicIfPool(topics)
+        self.params_pool = params_pool
+        self.services_pool = services_pool
+        self.topics_pool = topics_pool
 
     # REQUESTED
     @property
@@ -134,36 +118,35 @@ class BaseInterface(object):
     def expose_params(self, prm_regex):
         return self.params_pool.expose_transients_regex(prm_regex)
 
+    #CHANGE DIFF
+    def services_change_diff(self, appeared, gone):
+        return self.services_pool.transient_change_diff(appeared, gone)
 
-    # def update_on_diff(self, services_dt, topics_dt, params_dt):
-    #
-    #     sdt = self.update_services(add_names=[m for m in regexes_match_sublist(self.services_args, services_dt.added)],
-    #                                remove_names=services_dt.removed
-    #                                )
-    #     tdt = self.update_topics(add_names=[m for m in regexes_match_sublist(self.topics_args, topics_dt.added)],
-    #                              remove_names=topics_dt.removed
-    #                              )
-    #     pdt = self.update_params(add_names=[m for m in regexes_match_sublist(self.params_args, params_dt.added)],
-    #                              remove_names=params_dt.removed
-    #                              )
-    #
-    #     return DiffTuple(
-    #         added=sdt.added+tdt.added+pdt.added,
-    #         removed=sdt.removed+tdt.removed+pdt.removed
-    #     )
-    #
-    # def update(self):
-    #     """
-    #     :return: the difference between the transients recently added/removed
-    #     """
-    #     sdt = self.services_change_detect()
-    #     tdt = self.topics_change_detect()
-    #     pdt = self.params_change_detect()
-    #
-    #     return DiffTuple(
-    #         added=sdt.added+tdt.added+pdt.added,
-    #         removed=sdt.removed+tdt.removed+pdt.removed
-    #     )
+    def topics_change_diff(self, appeared, gone):
+        return self.topics_pool.transient_change_diff(appeared, gone)
+
+    def params_change_diff(self, appeared, gone):
+        return self.params_pool.transient_change_diff(appeared, gone)
+
+    #CHANGE DETECT
+    def services_change_detect(self):
+        return self.services_pool.transient_change_detect()
+
+    def topics_change_detect(self):
+        return self.topics_pool.transient_change_detect()
+
+    def param_change_detect(self):
+        return self.params_pool.transient_change_detect()
+
+    #UPDATE
+    def update_services(self, add_names, remove_names):
+        return self.services_pool.update_transients(add_names, remove_names)
+
+    def update_topics(self, add_names, remove_names):
+        return self.topics_pool.update_transients(add_names, remove_names)
+
+    def update_params(self, add_names, remove_names):
+        return self.params_pool.update_transients(add_names, remove_names)
 
     # TODO : "wait_for_it" methods that waits for hte detection of a topic/service on the system
     # TODO : Should return a future so use can decide to wait on it or not

@@ -26,6 +26,9 @@ _logger = logging.getLogger(__name__)
 
 from ..baseinterface import DiffTuple
 from .baseinterface import BaseInterface
+from .param_if_pool import RosParamIfPool
+from .service_if_pool import RosServiceIfPool
+from .topic_if_pool import RosTopicIfPool
 
 from .service import ServiceBack, ServiceTuple
 from .topic import TopicBack, TopicTuple
@@ -97,7 +100,11 @@ class RosInterface(BaseInterface):
         )
 
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
-        super(RosInterface, self).__init__(services or [], topics or [], params or [])
+        params_pool = RosParamIfPool(params)
+        services_pool = RosServiceIfPool(services)
+        topics_pool = RosTopicIfPool(topics)
+
+        super(RosInterface, self).__init__(services_pool, topics_pool, params_pool)
 
         # connecting to the master via proxy object
         self._master = rospy.get_master()
@@ -511,7 +518,5 @@ class RosInterface(BaseInterface):
             removed=connection_cache_marshall(lost_system_state) if lost_system_state is not None else None
         ))
 
-
-BaseInterface.register(RosInterface)
 
 

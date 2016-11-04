@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import deque, namedtuple
 
-from ..baseinterface import TransientIf
+from ...baseinterface import TransientIf
 
 ServiceType = namedtuple("ServiceType", "reqtype resptype")
 

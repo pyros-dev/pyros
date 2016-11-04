@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
-import pyzmp
-# python protocol should be usable without ROS.
-from .basenode import PyrosBase
-from .mockinterface import MockInterface
-
+from .rosinterface.mock import MockInterface
 from . import config
+from .basenode import PyrosBase
 
 
 class PyrosMock(PyrosBase):

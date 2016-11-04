@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
-from ..baseinterface import TransientIf
+from ...baseinterface import TransientIf
 
 TopicType = namedtuple("TopicType", "msgtype")
 

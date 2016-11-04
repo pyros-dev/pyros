@@ -22,6 +22,8 @@ from .regex_tools import regex_match_sublist, regexes_match_sublist, find_first_
 # Systems store logic about when/how a transient should be represented in the interface.
 # GOALS : clarity, testability and flexibility
 class TransientIfPool(object):
+    # TODO : split available into TransientPool
+    # TODO : have update and update_delta managed here in generic way...
     """
 
     The TransientIfPool class maintains :

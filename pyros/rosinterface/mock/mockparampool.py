@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-from ..baseinterface import TransientIfPool
+from ...baseinterface import TransientIfPool
 from .mocksystem import (
     params_available_remote, params_available_type_remote,
 )
@@ -36,10 +36,8 @@ class MockParamPool(TransientIfPool):
         return param.cleanup()
 
     def update(self):
-
-        with self.available_lock:
-            for p in params_available_remote:
-                self.available[p] = params_available_type_remote.get(p)
+        for p in params_available_remote:
+            self.available[p] = params_available_type_remote.get(p)
 
         dt = self.transient_change_detect()
 
