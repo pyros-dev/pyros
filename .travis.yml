@@ -73,7 +73,7 @@ install:
   - docker exec -ti ${CONTAINER_NAME} apt-get update
   - docker exec -ti ${CONTAINER_NAME} rosdep update
   # TMP Patch because rosdep doesnt declare a dependency to sudo yet (2016-08-25) and it doesnt come with xenial
-  - docker exec -ti ${CONTAINER_NAME} apt-get install sudo
+  - docker exec -ti ${CONTAINER_NAME} apt-get install sudo -y
   # Install python and required packages on system if needed
   - docker exec -ti ${CONTAINER_NAME} apt-get install python${PYTHON} virtualenvwrapper -y
   # copying local clone to the running container (volume is currently broken)
@@ -81,7 +81,7 @@ install:
   # Installing package dependencies
   - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
   # Installing OPTIONAL package dependencies if enabled for this build
-  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-indigo-rocon-python-comms; fi
+  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-indigo-rocon-python-comms -y; fi
   # getting virtualenv setup with dependencies if we need to work with pure python setup
   - if [ ! -z ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
 
