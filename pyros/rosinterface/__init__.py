@@ -39,6 +39,9 @@ except ImportError:
 from .topic import TopicBack
 from .service import ServiceBack
 from .param import ParamBack
+from .param_if_pool import RosParamIfPool
+from .service_if_pool import RosServiceIfPool
+from .topic_if_pool import RosTopicIfPool
 from .baseinterface import BaseInterface
 from .ros_interface import RosInterface
 

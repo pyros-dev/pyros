@@ -70,6 +70,26 @@ class RosTopicIfPool(TransientIfPool):
         return topic.cleanup()
 
     ## bwcompat
+    # REQUESTED
+    @property
+    def topics_args(self):
+        return self.transients_args
+
+    # AVAILABLE
+    @property
+    def topics_available(self):
+        return self.available
+
+    # INTERFACED
+    @property
+    def topics(self):
+        return self.transients
+
+    # EXPOSE
+    def expose_topics(self, tpc_regex):
+        return self.expose_transients_regex(tpc_regex)
+
+
     def get_topic_list(self):  # function returning all services available on the system
         return self.get_transients_available
 
@@ -207,7 +227,7 @@ class RosTopicIfPool(TransientIfPool):
     # @profile
     def update_delta(self, topics_dt, topic_types_dt=None):
 
-        # FILTERING TOPICS CREATED BY INTERFACE :
+        # FILTERING OUT TOPICS CREATED BY INTERFACE :
 
         # First we get all pubs/subs interfaces only nodes
         pubs_if_nodes_on, pubs_if_nodes_off = self.get_pub_interfaces_only_nodes()
@@ -257,6 +277,19 @@ class RosTopicIfPool(TransientIfPool):
              ]
             for t in topics_dt.removed
             ]
+
+        # Second we merge in ON interface topics into received REMOVED topics list
+        # This is useful to drop topics interfaces that are satisfying themselves...
+        for t, nodeset in pubs_if_nodes_on.iteritems():
+            # note manipulating dictionaries will allow us to get rid of this mess
+            found = False
+            for td in topics_dt_removed:
+                if td[0] == t:
+                    td[1] += nodeset
+                    found = True
+                    break
+            if not found:
+                topics_dt_removed.append([t, list(nodeset)])
 
         # filtering out topics with no endpoints
         topics_dt_removed = [[tl[0], tl[1]] for tl in topics_dt_removed if tl[1]]

@@ -68,11 +68,31 @@ class RosServiceIfPool(TransientIfPool):
         return service.cleanup()
 
     ## bwcompat
+    # REQUESTED
+    @property
+    def services_args(self):
+        return self.transients_args
+
+
+    # AVAILABLE
+    @property
+    def services_available(self):
+        return self.available
+
+    # INTERFACED
+    @property
+    def services(self):
+        return self.transients
+
+    # EXPOSE
+    def expose_services(self, svc_regex):
+        return self.expose_transients_regex(svc_regex)
+
     def get_svc_available(self):  # function returning all services available on the system
         return self.get_transients_available
 
     def service_type_resolver(self, service_name):  # function resolving the type of a service
-        return self.transient_type_resolver(self, service_name)
+        return self.transient_type_resolver(service_name)
 
 
     def ServiceMaker(self, service_name, service_type):  # the service class implementation

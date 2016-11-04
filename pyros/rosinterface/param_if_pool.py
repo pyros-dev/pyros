@@ -68,6 +68,25 @@ class RosParamIfPool(TransientIfPool):
         return param.cleanup()
 
     ##bwcompat
+    # REQUESTED
+    @property
+    def params_args(self):
+        return self.transients_args
+
+    # AVAILABLE
+    @property
+    def params_available(self):
+        return self.available
+
+    # INTERFACED
+    @property
+    def params(self):
+        return self.transients
+
+    # EXPOSE
+    def expose_params(self, prm_regex):
+        return self.expose_transients_regex(prm_regex)
+
     def get_param_available(self):  # function returning all params available on the system
         return self.get_transients_available()
 

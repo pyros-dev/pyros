@@ -44,8 +44,10 @@ if (CATKIN_ENABLE_TESTING)
     # Note : using pyros-setup should fix this...
     catkin_add_nosetests(pyros/rosinterface/rostests/testService.py)
     catkin_add_nosetests(pyros/rosinterface/rostests/testStringTopic.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/test_param_if_pool.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/test_service_if_pool.py)
+    catkin_add_nosetests(pyros/rosinterface/rostests/test_topic_if_pool.py)
     catkin_add_nosetests(pyros/rosinterface/rostests/testRosInterface.py)
-    catkin_add_nosetests(pyros/rosinterface/rostests/testRosInterfaceCache.py)
     # TMP : Disabled because it can hang sometimes on jenkins.
     #catkin_add_nosetests(pyros/rosinterface/rostests/testPyrosROS.py)
     # Running with nose because rostest fails ( not sure why yet )

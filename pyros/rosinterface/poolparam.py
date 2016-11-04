@@ -147,6 +147,8 @@ class PoolParam(object):
 
         # Inspect params to find who also interface this publisher
         # TODO : use hte param internal interface instead of doing a request here...
+        # TODO : or maybe NOT ! The synchronicity of this call is important to know the current state of the interface
+        # TODO : getting it from cache suddenly break this mandatory synchronous access...
         pyros_if = rospy.get_param('/pyros', {})
         if_map = {}
         for k, v in pyros_if.iteritems():
