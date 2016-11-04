@@ -19,17 +19,36 @@ env:
   - ROS_DISTRO=indigo PYTHON=2.7
   - ROS_DISTRO=indigo PYTHON=3.4
 
+  - ROS_DISTRO=indigo ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - ROS_DISTRO=indigo ROS_FLOW=install OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=indigo PYTHON=2.7 OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=indigo PYTHON=3.4 OPTION_ROCON_CACHE=ON
+
   - ROS_DISTRO=jade ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
   - ROS_DISTRO=jade ROS_FLOW=install
   - ROS_DISTRO=jade PYTHON=2.7
   - ROS_DISTRO=jade PYTHON=3.4
 
+  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
+
   - ROS_DISTRO=kinetic ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
   - ROS_DISTRO=kinetic ROS_FLOW=install
   - ROS_DISTRO=kinetic PYTHON=2.7
   - ROS_DISTRO=kinetic PYTHON=3.4
+
+  - ROS_DISTRO=kinetic ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+  - ROS_DISTRO=kinetic ROS_FLOW=install OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=kinetic PYTHON=2.7 OPTION_ROCON_CACHE=ON
+  - ROS_DISTRO=kinetic PYTHON=3.4 OPTION_ROCON_CACHE=ON
+
   # TODO : pypy + pypy3
 
 
@@ -61,7 +80,9 @@ install:
   - docker cp . ${CONTAINER_NAME}:/git_clone
   # Installing package dependencies
   - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
-  # getting virtualenv setup with dependencies is we need to work with pure python setup
+  # Installing OPTIONAL package dependencies if enabled for this build
+  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-indigo-rocon-python-comms; fi
+  # getting virtualenv setup with dependencies if we need to work with pure python setup
   - if [ ! -z ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
 
 

@@ -83,8 +83,6 @@ from std_srvs.srv import Empty as EmptySrv, Trigger
 
 from pyros.rosinterface.rostests import Timeout
 
-# Necessary for test with cache
-import rocon_python_comms
 
 # useful test tools
 from pyros_utils import rostest_nose
@@ -539,11 +537,8 @@ class TestRosInterfaceCache(TestRosServiceIfPool):
     def get_system_state(self):
         # Note getting the system state via this interface, there is no need for callback
         publishers, subscribers, services = self.connection_cache.getSystemState()
-        try:
-            service_types = self.connection_cache.getServiceTypes()
-            # handling fallback here since master doesnt have the API
-        except rocon_python_comms.UnknownSystemState as exc:
-            service_types = []
+        service_types = self.connection_cache.getServiceTypes()
+        # handling fallback here since master doesnt have the API
 
         return services, service_types
 
