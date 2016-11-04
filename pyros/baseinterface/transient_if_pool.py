@@ -10,7 +10,7 @@ import abc
 from functools import partial
 
 # module wide to be pickleable
-from decorator import contextmanager
+from contextlib import contextmanager
 
 DiffTuple = collections.namedtuple("DiffTuple", " added removed ")
 
