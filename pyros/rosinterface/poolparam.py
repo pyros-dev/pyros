@@ -3,7 +3,8 @@ from __future__ import absolute_import
 import time
 
 import roslib
-import rospy
+
+from . import rospy_safe as rospy
 import rosnode
 
 from importlib import import_module

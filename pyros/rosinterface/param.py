@@ -1,6 +1,7 @@
 from __future__ import absolute_import
+from __future__ import print_function
 
-import rospy
+from . import rospy_safe as rospy
 from collections import OrderedDict
 
 from ..baseinterface import TransientIf

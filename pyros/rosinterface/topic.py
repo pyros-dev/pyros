@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import time
 
 import roslib
-import rospy
+from . import rospy_safe as rospy
 
 from importlib import import_module
 from collections import deque, OrderedDict

@@ -7,7 +7,7 @@ from itertools import ifilter
 import logging
 
 import pyros_utils
-import rospy
+from . import rospy_safe as rospy
 import rosservice, rostopic, rosparam
 
 import re
