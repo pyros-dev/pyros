@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
+from collections import OrderedDict
+from importlib import import_module
 
 import roslib
-from . import rospy_safe as rospy
 
-from importlib import import_module
-from collections import OrderedDict
-
-from ..baseinterface import TransientIf
+from .api import rospy_safe as rospy
 from .message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException, NonexistentFieldException
+from ..baseinterface import TransientIf
 
 
 # outputs message structure as string (useful ?)

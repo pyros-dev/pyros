@@ -18,10 +18,8 @@ _logger = logging.getLogger(__name__)
 # This is much simpler since we don't need any other configuration at import time.
 # Extra Pyros configuration can be passed at runtime directly to the interface.
 
-# This is not related with import trickery to get Pyros dependencies,
-# it only concerns ROS interface dependencies (might be imported separately...)
 try:
-    import rospy  # early except to prevent unintentional workaround in all modules here
+    from .api import rospy_safe  # early except to prevent unintentional workaround in all modules here
     # We ideally should add all dependencies imported by the modules in this subpackage...
     # We should be fine here when running from deb.
     # But when running from python we have to except here to get environment setup properly in child process.
@@ -34,7 +32,7 @@ except ImportError:
     # This will load the pyros_setup configuration from the environment
     pyros_setup.configurable_import().configure().activate()
     # validate we can load ROS modules. Note other variables (like ROS_PACKAGE_PATH) should also be available.
-    import rospy
+    from .api import rospy_safe
 
 from .topic import TopicBack
 from .service import ServiceBack

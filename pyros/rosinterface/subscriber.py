@@ -1,15 +1,9 @@
 from __future__ import absolute_import
 
-import time
+from collections import deque
 
-import roslib
-from . import rospy_safe as rospy
-
-from importlib import import_module
-from collections import deque, OrderedDict
-
-
-from .message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException
+from .api import rospy_safe as rospy
+from .message_conversion import extract_values, FieldTypeMismatchException
 from .poolparam import PoolParam
 from .topicbase import TopicBase
 

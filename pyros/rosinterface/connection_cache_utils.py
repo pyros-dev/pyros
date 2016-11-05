@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-import rospy
+from .api import rospy_safe as rospy
 
 # create logger
 _logger = logging.getLogger(__name__)

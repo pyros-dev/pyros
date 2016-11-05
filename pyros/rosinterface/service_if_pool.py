@@ -1,24 +1,11 @@
 from __future__ import absolute_import
 
-import os
-from collections import namedtuple, MutableMapping
-from copy import deepcopy, copy
-from itertools import ifilter
 import logging
+from itertools import ifilter
 
-import pyros_utils
+import rosservice
 
-from . import rospy_safe as rospy
-import rosservice, rostopic, rosparam
-
-import re
-import ast
-import socket
-import threading
-import Queue
-
-import time
-from ..baseinterface.regex_tools import regexes_match_sublist
+from .api import rospy_safe as rospy
 
 # create logger
 _logger = logging.getLogger(__name__)
@@ -26,7 +13,6 @@ _logger = logging.getLogger(__name__)
 # the user of pyros should configure handlers
 
 from ..baseinterface import TransientIfPool
-from ..baseinterface import DiffTuple
 
 from .service import ServiceBack, ServiceTuple
 
