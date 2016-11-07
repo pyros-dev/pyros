@@ -124,6 +124,7 @@ class RosParamIfPool(TransientIfPool):
         CAREFUL : this can be called from another thread (subscriber callback)
         """
 
+        computed_params_dt = DiffTuple([], [])
         for p in params_dt.added:
             pt = ParamTuple(name=p, type=None)
             if pt.name in self.available:
@@ -131,13 +132,15 @@ class RosParamIfPool(TransientIfPool):
                     self.available[pt.name].type = pt.type
             else:
                 self.available[pt.name] = pt
+                computed_params_dt.added.append(pt.name)
 
         for p in params_dt.removed:
             pt = ParamTuple(name=p, type=None)
             if pt.name in self.available:
                 self.available.pop(pt.name, None)
+                computed_params_dt.removed.append(pt.name)
 
-        return params_dt
+        return computed_params_dt
 
 
     # for use with line_profiler or memory_profiler
@@ -146,9 +149,9 @@ class RosParamIfPool(TransientIfPool):
     def update_delta(self, params_dt):
 
         # First we need to reflect the external system state in internal cache
-        params_dt = self.compute_state(params_dt)
+        computed_params_dt = self.compute_state(params_dt)
 
-        if params_dt.added or params_dt.removed:
+        if computed_params_dt.added or computed_params_dt.removed:
             _logger.debug(
                 rospy.get_name() + " Params Delta {params_dt}".format(**locals()))
 
@@ -157,8 +160,8 @@ class RosParamIfPool(TransientIfPool):
 
         # Second we update our interfaces based on that system state difference
         dt = self.transient_change_diff(
-            transient_appeared=[p[0] for p in params_dt.added],
-            transient_gone=[p[0] for p in params_dt.removed]
+            transient_appeared=computed_params_dt.added,
+            transient_gone=computed_params_dt.removed
         )
 
         if dt.added or dt.removed:

@@ -16,8 +16,8 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 # Unit test import ( will emulate ROS setup if needed )
 import time
 
-from pyros.rosinterface import TopicBack
-
+from pyros.rosinterface.publisher_if import PublisherBack
+from pyros.rosinterface.message_conversion import get_msg, get_msg_dict, populate_instance, extract_values, FieldTypeMismatchException
 
 # ROS imports should now work from ROS or from python (without ROS env setup)
 import rospy
@@ -100,7 +100,7 @@ def teardown_module():
 
 #TODO : split this in publisher and subscriber testing...
 class TestStringTopic(unittest.TestCase):
-    """ Testing the TopicBack class with String message """
+    """ Testing the PublisherBack class with String message """
     # misc method
     def logPoint(self):
         currentTest = self.id().split('.')[-1]
@@ -139,15 +139,17 @@ class TestStringTopic(unittest.TestCase):
     def topic_wait_type(self, topic_name, retries=5, retrysleep=1):
         resolved_topic_name = rospy.resolve_name(topic_name)
         topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
+        topic_class, _, _ = rostopic.get_topic_class(resolved_topic_name)
         retry = 0
-        while not topic_type and retry < 5:
+        while not topic_type and not topic_class and retry < 5:
             print('Topic {topic} not found. Retrying...'.format(topic=resolved_topic_name))
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
             topic_type, _, _ = rostopic.get_topic_type(resolved_topic_name)
+            topic_class, _, _ = rostopic.get_topic_class(resolved_topic_name)
         if retry >= retries:
             self.fail("Topic {0} not found ! Failing.".format(resolved_topic_name))
-        return topic_type
+        return topic_type, topic_class
 
     def setUp(self):
         self.logPoint()
@@ -180,22 +182,25 @@ class TestStringTopic(unittest.TestCase):
             self.logPoint()
 
             # looking for the topic ( similar code than ros_interface.py )
-            pub_topic_type = self.topic_wait_type(self.pub_topic_name)
-            echo_topic_type = self.topic_wait_type(self.echo_topic_name)
+            _, pub_topic_class = self.topic_wait_type(self.pub_topic_name)
+            echo_topic_type, _ = self.topic_wait_type(self.echo_topic_name)
 
             # exposing the topic for testing here
-            self.pub_topic = TopicBack(self.pub_topic_name, pub_topic_type)
-            self.echo_topic = TopicBack(self.echo_topic_name, echo_topic_type)
+            self.pub_topic = rospy.Publisher(self.pub_topic_name, pub_topic_class, queue_size=1)
+            self.echo_topic = PublisherBack(self.echo_topic_name, echo_topic_type)
 
             # Making sure the topic interface is ready to be used just after creation
-            subs_connected = self.pub_topic.if_pub.topic.get_num_connections() > 0  # no local subs
-            assert_true(subs_connected)
-            pubs_connected = self.echo_topic.if_sub.topic.get_num_connections() > 0  # no local pub
+            pubs_connected = len(self.echo_topic.pool.get_impl_connections(self.echo_topic.name)) > 0  # no local pub
             assert_true(pubs_connected)
 
             # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))
-            assert_true(self.pub_topic.publish({'data': self.test_message}))
+            msg = pub_topic_class()
+            # TODO : better serialization
+            populate_instance({'data': self.test_message}, msg)
+            if isinstance(msg, pub_topic_class):
+                self.pub_topic.publish(msg)  # This should return False if publisher not fully setup yet
+                # CAREFUL the return spec of rospy's publish is not consistent
 
             print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.echo_topic.name))
             msg = self.msg_wait({'data': self.test_message}, self.echo_topic)

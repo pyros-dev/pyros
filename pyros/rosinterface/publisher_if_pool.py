@@ -29,7 +29,7 @@ from ..baseinterface import TransientIfPool
 from ..baseinterface import DiffTuple
 
 from .topicbase import TopicTuple
-from .publisher import PublisherBack
+from .publisher_if import PublisherBack
 
 try:
     import rocon_python_comms
@@ -44,7 +44,8 @@ class RosPublisherIfPool(TransientIfPool):
     """
     def __init__(self, publishers=None):
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
-        super(RosPublisherIfPool, self).__init__(publishers, transients_desc="publishers")
+        # CAREFUL publisher interfaces are subscribers
+        super(RosPublisherIfPool, self).__init__(publishers, transients_desc="subscribers")
 
     def get_transients_available(self):  # function returning all services available on the system
         return self.available

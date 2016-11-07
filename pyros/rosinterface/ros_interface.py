@@ -223,38 +223,14 @@ class RosInterface(BaseInterface):
                 if backedup_complete_cb_ss is not None:
                     # using the message backed up after latest diff process
                     cb_ss = backedup_complete_cb_ss
-                    backedup_complete_cb_ss = None
+                    backedup_complete_cb_ss = None  #CAREFUL : untested...
                 else:
                     cb_ss = self.cb_ss.get_nowait()
                 print("CC MSG !")  # if we didn't except on empty queue, so we got a message
 
             except Queue.Empty:
-                # we re NOT done here, we might still need to update params
-                params_if_dt = self.params_pool.update_delta(params_dt=params_dt)
 
-                topic_types_dt = DiffTuple(
-                    added=[],
-                    removed=[]  # shouldnt matter
-                )
-
-                services_if_dt = DiffTuple([], [])
-                # TMP : NOT dropping topics early (just be patient and wait for the cache callback to come...)
-                # topics_if_dt = self.topics_pool.update_delta(topics_dt, topic_types_dt)
-                subscribers_if_dt = DiffTuple([], [])
-                publishers_if_dt = DiffTuple([], [])
-
-                # and here we need to return to not do the normal full update
-                dt = DiffTuple(
-                    added=params_if_dt.added + services_if_dt.added + subscribers_if_dt.added + publishers_if_dt.added,
-                    removed=params_if_dt.removed + services_if_dt.removed + subscribers_if_dt.removed + publishers_if_dt.removed
-                )
-
-                self._debug_logger.debug("""
-                    ROS INTERFACE DIFF ADDED : {dt.added}
-                    ROS INTERFACE DIFF REMOVED : {dt.removed}
-                """.format(**locals()))
-
-                return dt
+                return self.update_nodelta(params_dt)
 
             else:
                 # if there was no change,
@@ -264,7 +240,8 @@ class RosInterface(BaseInterface):
                     publishers = cb_ss.complete.get('publishers', [])
                     subscribers = cb_ss.complete.get('subscribers', [])
                     services = cb_ss.complete.get('services', [])
-                    params = cb_ss.complete.get('params', params)
+                    # NOT YET...
+                    #params = cb_ss.complete.get('params', params)
                     topic_types = cb_ss.complete.get('topic_types', [])
                     service_types = cb_ss.complete.get('service_types', [])
 
@@ -299,14 +276,18 @@ class RosInterface(BaseInterface):
                     added_publishers = cb_ss.added.get('publishers', [])
                     added_subscribers = cb_ss.added.get('subscribers', [])
                     added_services = cb_ss.added.get('services', [])
-                    added_params = cb_ss.added.get('params', params_dt.added)
+                    # NOT YET
+                    #added_params = cb_ss.added.get('params', params_dt.added)
+                    added_params = params_dt.added
                     added_topic_types = cb_ss.added.get('topic_types', [])
                     added_service_types = cb_ss.added.get('service_types', [])
 
                     removed_publishers = cb_ss.removed.get('publishers', [])
                     removed_subscribers = cb_ss.removed.get('subscribers', [])
                     removed_services = cb_ss.removed.get('services', [])
-                    removed_params = cb_ss.removed.get('params', params_dt.removed)
+                    # NOT YET
+                    #removed_params = cb_ss.removed.get('params', params_dt.removed)
+                    removed_params = params_dt.removed
                     removed_topic_types = cb_ss.removed.get('topic_types', [])
                     removed_service_types = cb_ss.removed.get('service_types', [])
 
@@ -331,7 +312,7 @@ class RosInterface(BaseInterface):
             # print("UPDATE FULLSTATE")
             # return self.update_fullstate(publishers, subscribers, services, params, topic_types, service_types)
             # ==> We need to wait for next message...
-            return DiffTuple([], [])
+            return self.update_nodelta(params_dt)
 
     def update_fullstate(self, publishers, subscribers, services, params, topic_types, service_types):
         # NORMAL full update
@@ -372,6 +353,39 @@ class RosInterface(BaseInterface):
                     ROS INTERFACE ADDED : {dt.added}
                     ROS INTERFACE REMOVED : {dt.removed}
                 """.format(**locals()))
+
+        return dt
+
+    def update_nodelta(self, params_dt):
+        """
+        Running updates of nothing (workaround until params are handled by cache)
+        :param params_dt:
+        :return:
+        """
+        # we re NOT done here, we might still need to update params
+        params_if_dt = self.params_pool.update_delta(params_dt=params_dt)
+
+        topic_types_dt = DiffTuple(
+            added=[],
+            removed=[]  # shouldnt matter
+        )
+
+        services_if_dt = DiffTuple([], [])
+        # TMP : NOT dropping topics early (just be patient and wait for the cache callback to come...)
+        # topics_if_dt = self.topics_pool.update_delta(topics_dt, topic_types_dt)
+        subscribers_if_dt = DiffTuple([], [])
+        publishers_if_dt = DiffTuple([], [])
+
+        # and here we need to return to not do the normal full update
+        dt = DiffTuple(
+            added=params_if_dt.added + services_if_dt.added + subscribers_if_dt.added + publishers_if_dt.added,
+            removed=params_if_dt.removed + services_if_dt.removed + subscribers_if_dt.removed + publishers_if_dt.removed
+        )
+
+        self._debug_logger.debug("""
+                            ROS INTERFACE DIFF ADDED : {dt.added}
+                            ROS INTERFACE DIFF REMOVED : {dt.removed}
+                        """.format(**locals()))
 
         return dt
 

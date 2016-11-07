@@ -14,7 +14,7 @@ from .poolparam import PoolParam
 from .topicbase import TopicBase
 
 
-class PublisherBack(TopicBase):
+class SubscriberBack(TopicBase):
     """
     PublisherBack is the class handling conversion from Python to ROS Publisher
     Requirement : Only one publisherBack per actual ROS Topic.
@@ -36,27 +36,23 @@ class PublisherBack(TopicBase):
 
     def __init__(self, topic_name, topic_type):
 
-        super(PublisherBack, self).__init__(topic_name, topic_type)
+        super(SubscriberBack, self).__init__(topic_name, topic_type)
         # Is 1 a good choice ? # TODO : check which value is best here...
 
         rospy.loginfo(
-            rospy.get_name() + " Pyros.rosinterface : Adding publisher {name} {typename}".format(
+            rospy.get_name() + " Pyros.rosinterface : Adding publisher interface {name} {typename}".format(
                 name=self.name, typename=self.rostype))
 
         self.topic = self.pool.acquire(self.name, self.rostype, queue_size=1)
         # CAREFUL ROS publisher doesnt guarantee messages to be delivered
         # stream-like design spec -> loss is acceptable.
 
-        # CAREFUL : pubs and subs are now created separately.
-        # So there is no way to verify that the publisher is actually properly created just yet,
-        # as there might be no subscriber on this topic yet.
-        # TODO : test this ! self.topic.impl.connections get populated when pub comes online => need separate pub and sub unittests
-        # start = time.time()
-        # timeout = 1
-        # # TMP
-        # while time.time() - start < timeout:
-        #     print("PUB IMPL ", vars(self.pub.impl.connections))
-        #     time.sleep(0.2)
+        # Make sure we get at least one connection before returning
+        start = time.time()
+        timeout = 1
+        while time.time() - start < timeout:
+            print("publishers connected : ", self.pool.get_impl_connections(self.name))
+            time.sleep(0.2)
 
     def cleanup(self):
         """
@@ -65,12 +61,12 @@ class PublisherBack(TopicBase):
         """
         # TODO : should we do this in del method instead ? to allow reuse until garbage collection actually happens...
         rospy.loginfo(
-            rospy.get_name() + " Pyros.rosinterface : Removing publisher {name} {typename}".format(
+            rospy.get_name() + " Pyros.rosinterface : Removing publisher interface {name} {typename}".format(
                 name=self.name, typename=self.rostype))
 
         self.pool.release(self.topic)
 
-        super(PublisherBack, self).cleanup()
+        super(SubscriberBack, self).cleanup()
 
     def asdict(self):
         """
@@ -79,7 +75,7 @@ class PublisherBack(TopicBase):
         We are not interested in pickleing the whole class with Subscriber and Publisher
         :return:
         """
-        d = super(PublisherBack, self). asdict()
+        d = super(SubscriberBack, self). asdict()
         d['subscribers'] = self.topic.impl.get_stats_info()
         return d
 
