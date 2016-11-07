@@ -178,7 +178,7 @@ class RosPublisherIfPool(TransientIfPool):
         pubs_if_nodes_on = {}
         pubs_if_nodes_off = {}
         for node, data in pubs_if.iteritems():
-            for t, ifon in data.get('publishers', {}).iteritems():
+            for t, ifon in data.get(self.transients_desc, {}).iteritems():
                 if ifon:
                     keys = pubs_if_nodes_on.setdefault(t, set())
                     # we also need to count the number of instance
@@ -234,18 +234,18 @@ class RosPublisherIfPool(TransientIfPool):
             for t in publishers_dt.removed
             ]
 
-        # Second we merge in ON interface topics into received REMOVED topics list
-        # This is useful to drop topics interfaces that are satisfying themselves...
-        for t, nodeset in pubs_if_nodes_on.iteritems():
-            # note manipulating dictionaries will allow us to get rid of this mess
-            found = False
-            for td in publishers_dt_removed:
-                if td[0] == t:
-                    td[1] += nodeset
-                    found = True
-                    break
-            if not found:
-                publishers_dt_removed.append([t, list(nodeset)])
+        # # Second we merge in ON interface topics into received REMOVED topics list
+        # # This is useful to drop topics interfaces that are satisfying themselves...
+        # for t, nodeset in pubs_if_nodes_on.iteritems():
+        #     # note manipulating dictionaries will allow us to get rid of this mess
+        #     found = False
+        #     for td in publishers_dt_removed:
+        #         if td[0] == t:
+        #             td[1] += nodeset
+        #             found = True
+        #             break
+        #     if not found:
+        #         publishers_dt_removed.append([t, list(nodeset)])
 
         # filtering out topics with no endpoints
         publishers_dt_removed = [[tl[0], tl[1]] for tl in publishers_dt_removed if tl[1]]
@@ -296,18 +296,18 @@ class RosPublisherIfPool(TransientIfPool):
         #print("\n")
         #print(publishers)
 
-        # Second we filter out ALL current and previous interface topics from received topics list
-        publishers = [
-            [t[0], [n for n in t[1]
-                     if (n not in pubs_if_nodes_on.get(t[0], set())  # filter out ON interfaces to avoid detecting interface only topic
-                         #n not in topics_if_nodes_off.get(t[0], set())  # filter out OFF interface to avoid re-adding interface that has been recently dropped
-                         # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
-                         # Probably better to fix flow between direct update and callback first...
-                        )
-                    ]
-            ]
-            for t in publishers
-        ]
+        # # Second we filter out ALL current and previous interface topics from received topics list
+        # publishers = [
+        #     [t[0], [n for n in t[1]
+        #              if (n not in pubs_if_nodes_on.get(t[0], set())  # filter out ON interfaces to avoid detecting interface only topic
+        #                  #n not in topics_if_nodes_off.get(t[0], set())  # filter out OFF interface to avoid re-adding interface that has been recently dropped
+        #                  # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
+        #                  # Probably better to fix flow between direct update and callback first...
+        #                 )
+        #             ]
+        #     ]
+        #     for t in publishers
+        # ]
 
         # TODO : maybe we need to reset the param once the dropped interface have been detected as droped (to be able to start the cycle again)
 

@@ -14,6 +14,10 @@ from .poolparam import PoolParam
 from .topicbase import TopicBase
 
 
+class PublisherBackTimeout(Exception):
+    pass
+
+
 class PublisherBack(TopicBase):
     """
     TopicBack is the class handling conversion from Python to ROS Topic
@@ -53,10 +57,12 @@ class PublisherBack(TopicBase):
         # Make sure we get at least one connection before returning
         start = time.time()
         timeout = 1
-        while time.time() - start < timeout:
-            print("subscribers connected : ", self.pool.get_impl_connections(self.name))
+        while time.time() - start < timeout and self.pool.get_impl_connections(self.name) < 1:
+            # print("subscribers connected : {0}".format(self.pool.get_impl_connections(self.name)))
             time.sleep(0.2)
 
+        if self.pool.get_impl_connections(self.name) < 1:
+            raise PublisherBackTimeout
 
     def cleanup(self):
         """
