@@ -145,6 +145,7 @@ class RosPublisherIfPool(TransientIfPool):
             added=[[k, v] for k, v in added_pubs.iteritems()],
             removed=[[k, v] for k, v in removed_pubs.iteritems()]
         )
+        computed_publishers_dt = DiffTuple([], [])
         _logger.debug("topics_dt : {publishers_dt}".format(**locals()))
         for t in publishers_dt.added:
             tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.added), [])
@@ -154,6 +155,7 @@ class RosPublisherIfPool(TransientIfPool):
                 self.available[ttp.name].endpoints |= ttp.endpoints
             else:
                 self.available[ttp.name] = ttp
+                computed_publishers_dt.added.append(t[0])
 
         for t in publishers_dt.removed:
             tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.removed), [])
@@ -162,9 +164,10 @@ class RosPublisherIfPool(TransientIfPool):
                 self.available[ttp.name].endpoints -= ttp.endpoints
                 if not self.available[ttp.name].endpoints:
                     self.available.pop(ttp.name, None)
+                    computed_publishers_dt.removed.append(t[0])
 
         # We still need to return DiffTuples
-        return publishers_dt
+        return computed_publishers_dt
 
     def get_pub_interfaces_only_nodes(self):
 
@@ -198,7 +201,7 @@ class RosPublisherIfPool(TransientIfPool):
         # First we get all pubs/subs interfaces only nodes
         pubs_if_nodes_on, pubs_if_nodes_off = self.get_pub_interfaces_only_nodes()
 
-        print(" ADDED DETECTED :")
+        print(" PUB ADDED DETECTED :")
         print(publishers_dt.added)
 
         # Second we filter out ON interface topics from received ADDED topics list
@@ -213,10 +216,10 @@ class RosPublisherIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         publishers_dt_added = [[tl[0], tl[1]] for tl in publishers_dt_added if tl[1]]
 
-        print(" ADDED FILTERED :")
+        print(" PUB ADDED FILTERED :")
         print(publishers_dt_added)
 
-        print(" REMOVED DETECTED :")
+        print(" PUB REMOVED DETECTED :")
         print(publishers_dt.removed)
 
         # Second we filter out OFF interface topics from received REMOVED topics list
@@ -246,32 +249,28 @@ class RosPublisherIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         publishers_dt_removed = [[tl[0], tl[1]] for tl in publishers_dt_removed if tl[1]]
 
-        print(" REMOVED FILTERED :")
+        print(" PUB REMOVED FILTERED :")
         print(publishers_dt_removed)
 
-
         # computing state representation
-        publishers_dt = self.compute_state(DiffTuple(
+        publishers_namelist_dt = self.compute_state(DiffTuple(
             added=publishers_dt_added,
             removed=publishers_dt_removed
         ), topic_types_dt or [])
 
-        if publishers_dt.added or publishers_dt.removed:
+        if publishers_namelist_dt.added or publishers_namelist_dt.removed:
             _logger.debug(
-                rospy.get_name() + " Publishers Delta {publishers_dt}".format(**locals()))
+                rospy.get_name() + " Publishers Delta {publishers_namelist_dt}".format(**locals()))
 
         # TODO : put that in debug log and show based on python logger configuration
-        # print("Pyros ROS interface UPDATE")
-        # print("Topics ADDED: {0}".format([s[0] for s in topics_dt.added]))
-        # print("Topics GONE: {0}".format([s[0] for s in topics_dt.removed]))
 
-        print("PUBLISHER APPEARED: {publishers_dt.added}".format(**locals()))
-        print("PUBLISHER GONE : {publishers_dt.removed}".format(**locals()))
+        print("PUBLISHER APPEARED: {publishers_namelist_dt.added}".format(**locals()))
+        print("PUBLISHER GONE : {publishers_namelist_dt.removed}".format(**locals()))
 
         # update_services wants only names
         dt = self.transient_change_diff(
-            transient_appeared=[t[0] for t in publishers_dt.added],
-            transient_gone=[t[0] for t in publishers_dt.removed]  # we want only hte name here
+            transient_appeared=publishers_namelist_dt.added,
+            transient_gone=publishers_namelist_dt.removed  # we want only hte name here
             # add_names=regexes_match_sublist(self.transients_args, [s[0] for s in topics_dt.added]),
             # remove_names=[s[0] for s in topics_dt.removed if s[0] not in self.get_transients_available()]
         )

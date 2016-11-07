@@ -142,22 +142,11 @@ class RosSubscriberIfPool(TransientIfPool):
                     rp.remove(ap)
                     added_subs[apn].remove(ap)
 
-        # # We merge both pubs and subs, so that only one pub or one sub which is not ours is enough to keep the topic
-        # # Need to be careful if pub and sub are added/removed at same time : only one topic added/removed
-        # added_topics = {pub[0]: pub[1] for pub in filtered_added_publishers}
-        # removed_topics = {pub[0]: pub[1] for pub in filtered_removed_publishers}
-        #
-        # for t in filtered_added_subscribers:
-        #     added_topics[t[0]] = added_topics.get(t[0], []) + t[1]
-        # for t in filtered_removed_subscribers:
-        #     removed_topics[t[0]] = removed_topics.get(t[0], []) + t[1]
-
-        # TODO : improve here to make sure of nodes unicity after this collapsing step
-
         subscribers_dt = DiffTuple(
             added=[[k, v] for k, v in added_subs.iteritems()],
             removed=[[k, v] for k, v in removed_subs.iteritems()]
         )
+        computed_subscribers_dt = DiffTuple([], [])
         _logger.debug("removed_subs_dt : {subscribers_dt}".format(**locals()))
         for t in subscribers_dt.added:
             tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.added), [])
@@ -165,8 +154,10 @@ class RosSubscriberIfPool(TransientIfPool):
             if ttp.name in self.available:
                 # if already available, we only update the endpoints list
                 self.available[ttp.name].endpoints |= ttp.endpoints
+                # no change here, no need to add that topic to the computed diff.
             else:
                 self.available[ttp.name] = ttp
+                computed_subscribers_dt.added.append(t[0])
 
         for t in subscribers_dt.removed:
             tt = next(ifilter(lambda ltt: t[0] == ltt[0], topic_types_dt.removed), [])
@@ -175,9 +166,10 @@ class RosSubscriberIfPool(TransientIfPool):
                 self.available[ttp.name].endpoints -= ttp.endpoints
                 if not self.available[ttp.name].endpoints:
                     self.available.pop(ttp.name, None)
+                    computed_subscribers_dt.removed.append(t[0])
 
         # We still need to return DiffTuples
-        return subscribers_dt
+        return computed_subscribers_dt
 
     def get_sub_interfaces_only_nodes(self):
 
@@ -210,7 +202,7 @@ class RosSubscriberIfPool(TransientIfPool):
         # First we get all pubs/subs interfaces only nodes
         subs_if_nodes_on, subs_if_nodes_off = self.get_sub_interfaces_only_nodes()
 
-        print(" ADDED DETECTED :")
+        print(" SUB ADDED DETECTED :")
         print(subscribers_dt.added)
 
         # Second we filter out ON interface topics from received ADDED topics list
@@ -225,10 +217,10 @@ class RosSubscriberIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         subscribers_dt_added = [[tl[0], tl[1]] for tl in subscribers_dt_added if tl[1]]
 
-        print(" ADDED FILTERED :")
+        print(" SUB ADDED FILTERED :")
         print(subscribers_dt_added)
 
-        print(" REMOVED DETECTED :")
+        print(" SUB REMOVED DETECTED :")
         print(subscribers_dt.removed)
 
         # Second we filter out OFF interface topics from received REMOVED topics list
@@ -256,31 +248,30 @@ class RosSubscriberIfPool(TransientIfPool):
                 subscribers_dt_removed.append([t, list(nodeset)])
 
         # filtering out topics with no endpoints
-                subscribers_dt_removed = [[tl[0], tl[1]] for tl in subscribers_dt_removed if tl[1]]
+        subscribers_dt_removed = [[tl[0], tl[1]] for tl in subscribers_dt_removed if tl[1]]
 
-        print(" REMOVED FILTERED :")
+        print(" SUB REMOVED FILTERED :")
         print(subscribers_dt_removed)
 
-
         # computing state representation
-        subscribers_dt = self.compute_state(DiffTuple(
+        subscribers_namelist_dt = self.compute_state(DiffTuple(
             added=subscribers_dt_added,
             removed=subscribers_dt_removed
         ), topic_types_dt or [])
 
-        if subscribers_dt.added or subscribers_dt.removed:
+        if subscribers_namelist_dt.added or subscribers_namelist_dt.removed:
             _logger.debug(
-                rospy.get_name() + " Topics Delta {subscribers_dt}".format(**locals()))
+                rospy.get_name() + " Subscribers Delta {subscribers_namelist_dt}".format(**locals()))
 
         # TODO : put that in debug log and show based on python logger configuration
 
-        print("TOPIC APPEARED: {subscribers_dt.added}".format(**locals()))
-        print("TOPIC GONE : {subscribers_dt.removed}".format(**locals()))
+        print("SUBSCRIBER APPEARED: {subscribers_namelist_dt.added}".format(**locals()))
+        print("SUBSCRIBER GONE : {subscribers_namelist_dt.removed}".format(**locals()))
 
         # update_services wants only names
         dt = self.transient_change_diff(
-            transient_appeared=[t[0] for t in subscribers_dt.added],
-            transient_gone=[t[0] for t in subscribers_dt.removed]  # we want only hte name here
+            transient_appeared=subscribers_namelist_dt.added,
+            transient_gone=subscribers_namelist_dt.removed  # we want only hte name here
             # add_names=regexes_match_sublist(self.transients_args, [s[0] for s in topics_dt.added]),
             # remove_names=[s[0] for s in topics_dt.removed if s[0] not in self.get_transients_available()]
         )
