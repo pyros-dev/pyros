@@ -45,7 +45,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <exec_depend version_gte="1.11.2">std_srvs</exec_depend>
 
   <!-- this is useful for pyros, as well as for pyros-setup when running tests from outside of ROS env -->
-  <test_depend version_gte="0.0.3">pyros_test</test_depend>
+  <test_depend version_gte="0.0.6">pyros_test</test_depend>
 
   <!-- documentation dependencies -->
   <doc_depend version_gte="0.2.10">python-catkin-pkg</doc_depend>

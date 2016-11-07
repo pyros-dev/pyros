@@ -92,21 +92,52 @@ class PyrosROS(PyrosBase):
         return msg
 
     # These should match the design of RostfulClient and Protocol so we are consistent between pipe and python API
+    #BWCOMPAT
     def topic(self, name, msg_content=None):
         res = None
-        if self.interface and name in self.interface.topics.keys():
-            if msg_content is not None:
-                self.interface.topics.get(name).publish(msg_content)
-            else:
-                res = self.interface.topics.get(name).get(consume=False)
+        if self.interface:
+            if msg_content is not None and name in self.interface.publishers.keys():
+                self.interface.publishers.get(name).publish(msg_content)
+            elif name in self.interface.subscribers.keys():
+                res = self.interface.subscribers.get(name).get(consume=False)
         return res
 
     def topics(self):
         topics_dict = {}
         if self.interface:
-            for t, tinst in six.iteritems(self.interface.topics):
+            # merging pubs and subs for BWCOMPAT (like in pyros_mock)
+            topics = self.interface.publishers.copy()
+            topics.update(self.interface.subscribers)
+
+            for t, tinst in six.iteritems(topics):
                 topics_dict[t] = tinst.asdict()
         return topics_dict
+
+    def publisher(self, name, msg_content):
+        res = None
+        if self.interface and name in self.interface.publishers.keys():
+            self.interface.publishers.get(name).publish(msg_content)
+        return res
+
+    def publishers(self):
+        publishers_dict = {}
+        if self.interface:
+            for t, tinst in six.iteritems(self.interface.publishers):
+                publishers_dict[t] = tinst.asdict()
+        return publishers_dict
+
+    def subscriber(self, name):
+        res = None
+        if self.interface and name in self.interface.subscribers.keys():
+            res = self.interface.subscribers.get(name).get(consume=False)
+        return res
+
+    def subscribers(self):
+        subscribers_dict = {}
+        if self.interface:
+            for t, tinst in six.iteritems(self.interface.subscribers):
+                subscribers_dict[t] = tinst.asdict()
+        return subscribers_dict
 
     def service(self, name, rqst_content=None):
         resp_content = None
@@ -143,14 +174,14 @@ class PyrosROS(PyrosBase):
                 params_dict[p] = pinst.asdict()
         return params_dict
 
-    def setup(self, services=None, topics=None, params=None, enable_cache=False):
+    def setup(self, publishers=None, subscribers=None, services=None, topics=None, params=None, enable_cache=False):
         """
         Service to dynamically setup the node.
         Node we cannot pass the name here as it should be set only once, the first time
         """
         # we get self.name and self.argv from the duplicated parent process memory.
         # this will create self.interface
-        super(PyrosROS, self).setup(node_name=self.name, services=services, topics=topics, params=params, enable_cache=enable_cache, argv=self.argv)
+        super(PyrosROS, self).setup(node_name=self.name, publishers=publishers, subscribers=subscribers, services=services, topics=topics, params=params, enable_cache=enable_cache, argv=self.argv)
 
     def run(self, *args, **kwargs):
         """

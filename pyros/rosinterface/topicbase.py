@@ -20,6 +20,19 @@ def get_topic_msg_dict(topic):
     return get_msg_dict(topic.rostype)
 
 
+# Maybe have a global method that generate a context manager to interface with it...
+class TopicTuple(object):
+    def __init__(self, name, type, endpoints):
+        self.name = name
+        self.type = type
+        self.endpoints = endpoints
+# Note : for topic the connection endpoint is important.
+# We can have multiple subscribers and publishers, from different node.
+# We need to know if we can drop our interface when we receive a difference ( only some pub|sub lost )
+# => we need to track endpoints
+# TODO: make that the pickled representation of TopicBack (check asdict())
+
+
 class TopicBase(object):
     """
     TopicBase is the class implementing common behavior between Subscriber and Publisher.

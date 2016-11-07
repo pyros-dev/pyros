@@ -26,8 +26,6 @@ _logger = logging.getLogger(__name__)
 
 from ..baseinterface import DiffTuple
 
-from .service import ServiceBack, ServiceTuple
-from .topic import TopicBack, TopicTuple
 from .param import ParamBack, ParamTuple
 
 from ..baseinterface import TransientIfPool

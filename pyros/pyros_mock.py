@@ -63,7 +63,21 @@ class PyrosMock(PyrosBase):
         """
         :return: the list of topics we interfaced with ( not the list of all available topics )
         """
-        return self.interface.topics
+        topics = self.interface.publishers.copy()
+        topics.update(self.interface.subscribers)
+        return topics
+
+    def publishers(self):
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.interface.publishers
+
+    def subscribers(self):
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.interface.subscribers
 
     # a simple string echo service
     def service(self, name, rqst_content=None):
@@ -95,8 +109,16 @@ class PyrosMock(PyrosBase):
         """
         return self.interface.params
 
-    def setup(self, services=None, topics=None, params=None):
-        super(PyrosMock, self).setup(services, topics, params)
+    def setup(self, publishers=None, subscribers=None, services=None, topics=None, params=None):
+        """
+        :param publishers:
+        :param subscribers:
+        :param services:
+        :param topics: ONLY HERE for BW compat
+        :param params:
+        :return:
+        """
+        super(PyrosMock, self).setup(publishers=publishers, subscribers=subscribers, services=services, topics=topics, params=params)
 
 
 PyrosBase.register(PyrosMock)

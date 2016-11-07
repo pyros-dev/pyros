@@ -28,11 +28,8 @@ from ..baseinterface import DiffTuple
 from .baseinterface import BaseInterface
 from .param_if_pool import RosParamIfPool
 from .service_if_pool import RosServiceIfPool
-from .topic_if_pool import RosTopicIfPool
-
-from .service import ServiceBack, ServiceTuple
-from .topic import TopicBack, TopicTuple
-from .param import ParamBack, ParamTuple
+from .subscriber_if_pool import RosSubscriberIfPool
+from .publisher_if_pool import RosPublisherIfPool
 
 from .connection_cache_utils import connection_cache_proxy_create, connection_cache_marshall, connection_cache_merge_marshalled
 
@@ -50,7 +47,7 @@ class RosInterface(BaseInterface):
     """
     RosInterface.
     """
-    def __init__(self, node_name, services=None, topics=None, params=None, enable_cache=False, argv=None):
+    def __init__(self, node_name, publishers=None, subscribers=None, services=None, params=None, enable_cache=False, argv=None):
         # This runs in a child process (managed by PyrosROS) and as a normal ros node)
 
         # First thing to do : find the rosmaster...
@@ -77,10 +74,18 @@ class RosInterface(BaseInterface):
 
         # we add params from ROS environment, if we get something there (bwcompat behavior)
         services = services or []
-        topics = topics or []
+        publishers = publishers or []
+        subscribers = subscribers or []
         params = params or []
         services += list(set(ast.literal_eval(rospy.get_param('~services', "[]"))))
-        topics += list(set(ast.literal_eval(rospy.get_param('~topics', "[]"))))
+
+        # bwcompat
+        publishers += list(set(ast.literal_eval(rospy.get_param('~topics', "[]"))))
+        subscribers += list(set(ast.literal_eval(rospy.get_param('~topics', "[]"))))
+        # new
+        publishers += list(set(ast.literal_eval(rospy.get_param('~publishers', "[]"))))
+        subscribers += list(set(ast.literal_eval(rospy.get_param('~subscribers', "[]"))))
+
         params += list(set(ast.literal_eval(rospy.get_param('~params', "[]"))))
         enable_cache = rospy.get_param('~enable_cache', enable_cache)
 
@@ -89,11 +94,14 @@ class RosInterface(BaseInterface):
         # Note : None means no change ( different from [] )
         rospy.loginfo("""[{name}] ROS Interface initialized with:
         -    services : {services}
-        -    topics : {topics}
+        -    publishers : {publishers}
+        -    subscribers : {subscribers}
         -    params : {params}
         -    enable_cache : {enable_cache}
-        """.format(name=__name__,
-            topics="\n" + "- ".rjust(10) + "\n\t- ".join(topics) if topics else [],
+        """.format(
+            name=__name__,
+            publishers="\n" + "- ".rjust(10) + "\n\t- ".join(publishers) if publishers else [],
+            subscribers="\n" + "- ".rjust(10) + "\n\t- ".join(subscribers) if subscribers else [],
             services="\n" + "- ".rjust(10) + "\n\t- ".join(services) if services else [],
             params="\n" + "- ".rjust(10) + "\n\t- ".join(params) if params else [],
             enable_cache=enable_cache)
@@ -102,9 +110,10 @@ class RosInterface(BaseInterface):
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         params_pool = RosParamIfPool(params)
         services_pool = RosServiceIfPool(services)
-        topics_pool = RosTopicIfPool(topics)
+        subscribers_pool = RosSubscriberIfPool(subscribers)
+        publishers_pool = RosPublisherIfPool(publishers)
 
-        super(RosInterface, self).__init__(services_pool, topics_pool, params_pool)
+        super(RosInterface, self).__init__(publishers_pool, subscribers_pool, services_pool, params_pool)
 
         # connecting to the master via proxy object
         self._master = rospy.get_master()
@@ -177,7 +186,8 @@ class RosInterface(BaseInterface):
         # and populate these to represent the changes done on the interface
         params_if_dt = DiffTuple([], [])
         services_if_dt = DiffTuple([], [])
-        topics_if_dt = DiffTuple([], [])
+        subscribers_if_dt = DiffTuple([], [])
+        publishers_if_dt = DiffTuple([], [])
 
         # Destroying connection cache proxy if needed
         if self.connection_cache is not None and not self.enable_cache:
@@ -206,12 +216,12 @@ class RosInterface(BaseInterface):
             # compute_system_state will retrieve them again after filtering out interface topics.
             # TODO : simplify and solidify logic for this case
             # TODO : the double loop system described earlier will solve this without relying on num_connections
-            early_topics_to_drop = [[td, list(nodeset)] for td, nodeset in TopicBack.get_interface_only_topics().iteritems()]
-
-            if early_topics_to_drop:
-                self._debug_logger.debug(
-                    rospy.get_name() + " Pyros.rosinterface : Early Topics to Drop {early_topics_to_drop}".format(
-                        **locals()))
+            # early_topics_to_drop = [[td, list(nodeset)] for td, nodeset in TopicBack.get_interface_only_topics().iteritems()]
+            #
+            # if early_topics_to_drop:
+            #     self._debug_logger.debug(
+            #         rospy.get_name() + " Pyros.rosinterface : Early Topics to Drop {early_topics_to_drop}".format(
+            #             **locals()))
 
             # Because the cache doesnt currently do it
             params = set(rospy.get_param_names())
@@ -243,7 +253,7 @@ class RosInterface(BaseInterface):
                     topics_dt = DiffTuple(
                         added=[],
                         # we also need to simulate topic removal here (only names), to trigger a cleanup of interface if it s last one
-                        removed=early_topics_to_drop
+                        removed=[]  # early_topics_to_drop
                     )
 
                     #print("DROPPING EARLY TOPICS {early_topics_to_drop}".format(**locals()))
@@ -256,12 +266,13 @@ class RosInterface(BaseInterface):
                     services_if_dt = DiffTuple([], [])
                     # TMP : NOT dropping topics early (just be patient and wait for the cache callback to come...)
                     # topics_if_dt = self.topics_pool.update_delta(topics_dt, topic_types_dt)
-                    topics_if_dt = DiffTuple([], [])
+                    subscribers_if_dt = DiffTuple([], [])
+                    publishers_if_dt = DiffTuple([], [])
 
                     # and here we need to return to not do the normal full update
                     dt = DiffTuple(
-                        added=params_if_dt.added + services_if_dt.added + topics_if_dt.added,
-                        removed=params_if_dt.removed + services_if_dt.removed + topics_if_dt.removed
+                        added=params_if_dt.added + services_if_dt.added + subscribers_if_dt.added + publishers_if_dt.added,
+                        removed=params_if_dt.removed + services_if_dt.removed + subscribers_if_dt.removed + publishers_if_dt.removed
                     )
 
                     self._debug_logger.debug("""
@@ -356,14 +367,6 @@ class RosInterface(BaseInterface):
                             removed=[[k, [n[0] for n in set(nset)]] for k, nset in removed_subscribers.iteritems()]
                         )
 
-                        added_topics = {pub[0]: pub[1] for pub in publishers_dt.added}
-                        removed_topics = {pub[0]: pub[1] for pub in publishers_dt.removed}
-
-                        for t in subscribers_dt.added:
-                            added_topics[t[0]] = added_topics.get(t[0], []) + t[1]
-                        for t in subscribers_dt.removed:
-                            removed_topics[t[0]] = removed_topics.get(t[0], []) + t[1]
-
                         # NOW DONE IN update_delta
                         # # CAREFUL, topic interface by itself also makes the topic detected on system
                         # # Check if there are any pyros interface with it and ignore them
@@ -379,21 +382,21 @@ class RosInterface(BaseInterface):
                         # # we also need to simulate topic removal here (only names), to trigger a cleanup of interface if it s last one
                         # removed_topics_list = [[td, removed_topics[td]] for td in removed_topics] + early_topics_to_drop
 
-                        topics_dt = DiffTuple(
-                            added=[[k, nlist] for k, nlist in added_topics.iteritems()],
-                            removed=[[k, nlist] for k, nlist in removed_topics.iteritems()]
-                        )
-
                         topic_types_dt = DiffTuple(
                             added=added_topic_types,
                             removed=removed_topic_types
                         )
 
-                        topics_if_dt = self.topics_pool.update_delta(topics_dt, topic_types_dt)
+                        subscribers_if_dt = self.subscribers_pool.update_delta(subscribers_dt, topic_types_dt)
+                        publishers_if_dt = self.publishers_pool.update_delta(publishers_dt, topic_types_dt)
 
-                        if topics_if_dt.added or topics_if_dt.removed:
+                        if publishers_if_dt.added or publishers_if_dt.removed:
                             self._debug_logger.debug(
-                                rospy.get_name() + " Pyros.rosinterface : Topics Delta {topics_if_dt}".format(
+                                rospy.get_name() + " Pyros.rosinterface : Publishers Delta {publishers_if_dt}".format(
+                                    **locals()))
+                        if subscribers_if_dt.added or subscribers_if_dt.removed:
+                            self._debug_logger.debug(
+                                rospy.get_name() + " Pyros.rosinterface : Subscribers Delta {subscribers_if_dt}".format(
                                     **locals()))
                         if services_if_dt.added or services_if_dt.removed:
                             self._debug_logger.debug(
@@ -420,8 +423,8 @@ class RosInterface(BaseInterface):
 
                         # and here we need to return to not do the normal full update
                         dt = DiffTuple(
-                            added=params_if_dt.added + services_if_dt.added + topics_if_dt.added,
-                            removed=params_if_dt.removed + services_if_dt.removed + topics_if_dt.removed
+                            added=params_if_dt.added + services_if_dt.added + subscribers_if_dt.added + publishers_if_dt.added,
+                            removed=params_if_dt.removed + services_if_dt.removed + subscribers_if_dt.removed + publishers_if_dt.removed
                         )
 
                         self._debug_logger.debug("""
@@ -471,37 +474,17 @@ class RosInterface(BaseInterface):
         services_if_dt = self.services_pool.update(services, service_types)
         #print("SERVICE IF DT : {services_if_dt}".format(**locals()))
 
-        # TODO : separate pubs and subs
-        topics = [pl for pl in publishers]
-        # TODO : passing dictionaries everywhere will avoid this mess...
-        for s in subscribers:
-            found = True
-            for t in publishers:
-                if t[0] == s[0] and t[1] != s[1]:
-                    t[1] += s[1]
-                    found = True
-                    break
-            if not found:
-                topics.append(s)
+        #print("SUBSCRIBERS : {subscribers}".format(**locals()))
+        subscribers_if_dt = self.subscribers_pool.update(subscribers, topic_types)
+        #print("SUBSCRIBER IF DT : {subscribers_if_dt}".format(**locals()))
 
-        # NOW DONE IN update_delta
-        # # CAREFUL, topic interface by itself also makes the topic detected on system
-        # # Check if there are any pyros interface with it and ignore them
-        # topics_to_drop = TopicBack.get_interface_only_topics()
-        #
-        # #filtering the topic list
-        # for td in topics:
-        #     td[1] = [n for n in td[1] if n not in topics_to_drop.get(td[0], [])]
-        #
-        # topics = [td for td in topics if td[1]]  # filtering out topics with no endpoints
-
-        #print("TOPICS : {topics}".format(**locals()))
-        topics_if_dt = self.topics_pool.update(topics, topic_types)
-        #print("TOPIC IF DT : {topics_if_dt}".format(**locals()))
+        # print("PUBLISHERS : {publishers}".format(**locals()))
+        publishers_if_dt = self.publishers_pool.update(publishers, topic_types)
+        # print("PUBLISHER IF DT : {publishers_if_dt}".format(**locals()))
 
         dt = DiffTuple(
-            added=params_if_dt.added + services_if_dt.added + topics_if_dt.added,
-            removed=params_if_dt.removed + services_if_dt.removed + topics_if_dt.removed
+            added=params_if_dt.added + services_if_dt.added + subscribers_if_dt.added + publishers_if_dt.added,
+            removed=params_if_dt.removed + services_if_dt.removed + subscribers_if_dt.removed + publishers_if_dt.removed
         )
 
         self._debug_logger.debug("""
