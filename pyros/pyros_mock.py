@@ -67,11 +67,25 @@ class PyrosMock(PyrosBase):
         topics.update(self.interface.subscribers)
         return topics
 
+    # a simple publisher
+    def publisher(self, name, msg_content):
+        # TODO : use Mock interface topics directly
+        msg = msg_content
+        self._topic_msg[name] = msg_content
+        msg = None  # consuming the message
+        return msg
+
     def publishers(self):
         """
         :return: the list of topics we interfaced with ( not the list of all available topics )
         """
         return self.interface.publishers
+
+    # a simple subscriber
+    def subscriber(self, name):
+        # TODO : use Mock interface topics directly
+        msg = self._topic_msg.get(name)
+        return msg
 
     def subscribers(self):
         """

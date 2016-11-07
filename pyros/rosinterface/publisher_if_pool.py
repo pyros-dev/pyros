@@ -30,11 +30,14 @@ from ..baseinterface import DiffTuple
 
 from .topicbase import TopicTuple
 from .publisher_if import PublisherBack
+from .subscriber_if import SubscriberBack
 
 try:
     import rocon_python_comms
 except ImportError:
     rocon_python_comms = None
+
+
 
 
 class RosPublisherIfPool(TransientIfPool):
@@ -172,13 +175,13 @@ class RosPublisherIfPool(TransientIfPool):
 
     def get_pub_interfaces_only_nodes(self):
 
-        pubs_if = PublisherBack.pool.get_all_interfaces()
+        pubs_if = SubscriberBack.pool.get_all_interfaces()
 
         # inverting mapping for nodes ON and OFF separately:
         pubs_if_nodes_on = {}
         pubs_if_nodes_off = {}
         for node, data in pubs_if.iteritems():
-            for t, ifon in data.get(self.transients_desc, {}).iteritems():
+            for t, ifon in data.get('publishers', {}).iteritems():  # we need to get the OTHER interfaces (pubs for subs, to prevent detection here)
                 if ifon:
                     keys = pubs_if_nodes_on.setdefault(t, set())
                     # we also need to count the number of instance
@@ -229,6 +232,7 @@ class RosPublisherIfPool(TransientIfPool):
                     #if n not in topics_if_nodes_off.get(t[0], set())
                     # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
                     # Probably better to fix flow between direct update and callback first...
+                    # BUT compute_state() should take care of this...
                     ]
              ]
             for t in publishers_dt.removed
@@ -296,18 +300,19 @@ class RosPublisherIfPool(TransientIfPool):
         #print("\n")
         #print(publishers)
 
-        # # Second we filter out ALL current and previous interface topics from received topics list
-        # publishers = [
-        #     [t[0], [n for n in t[1]
-        #              if (n not in pubs_if_nodes_on.get(t[0], set())  # filter out ON interfaces to avoid detecting interface only topic
-        #                  #n not in topics_if_nodes_off.get(t[0], set())  # filter out OFF interface to avoid re-adding interface that has been recently dropped
-        #                  # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
-        #                  # Probably better to fix flow between direct update and callback first...
-        #                 )
-        #             ]
-        #     ]
-        #     for t in publishers
-        # ]
+        # Second we filter out ALL current and previous interface topics from received topics list
+        publishers = [
+            [t[0], [n for n in t[1]
+                     if (n not in pubs_if_nodes_on.get(t[0], set())  # filter out ON interfaces to avoid detecting interface only topic
+                         #n not in topics_if_nodes_off.get(t[0], set())  # filter out OFF interface to avoid re-adding interface that has been recently dropped
+                         # NOT DOABLE CURRENTLY : we would also prevent re interfacing a node that came back up...
+                         # Probably better to fix flow between direct update and callback first...
+                         # BUT reset_state() should take care of this...
+                        )
+                    ]
+            ]
+            for t in publishers
+        ]
 
         # TODO : maybe we need to reset the param once the dropped interface have been detected as droped (to be able to start the cycle again)
 
