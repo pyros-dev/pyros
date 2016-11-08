@@ -204,8 +204,8 @@ class RosSubscriberIfPool(TransientIfPool):
         # First we get all pubs/subs interfaces only nodes
         subs_if_nodes_on, subs_if_nodes_off = self.get_sub_interfaces_only_nodes()
 
-        print(" SUB ADDED DETECTED :")
-        print(subscribers_dt.added)
+        # print(" SUB ADDED DETECTED :")
+        # print(subscribers_dt.added)
 
         # Second we filter out ON interface topics from received ADDED topics list
         subscribers_dt_added = [
@@ -219,11 +219,11 @@ class RosSubscriberIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         subscribers_dt_added = [[tl[0], tl[1]] for tl in subscribers_dt_added if tl[1]]
 
-        print(" SUB ADDED FILTERED :")
-        print(subscribers_dt_added)
-
-        print(" SUB REMOVED DETECTED :")
-        print(subscribers_dt.removed)
+        # print(" SUB ADDED FILTERED :")
+        # print(subscribers_dt_added)
+        #
+        # print(" SUB REMOVED DETECTED :")
+        # print(subscribers_dt.removed)
 
         # Second we filter out OFF interface topics from received REMOVED topics list
         subscribers_dt_removed = [
@@ -253,8 +253,8 @@ class RosSubscriberIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         subscribers_dt_removed = [[tl[0], tl[1]] for tl in subscribers_dt_removed if tl[1]]
 
-        print(" SUB REMOVED FILTERED :")
-        print(subscribers_dt_removed)
+        # print(" SUB REMOVED FILTERED :")
+        # print(subscribers_dt_removed)
 
         # computing state representation
         subscribers_namelist_dt = self.compute_state(DiffTuple(
@@ -268,8 +268,8 @@ class RosSubscriberIfPool(TransientIfPool):
 
         # TODO : put that in debug log and show based on python logger configuration
 
-        print("SUBSCRIBER APPEARED: {subscribers_namelist_dt.added}".format(**locals()))
-        print("SUBSCRIBER GONE : {subscribers_namelist_dt.removed}".format(**locals()))
+        # print("SUBSCRIBER APPEARED: {subscribers_namelist_dt.added}".format(**locals()))
+        # print("SUBSCRIBER GONE : {subscribers_namelist_dt.removed}".format(**locals()))
 
         # update_services wants only names
         dt = self.transient_change_diff(
@@ -282,8 +282,8 @@ class RosSubscriberIfPool(TransientIfPool):
         if dt.added or dt.removed:
             _logger.debug(
                 rospy.get_name() + " Update Delta {dt}".format(**locals()))
-            print(" UPDATE DELTA:")
-            print(dt)
+            # print(" UPDATE DELTA:")
+            # print(dt)
         return dt
 
     # for use with line_profiler or memory_profiler

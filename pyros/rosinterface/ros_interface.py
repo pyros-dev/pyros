@@ -226,7 +226,7 @@ class RosInterface(BaseInterface):
                     backedup_complete_cb_ss = None  #CAREFUL : untested...
                 else:
                     cb_ss = self.cb_ss.get_nowait()
-                print("CC MSG !")  # if we didn't except on empty queue, so we got a message
+                # print("CC MSG !")  # if we didn't except on empty queue, so we got a message
 
             except Queue.Empty:
 
@@ -236,7 +236,7 @@ class RosInterface(BaseInterface):
                 # if there was no change,
                 # it means it s the first and we need to initialize with the full list
                 if cb_ss.added is None and cb_ss.removed is None:
-                    print("CC COMPLETE !")
+                    #print("CC COMPLETE !")
                     publishers = cb_ss.complete.get('publishers', [])
                     subscribers = cb_ss.complete.get('subscribers', [])
                     services = cb_ss.complete.get('services', [])
@@ -250,15 +250,15 @@ class RosInterface(BaseInterface):
                     subscribers = [[s, [n[0] for n in nset]] for s, nset in subscribers.iteritems()]
                     services = [[s, [n[0] for n in nset]] for s, nset in services.iteritems()]
 
-                    print("CC COMPLETEDDDD !")
+                    #print("CC COMPLETEDDDD !")
 
                     # we go back to normal flow
-                    print("UPDATE FULLSTATE ON CACHE LIST")
+                    #print("UPDATE FULLSTATE ON CACHE LIST")
                     return self.update_fullstate(publishers, subscribers, services, params, topic_types, service_types)
 
                 else:  # we have a delta, we can use it directly and skip the rest
 
-                    print("CC DELTA !")
+                    #print("CC DELTA !")
                     next_cb_ss = cb_ss
                     while self.cb_ss.qsize() > 0 and not (next_cb_ss.added is None and next_cb_ss is None):
                         # merging multiple diff messages as fast as possible, until the next complete status
@@ -291,16 +291,16 @@ class RosInterface(BaseInterface):
                     removed_topic_types = cb_ss.removed.get('topic_types', [])
                     removed_service_types = cb_ss.removed.get('service_types', [])
 
-                    print("UPDATE STATEDELTA ON CACHE DIFF")
+                    #print("UPDATE STATEDELTA ON CACHE DIFF")
                     return self.update_statedelta(
                         added_publishers, added_subscribers, added_services, added_params, added_topic_types, added_service_types,
                         removed_publishers, removed_subscribers, removed_services, removed_params, removed_topic_types, removed_service_types
                     )
         elif not self.connection_cache:  # make sure we are not using connection cache (otherwise state representations might be out of sync !!)
-            print("GETTING STATE FROM MASTER")
+            #print("GETTING STATE FROM MASTER")
             publishers, subscribers, services, params, topic_types, service_types = self.retrieve_system_state()  # This will call the master
 
-            print("UPDATE FULLSTATE")
+            #print("UPDATE FULLSTATE")
             # NOTE : we want to be certain here that we do not mix full state representation from master with representation from cache (out of sync !!!)
             return self.update_fullstate(publishers, subscribers, services, params, topic_types, service_types)
         else:

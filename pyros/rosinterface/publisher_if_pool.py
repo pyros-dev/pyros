@@ -205,8 +205,8 @@ class RosPublisherIfPool(TransientIfPool):
         # First we get all pubs/subs interfaces only nodes
         pubs_if_nodes_on, pubs_if_nodes_off = self.get_pub_interfaces_only_nodes()
 
-        print(" PUB ADDED DETECTED :")
-        print(publishers_dt.added)
+        # print(" PUB ADDED DETECTED :")
+        # print(publishers_dt.added)
 
         # Second we filter out ON interface topics from received ADDED topics list
         publishers_dt_added = [
@@ -220,11 +220,11 @@ class RosPublisherIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         publishers_dt_added = [[tl[0], tl[1]] for tl in publishers_dt_added if tl[1]]
 
-        print(" PUB ADDED FILTERED :")
-        print(publishers_dt_added)
-
-        print(" PUB REMOVED DETECTED :")
-        print(publishers_dt.removed)
+        # print(" PUB ADDED FILTERED :")
+        # print(publishers_dt_added)
+        #
+        # print(" PUB REMOVED DETECTED :")
+        # print(publishers_dt.removed)
 
         # Second we filter out OFF interface topics from received REMOVED topics list
         publishers_dt_removed = [
@@ -254,8 +254,8 @@ class RosPublisherIfPool(TransientIfPool):
         # filtering out topics with no endpoints
         publishers_dt_removed = [[tl[0], tl[1]] for tl in publishers_dt_removed if tl[1]]
 
-        print(" PUB REMOVED FILTERED :")
-        print(publishers_dt_removed)
+        # print(" PUB REMOVED FILTERED :")
+        # print(publishers_dt_removed)
 
         # computing state representation
         publishers_namelist_dt = self.compute_state(DiffTuple(
@@ -269,8 +269,8 @@ class RosPublisherIfPool(TransientIfPool):
 
         # TODO : put that in debug log and show based on python logger configuration
 
-        print("PUBLISHER APPEARED: {publishers_namelist_dt.added}".format(**locals()))
-        print("PUBLISHER GONE : {publishers_namelist_dt.removed}".format(**locals()))
+        # print("PUBLISHER APPEARED: {publishers_namelist_dt.added}".format(**locals()))
+        # print("PUBLISHER GONE : {publishers_namelist_dt.removed}".format(**locals()))
 
         # update_services wants only names
         dt = self.transient_change_diff(
@@ -283,8 +283,8 @@ class RosPublisherIfPool(TransientIfPool):
         if dt.added or dt.removed:
             _logger.debug(
                 rospy.get_name() + " Update Delta {dt}".format(**locals()))
-            print(" UPDATE DELTA:")
-            print(dt)
+            # print(" UPDATE DELTA:")
+            # print(dt)
         return dt
 
     # for use with line_profiler or memory_profiler
