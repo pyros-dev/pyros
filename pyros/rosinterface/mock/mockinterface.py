@@ -75,16 +75,16 @@ class MockInterface(BaseInterface):
     #
     #MOCK
     def mock_publisher(self, tpc_name, tpc_type):
-        return self.publishers_pool.mock(tpc_name, tpc_type)
+        return self.publishers_if_pool.mock(tpc_name, tpc_type)
 
     def mock_subscriber(self, tpc_name, tpc_type):
-        return self.subscribers_pool.mock(tpc_name, tpc_type)
+        return self.subscribers_if_pool.mock(tpc_name, tpc_type)
 
     def mock_service(self, svc_name, svc_type):
-        return self.services_pool.mock(svc_name, svc_type)
+        return self.services_if_pool.mock(svc_name, svc_type)
 
     def mock_param(self, prm_name, prm_type):
-        return self.params_pool.mock(prm_name, prm_type)
+        return self.params_if_pool.mock(prm_name, prm_type)
     #
     # #CHANGE DIFF
     # def services_change_diff(self, appeared, gone):
@@ -117,7 +117,7 @@ class MockInterface(BaseInterface):
     #     return self.param_pool.update_transients(add_names, remove_names)
 
     def update(self):
-        self.publishers_pool.update()
-        self.subscribers_pool.update()
-        self.services_pool.update()
-        self.params_pool.update()
+        self.publishers_if_pool.update()
+        self.subscribers_if_pool.update()
+        self.services_if_pool.update()
+        self.params_if_pool.update()

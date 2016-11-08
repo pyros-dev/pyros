@@ -68,12 +68,18 @@ class PyrosMock(PyrosBase):
         return topics
 
     # a simple publisher
-    def publisher(self, name, msg_content):
+    def subscriber(self, name, msg_content):
         # TODO : use Mock interface topics directly
         msg = msg_content
         self._topic_msg[name] = msg_content
         msg = None  # consuming the message
         return msg
+
+    def subscribers(self):
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.interface.subscribers
 
     def publishers(self):
         """
@@ -82,16 +88,10 @@ class PyrosMock(PyrosBase):
         return self.interface.publishers
 
     # a simple subscriber
-    def subscriber(self, name):
+    def publisher(self, name):
         # TODO : use Mock interface topics directly
         msg = self._topic_msg.get(name)
         return msg
-
-    def subscribers(self):
-        """
-        :return: the list of topics we interfaced with ( not the list of all available topics )
-        """
-        return self.interface.subscribers
 
     # a simple string echo service
     def service(self, name, rqst_content=None):

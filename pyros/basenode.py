@@ -137,7 +137,8 @@ class PyrosBase(pyzmp.Node):
         return
 
     @abc.abstractmethod
-    def publisher(self, name, msg_content):
+    # CAREFUL : accessing a publisher means we want to receive a message from it
+    def publisher(self, name):
         return
 
     @abc.abstractmethod
@@ -145,7 +146,8 @@ class PyrosBase(pyzmp.Node):
         return
 
     @abc.abstractmethod
-    def subscriber(self, name):
+    # CAREFUL : accessing a subscriber means we want to send message to it
+    def subscriber(self, name, msg_content):
         return
 
     @abc.abstractmethod

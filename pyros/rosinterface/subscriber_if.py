@@ -54,7 +54,7 @@ class SubscriberBack(TopicBase):
         # Make sure we get at least one connection before returning
         start = time.time()
         timeout = 1
-        while time.time() - start < timeout and self.pool.get_impl_connections(self.name) < 1:
+        while time.time() - start < timeout and len(self.pool.get_impl_connections(self.name)) < 1:
             # print("publishers connected : {0}".format(self.pool.get_impl_connections(self.name)))
             time.sleep(0.2)
 

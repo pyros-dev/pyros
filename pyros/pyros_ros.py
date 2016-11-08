@@ -96,10 +96,10 @@ class PyrosROS(PyrosBase):
     def topic(self, name, msg_content=None):
         res = None
         if self.interface:
-            if msg_content is not None and name in self.interface.publishers.keys():
-                self.interface.publishers.get(name).publish(msg_content)
-            elif name in self.interface.subscribers.keys():
-                res = self.interface.subscribers.get(name).get(consume=False)
+            if msg_content is not None and name in self.interface.subscribers.keys():
+                self.interface.subscribers.get(name).publish(msg_content)
+            elif name in self.interface.publishers.keys():
+                res = self.interface.publishers.get(name).get(consume=False)
         return res
 
     def topics(self):
@@ -113,10 +113,10 @@ class PyrosROS(PyrosBase):
                 topics_dict[t] = tinst.asdict()
         return topics_dict
 
-    def publisher(self, name, msg_content):
+    def publisher(self, name):
         res = None
         if self.interface and name in self.interface.publishers.keys():
-            self.interface.publishers.get(name).publish(msg_content)
+            res = self.interface.publishers.get(name).get(consume=False)
         return res
 
     def publishers(self):
@@ -126,10 +126,10 @@ class PyrosROS(PyrosBase):
                 publishers_dict[t] = tinst.asdict()
         return publishers_dict
 
-    def subscriber(self, name):
+    def subscriber(self, name, msg_content):
         res = None
         if self.interface and name in self.interface.subscribers.keys():
-            res = self.interface.subscribers.get(name).get(consume=False)
+            self.interface.subscribers.get(name).publish(msg_content)
         return res
 
     def subscribers(self):

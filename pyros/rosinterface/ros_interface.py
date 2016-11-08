@@ -329,19 +329,19 @@ class RosInterface(BaseInterface):
 
         # Needs to be done first, since topic algorithm depends on it
         # print("PARAMS : {params}".format(**locals()))
-        params_if_dt = self.params_pool.update(params=params)
+        params_if_dt = self.params_if_pool.update(params=params)
         # print("PARAM IF DT : {params_if_dt}".format(**locals()))
 
         # print("SERVICES : {services}".format(**locals()))
-        services_if_dt = self.services_pool.update(services, service_types)
+        services_if_dt = self.services_if_pool.update(services, service_types)
         # print("SERVICE IF DT : {services_if_dt}".format(**locals()))
 
         # print("SUBSCRIBERS : {subscribers}".format(**locals()))
-        subscribers_if_dt = self.subscribers_pool.update(subscribers, topic_types)
+        subscribers_if_dt = self.subscribers_if_pool.update(subscribers, topic_types)
         # print("SUBSCRIBER IF DT : {subscribers_if_dt}".format(**locals()))
 
         # print("PUBLISHERS : {publishers}".format(**locals()))
-        publishers_if_dt = self.publishers_pool.update(publishers, topic_types)
+        publishers_if_dt = self.publishers_if_pool.update(publishers, topic_types)
         # print("PUBLISHER IF DT : {publishers_if_dt}".format(**locals()))
 
         dt = DiffTuple(
@@ -363,7 +363,7 @@ class RosInterface(BaseInterface):
         :return:
         """
         # we re NOT done here, we might still need to update params
-        params_if_dt = self.params_pool.update_delta(params_dt=params_dt)
+        params_if_dt = self.params_if_pool.update_delta(params_dt=params_dt)
 
         topic_types_dt = DiffTuple(
             added=[],
@@ -400,7 +400,7 @@ class RosInterface(BaseInterface):
         )
 
         # Needs to be done first, since topic algorithm depends on it
-        params_if_dt = self.params_pool.update_delta(params_dt=params_dt)
+        params_if_dt = self.params_if_pool.update_delta(params_dt=params_dt)
 
         # here we need to get only the nodes' names to match ROs master API format
         services_dt = DiffTuple(
@@ -413,7 +413,7 @@ class RosInterface(BaseInterface):
             removed=removed_service_types
         )
 
-        services_if_dt = self.services_pool.update_delta(services_dt, service_types_dt)
+        services_if_dt = self.services_if_pool.update_delta(services_dt, service_types_dt)
 
         # here we need to get only the nodes' names to match ROs master API format
         # CAREFUL about unicity here, a Pub|Sub can have multiple endpoint within the same node...
@@ -447,8 +447,8 @@ class RosInterface(BaseInterface):
             removed=removed_topic_types
         )
 
-        subscribers_if_dt = self.subscribers_pool.update_delta(subscribers_dt, topic_types_dt)
-        publishers_if_dt = self.publishers_pool.update_delta(publishers_dt, topic_types_dt)
+        subscribers_if_dt = self.subscribers_if_pool.update_delta(subscribers_dt, topic_types_dt)
+        publishers_if_dt = self.publishers_if_pool.update_delta(publishers_dt, topic_types_dt)
 
         if publishers_if_dt.added or publishers_if_dt.removed:
             self._debug_logger.debug(

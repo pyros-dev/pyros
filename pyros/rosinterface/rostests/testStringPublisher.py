@@ -23,7 +23,7 @@ from pyros.rosinterface.message_conversion import get_msg, get_msg_dict, populat
 import rospy
 import roslaunch
 import rostopic
-from std_msgs.msg import String, Empty
+import std_msgs.msg as std_msgs
 
 import pyros
 
@@ -46,29 +46,6 @@ def setup_module():
     if not rostest_nose.is_rostest_enabled():
         rostest_nose.rostest_nose_setup_module()
 
-        # Start roslaunch
-        launch = roslaunch.scriptapi.ROSLaunch()
-        launch.start()
-
-        # start required nodes - needs to match the content of *.test files for rostest to match
-
-        global pub_process, echo_process
-
-        rospy.set_param('/echo_node/topic_name', 'test_topic')
-        rospy.set_param('/echo_node/echo_topic_name', 'echo_test_topic')
-        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
-        try :
-            echo_process = launch.launch(echo_node)
-        except roslaunch.RLException as rlexc:
-            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
-            raise
-
-        # TODO : also use pub and sub nodes in more granular tests
-
-        # set required parameters - needs to match the content of *.test files for rostest to match
-        rospy.set_param('/stringTopicTest/pub_topic_name', 'test_topic')
-        rospy.set_param('/stringTopicTest/echo_topic_name', 'echo_test_topic')
-
         # we still need a node to interact with topics
         rospy.init_node('TestStringTopic', anonymous=True, disable_signals=True)
         # CAREFUL : this should be done only once per PROCESS
@@ -77,12 +54,6 @@ def setup_module():
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
-        # finishing all process are finished
-        if pub_process is not None and pub_process.is_alive():
-            pub_process.stop()
-        if echo_process is not None and echo_process.is_alive():
-            echo_process.stop()
-
         rostest_nose.rostest_nose_teardown_module()
 
 
@@ -98,8 +69,7 @@ def teardown_module():
 #  -> means we probably need a way to keep but greatly compress old messages ( logrotate style )
 
 
-#TODO : split this in publisher and subscriber testing...
-class TestStringTopic(unittest.TestCase):
+class TestStringPublisher(unittest.TestCase):
     """ Testing the PublisherBack class with String message """
     # misc method
     def logPoint(self):
@@ -107,28 +77,28 @@ class TestStringTopic(unittest.TestCase):
         callingFunction = inspect.stack()[1][3]
         print('in {0!s} - {1!s}()'.format(currentTest, callingFunction))
 
-    def msg_extract(self, topic, retries=5, retrysleep=1):
-        msg = topic.get()
+    def msg_extract(self, pub_if, retries=5, retrysleep=1):
+        msg = pub_if.get()
         retry = 0
         while not msg and retry < retries:
             print('Message not extracted. Retrying...')
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
-            msg = topic.get()
+            msg = pub_if.get()
         if retry >= retries:
             self.fail('Message not extracted. Failing.')
         else:
             return msg
 
-    def msg_wait(self, expected_msg, topic, retries=5, retrysleep=1):
-        msg = self.msg_extract(topic)
+    def msg_wait(self, expected_msg, pub_if, retries=5, retrysleep=1):
+        msg = self.msg_extract(pub_if)
         retry = 0
         # set XOR is a quick way to diff dict : if empty we stop (dicts are equals)
         while retry < retries and (set(six.iteritems(msg)) ^ set(six.iteritems(expected_msg))):
             print('Discarding unexpected message {0}. Retrying...'.format(msg))
             rospy.rostime.wallsleep(retrysleep)
             retry += 1
-            msg = self.msg_extract(topic)
+            msg = self.msg_extract(pub_if)
             print('Checking msg \"{0}\" == s \"{1}\"'.format(msg, expected_msg))
 
         if retry >= retries:
@@ -157,18 +127,8 @@ class TestStringTopic(unittest.TestCase):
         Non roslaunch fixture setup method
         :return:
         """
-        # Here we hook to the test topic in supported ways
-        param_name = "/stringTopicTest/pub_topic_name"
-        self.pub_topic_name = rospy.get_param(param_name, "")
-        print('Parameter {p} has value {v}'.format(p=param_name, v=self.pub_topic_name))
-        if self.pub_topic_name == "":
-            self.fail("{0} parameter not found".format(param_name))
 
-        param_name = "/stringTopicTest/echo_topic_name"
-        self.echo_topic_name = rospy.get_param(param_name, "")
-        print('Parameter {p} has value {v}'.format(p=param_name, v=self.echo_topic_name))
-        if self.echo_topic_name == "":
-            self.fail("{0} parameter not found".format(param_name))
+        self.pub_topic_name = '/testing/publisher'
 
         # No need of parameter for that, any str should work
         self.test_message = "testing"
@@ -181,17 +141,19 @@ class TestStringTopic(unittest.TestCase):
         try:
             self.logPoint()
 
-            # looking for the topic ( similar code than ros_interface.py )
-            _, pub_topic_class = self.topic_wait_type(self.pub_topic_name)
-            echo_topic_type, _ = self.topic_wait_type(self.echo_topic_name)
-
             # exposing the topic for testing here
-            self.pub_topic = rospy.Publisher(self.pub_topic_name, pub_topic_class, queue_size=1)
-            self.echo_topic = PublisherBack(self.echo_topic_name, echo_topic_type)
+            self.pub_topic = rospy.Publisher(self.pub_topic_name, std_msgs.String, queue_size=1)
+
+            # looking for the topic ( similar code than ros_interface.py )
+            pub_topic_type, pub_topic_class = self.topic_wait_type(self.pub_topic_name)
+
+            assert_true(pub_topic_class == std_msgs.String)
+            self.pub_if = PublisherBack(self.pub_topic_name, pub_topic_type)
 
             # Making sure the topic interface is ready to be used just after creation
-            pubs_connected = len(self.echo_topic.pool.get_impl_connections(self.echo_topic.name)) > 0  # no local pub
-            assert_true(pubs_connected)
+            # by checking number of connections on the actual publisher
+            subs_connected = self.pub_topic.impl.get_num_connections()  # no local pub
+            assert_true(subs_connected == 1)
 
             # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))
@@ -202,8 +164,8 @@ class TestStringTopic(unittest.TestCase):
                 self.pub_topic.publish(msg)  # This should return False if publisher not fully setup yet
                 # CAREFUL the return spec of rospy's publish is not consistent
 
-            print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.echo_topic.name))
-            msg = self.msg_wait({'data': self.test_message}, self.echo_topic)
+            print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.pub_if.name))
+            msg = self.msg_wait({'data': self.test_message}, self.pub_if)
             # We assert there is no difference
             assert_true(len(set(six.iteritems(msg)) ^ set(six.iteritems({'data': self.test_message}))) == 0)
 
@@ -214,4 +176,4 @@ class TestStringTopic(unittest.TestCase):
 if __name__ == '__main__':
     print("ARGV : %r", sys.argv)
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
-    rostest_nose.rostest_or_nose_main('pyros', 'testStringTopic', TestStringTopic, sys.argv)
+    rostest_nose.rostest_or_nose_main('pyros', 'testStringPublisher', TestStringPublisher, sys.argv)

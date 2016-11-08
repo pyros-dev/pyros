@@ -25,7 +25,7 @@ from pyros.rosinterface.message_conversion import get_msg, get_msg_dict, populat
 import rospy
 import roslaunch
 import rostopic
-from std_msgs.msg import String, Empty
+import std_msgs.msg as std_msgs
 
 import pyros
 
@@ -48,29 +48,6 @@ def setup_module():
     if not rostest_nose.is_rostest_enabled():
         rostest_nose.rostest_nose_setup_module()
 
-        # Start roslaunch
-        launch = roslaunch.scriptapi.ROSLaunch()
-        launch.start()
-
-        # start required nodes - needs to match the content of *.test files for rostest to match
-
-        global pub_process, echo_process
-
-        rospy.set_param('/echo_node/topic_name', 'test_topic')
-        rospy.set_param('/echo_node/echo_topic_name', 'echo_test_topic')
-        echo_node = roslaunch.core.Node('pyros_test', 'echo.py', name='echo_node')
-        try :
-            echo_process = launch.launch(echo_node)
-        except roslaunch.RLException as rlexc:
-            logging.error("pyros_test is needed to run this test. Please verify that it is installed in your ROS environment")
-            raise
-
-        # TODO : also use pub and sub nodes in more granular tests
-
-        # set required parameters - needs to match the content of *.test files for rostest to match
-        rospy.set_param('/stringTopicTest/pub_topic_name', 'test_topic')
-        rospy.set_param('/stringTopicTest/echo_topic_name', 'echo_test_topic')
-
         # we still need a node to interact with topics
         rospy.init_node('TestStringTopic', anonymous=True, disable_signals=True)
         # CAREFUL : this should be done only once per PROCESS
@@ -79,12 +56,6 @@ def setup_module():
 
 def teardown_module():
     if not rostest_nose.is_rostest_enabled():
-        # finishing all process are finished
-        if pub_process is not None and pub_process.is_alive():
-            pub_process.stop()
-        if echo_process is not None and echo_process.is_alive():
-            echo_process.stop()
-
         rostest_nose.rostest_nose_teardown_module()
 
 
@@ -99,8 +70,8 @@ def teardown_module():
 #  -> means we probably need an option to RLE compress messages in very fast topic rates ( "blahblah" arrived 5 times )
 #  -> means we probably need a way to keep but greatly compress old messages ( logrotate style )
 
-#TODO : split this in publisher and subscriber testing...
-class TestStringTopic(unittest.TestCase):
+
+class TestStringSubscriber(unittest.TestCase):
     """ Testing the TopicBack class with String message """
     # misc method
     def logPoint(self):
@@ -172,18 +143,7 @@ class TestStringTopic(unittest.TestCase):
         # setting up internal queue to receive messages
         self.msg_queue = Queue.Queue()
 
-        # Here we hook to the test topic in supported ways
-        param_name = "/stringTopicTest/pub_topic_name"
-        self.pub_topic_name = rospy.get_param(param_name, "")
-        print('Parameter {p} has value {v}'.format(p=param_name, v=self.pub_topic_name))
-        if self.pub_topic_name == "":
-            self.fail("{0} parameter not found".format(param_name))
-
-        param_name = "/stringTopicTest/echo_topic_name"
-        self.echo_topic_name = rospy.get_param(param_name, "")
-        print('Parameter {p} has value {v}'.format(p=param_name, v=self.echo_topic_name))
-        if self.echo_topic_name == "":
-            self.fail("{0} parameter not found".format(param_name))
+        self.sub_topic_name = '/testing/Subscriber'
 
         # No need of parameter for that, any str should work
         self.test_message = "testing"
@@ -196,24 +156,25 @@ class TestStringTopic(unittest.TestCase):
         try:
             self.logPoint()
 
-            # looking for the topic ( similar code than ros_interface.py )
-            pub_topic_type, _ = self.topic_wait_type(self.pub_topic_name)
-            _, echo_topic_class = self.topic_wait_type(self.echo_topic_name)
-
             # exposing the topic for testing here
-            self.echo_topic = rospy.Subscriber(self.echo_topic_name, echo_topic_class, self.sub_cb)
-            self.pub_topic = SubscriberBack(self.pub_topic_name, pub_topic_type)
+            self.sub_topic = rospy.Subscriber(self.sub_topic_name, std_msgs.String, self.sub_cb)
+            # looking for the topic ( similar code than ros_interface.py )
+            sub_topic_type, sub_topic_class = self.topic_wait_type(self.sub_topic_name)
+
+            assert(sub_topic_class == std_msgs.String)
+            self.sub_if = SubscriberBack(self.sub_topic_name, sub_topic_type)
 
             # Making sure the topic interface is ready to be used just after creation
-            subs_connected = self.pub_topic.pool.get_impl_connections(self.pub_topic.name) > 0  # no local subs
-            assert_true(subs_connected)
+            # by checking the number of connections on the actual subscriber
+            subs_connected = self.sub_topic.impl.get_num_connections()  # no local subs
+            assert_true(subs_connected == 1)
 
             # Topics are up. Use them.
-            print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))
-            assert_true(self.pub_topic.publish({'data': self.test_message}))
+            print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.sub_if.name))
+            assert_true(self.sub_if.publish({'data': self.test_message}))
 
-            print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.echo_topic.name))
-            msg = self.msg_wait({'data': self.test_message}, self.echo_topic)
+            print("waiting for : {msg} on topic {topic}".format(msg={'data': self.test_message}, topic=self.sub_topic.name))
+            msg = self.msg_wait({'data': self.test_message}, self.sub_topic)
             # We assert there is no difference
             assert_true(len(set(six.iteritems(msg)) ^ set(six.iteritems({'data': self.test_message}))) == 0)
 
@@ -224,4 +185,4 @@ class TestStringTopic(unittest.TestCase):
 if __name__ == '__main__':
     print("ARGV : %r", sys.argv)
     # Note : Tests should be able to run with nosetests, or rostest ( which will launch nosetest here )
-    rostest_nose.rostest_or_nose_main('pyros', 'testStringSubscriber', TestStringTopic, sys.argv)
+    rostest_nose.rostest_or_nose_main('pyros', 'testStringSubscriber', TestStringSubscriber, sys.argv)
