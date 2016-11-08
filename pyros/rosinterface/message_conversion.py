@@ -31,8 +31,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import roslib
-import rospy
+from .api import roslib_safe as roslib
+from .api import rospy_safe as rospy
 # TODO : if possible use rospy internals
 
 from ..exceptions import PyrosException

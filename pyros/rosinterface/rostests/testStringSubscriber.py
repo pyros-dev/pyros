@@ -152,7 +152,7 @@ class TestStringSubscriber(unittest.TestCase):
         self.logPoint()
         pass
 
-    def test_topic_echo(self):
+    def test_subscriber_comm(self):
         try:
             self.logPoint()
 

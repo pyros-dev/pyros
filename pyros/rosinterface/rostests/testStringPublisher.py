@@ -137,7 +137,7 @@ class TestStringPublisher(unittest.TestCase):
         self.logPoint()
         pass
 
-    def test_topic_echo(self):
+    def test_publisher_comm(self):
         try:
             self.logPoint()
 

@@ -1,34 +1,18 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os
-from collections import namedtuple, MutableMapping
-from copy import deepcopy, copy
-from itertools import ifilter
 import logging
 
-import pyros_utils
-import rospy
-import rosservice, rostopic, rosparam
-
-import re
-import ast
-import socket
-import threading
-import Queue
-
-import time
+from .api import rospy_safe as rospy
 
 # create logger
 _logger = logging.getLogger(__name__)
 # and let it propagate to parent logger, or other handler
 # the user of pyros should configure handlers
 
-from ..baseinterface import DiffTuple
-
 from .param import ParamBack, ParamTuple
 
-from ..baseinterface import TransientIfPool
+from ..baseinterface import TransientIfPool, DiffTuple
 
 
 class RosParamIfPool(TransientIfPool):
