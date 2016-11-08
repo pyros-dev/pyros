@@ -20,7 +20,9 @@ from .mockmessage import (
 )
 from .mockparam import MockParam
 from .mockservice import MockService, statusecho_service
-from .mocktopic import MockTopic, statusecho_topic
+from .mocksubscriber import MockSubscriber
+from .mockpublisher import MockPublisher
+from .mocksystem import MockSystem, statusecho_topic
 
 
 # Since this mock interface follows ROS design (params, service, topics)
@@ -29,10 +31,11 @@ from .mocktopic import MockTopic, statusecho_topic
 # TODO : We should probably use mock library for this and test against it...
 
 __all__ = [
-    'MockTopic',
+    'MockPublisher',
+    'MockSubscriber',
     'MockService',
     'MockParam',
-    'MockAction',
+    'MockSystem',
     'extract_msg',
     'populate_msg',
     'FieldTypeMismatchException',

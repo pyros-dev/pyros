@@ -3,19 +3,11 @@ from collections import namedtuple, deque
 
 from ...baseinterface import TransientIf
 
-TopicType = namedtuple("TopicType", "msgtype")
 
-statusecho_topic = TopicType("StatusMsg")
-
-
-class MockTopic(TransientIf):
+class MockSubscriber(TransientIf):
     """
-    MockTopic is a mock of the class handling conversion from Python API to Topic call
+    MockSubscriber is a mock of the class handling conversion from Python API to subscriber call
     """
-
-    # Mock Implementation
-    # Intra-process inter-thread communication channel : a simple class variable
-    _msg_content = None
 
     def __init__(self, topic_name, topic_type, queue_size=1):
 
@@ -24,7 +16,7 @@ class MockTopic(TransientIf):
 
         topic_type = topic_type.msgtype
 
-        super(MockTopic, self).__init__(topic_name, topic_type)
+        super(MockSubscriber, self).__init__(topic_name, topic_type)
 
         self.msg = deque([], queue_size)
 
@@ -32,11 +24,6 @@ class MockTopic(TransientIf):
 
     def cleanup(self):
         pass
-
-    def publish(self, msg):
-        self._msg_content = msg
-        self.topic_callback(msg)
-        return True
 
     def get(self, num=0, consume=False):
         if not self.msg:
