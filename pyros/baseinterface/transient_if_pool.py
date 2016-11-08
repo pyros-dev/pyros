@@ -163,7 +163,6 @@ class TransientIfPool(object):
         lost_matches = {n for n in self.transients if find_first_regex_match(n, self.transients_args) is None}
         to_remove = set(transient_gone) | lost_matches  # we stop interfacing with lost transient OR lost matches
 
-
         return self.update_transients(
             add_names=to_add,
             remove_names=to_remove,

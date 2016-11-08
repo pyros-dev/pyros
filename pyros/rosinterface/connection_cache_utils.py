@@ -37,7 +37,7 @@ def connection_cache_proxy_create(_proxy_cb=None):
             # attribute error (likely rocon_python_comms doesnt have ConnectionCacheProxy)
             # NOT EXPECTED System configuration problem : BE LOUD !
             # timeout initializing : disabling the feature but we should be LOUD about it
-            rospy.logwarn("Pyros.rosinterface : FAILED during initialization of Connection Cache Proxy. Disabling.")
+            rospy.logwarn("connection_cache_utils : FAILED during initialization of Connection Cache Proxy. Disabling.")
             import traceback
             rospy.logwarn('Exception: {0}'.format(traceback.format_stack()))
             return None
@@ -45,11 +45,11 @@ def connection_cache_proxy_create(_proxy_cb=None):
         except rocon_python_comms.ConnectionCacheProxy.InitializationTimeout as timeout_exc:
 
             # timeout initializing : disabling the feature but we should WARN about it
-            rospy.logwarn("Pyros.rosinterface : TIMEOUT during initialization of Connection Cache Proxy. Disabling.")
+            rospy.logwarn("connection_cache_utils : TIMEOUT during initialization of Connection Cache Proxy. Disabling.")
             return None
 
         else:
-            rospy.loginfo("Pyros.rosinterface : Connection Cache Optimization enabled")
+            rospy.loginfo("connection_cache_utils : Connection Cache Optimization enabled")
             return connection_cache_proxy
 
 

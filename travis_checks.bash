@@ -45,10 +45,12 @@ python -m nose pyros.rosinterface.tests -s
 
 # Careful with process conflicting here
 python -m nose pyros.rosinterface.rostests.testService -s
-python -m nose pyros.rosinterface.rostests.testStringTopic -s
+python -m nose pyros.rosinterface.rostests.testStringPublisher -s
+python -m nose pyros.rosinterface.rostests.testStringSubscriber -s
 python -m nose pyros.rosinterface.rostests.test_param_if_pool -s
 python -m nose pyros.rosinterface.rostests.test_service_if_pool -s
-python -m nose pyros.rosinterface.rostests.test_topic_if_pool -s
+python -m nose pyros.rosinterface.rostests.test_subscriber_if_pool -s
+python -m nose pyros.rosinterface.rostests.test_publisher_if_pool -s
 python -m nose pyros.rosinterface.rostests.testRosInterface -s
 
 python -m nose pyros.tests -s

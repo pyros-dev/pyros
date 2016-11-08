@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import time
 from collections import deque
 
 from .api import rospy_safe as rospy
@@ -8,7 +9,11 @@ from .poolparam import PoolParam
 from .topicbase import TopicBase
 
 
-class SubscriberBack(TopicBase):
+class PublisherBackTimeout(Exception):
+    pass
+
+
+class PublisherBack(TopicBase):
     """
     TopicBack is the class handling conversion from Python to ROS Topic
     Requirement : Only one topicBack per actual ROS Topic.
@@ -30,10 +35,10 @@ class SubscriberBack(TopicBase):
 
     def __init__(self, topic_name, topic_type, msg_queue_size=1):
         # Parent class will resolve/normalize topic_name
-        super(SubscriberBack, self).__init__(topic_name, topic_type)
+        super(PublisherBack, self).__init__(topic_name, topic_type)
 
         rospy.loginfo(
-            rospy.get_name() + " Pyros.rosinterface : Adding subscriber {name} {typename}".format(
+            rospy.get_name() + " Pyros.rosinterface : Adding subscriber interface {name} {typename}".format(
                 name=self.name, typename=self.rostype))
 
         # this message queue should be ready before we setup the callback
@@ -44,6 +49,16 @@ class SubscriberBack(TopicBase):
 
         self.empty_cb = None
 
+        # Make sure we get at least one connection before returning
+        start = time.time()
+        timeout = 1
+        while time.time() - start < timeout and len(self.pool.get_impl_connections(self.name)) < 1:
+            # print("subscribers connected : {0}".format(self.pool.get_impl_connections(self.name)))
+            time.sleep(0.2)
+
+        if self.pool.get_impl_connections(self.name) < 1:
+            raise PublisherBackTimeout
+
     def cleanup(self):
         """
         Launched when we want to whithhold this interface instance
@@ -52,12 +67,12 @@ class SubscriberBack(TopicBase):
 
         # TODO : should we do this in del method instead ? to allow reuse until garbage collection actually happens...
         rospy.loginfo(
-            rospy.get_name() + " Pyros.rosinterface : Removing subscriber {name} {typename}".format(
+            rospy.get_name() + " Pyros.rosinterface : Removing subscriber interface {name} {typename}".format(
                 name=self.name, typename=self.rostype))
 
         self.pool.release(self.topic)
 
-        super(SubscriberBack, self).cleanup()
+        super(PublisherBack, self).cleanup()
 
     def asdict(self):
         """
@@ -66,7 +81,7 @@ class SubscriberBack(TopicBase):
         We are not interested in pickleing the whole class with Subscriber and Publisher
         :return:
         """
-        d = super(SubscriberBack, self).asdict()
+        d = super(PublisherBack, self).asdict()
         d['publishers'] = self.topic.impl.get_stats_info()
         return d
 
