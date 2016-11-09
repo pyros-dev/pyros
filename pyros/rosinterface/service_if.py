@@ -57,10 +57,18 @@ class ServiceBack(TransientIf):
 
         self.srvtype = get_service_srv_dict(self)
 
-        rospy.loginfo(rospy.get_name() + " Pyros.rosinterface : Creating rosinterface service {name} {typename}".format(name=self.name, typename=self.rostype_name))
+        rospy.loginfo(
+            rospy.get_name() + " Pyros.rosinterface : Adding service interface {name} {typename}".format(
+                name=self.name, typename=self.rostype_name))
+
         self.proxy = rospy.ServiceProxy(self.name, self.rostype)
 
     def cleanup(self):
+
+        rospy.loginfo(
+            rospy.get_name() + " Pyros.rosinterface : Removing service interface {name} {typename}".format(
+                name=self.name, typename=self.rostype))
+
         super(ServiceBack, self).cleanup()
 
     def asdict(self):

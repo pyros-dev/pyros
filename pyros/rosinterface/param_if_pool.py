@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 # and let it propagate to parent logger, or other handler
 # the user of pyros should configure handlers
 
-from .param import ParamBack, ParamTuple
+from .param_if import ParamBack, ParamTuple
 
 from ..baseinterface import TransientIfPool, DiffTuple
 

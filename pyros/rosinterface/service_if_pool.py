@@ -14,7 +14,7 @@ _logger = logging.getLogger(__name__)
 
 from ..baseinterface import TransientIfPool
 
-from .service import ServiceBack, ServiceTuple
+from .service_if import ServiceBack, ServiceTuple
 
 try:
     import rocon_python_comms

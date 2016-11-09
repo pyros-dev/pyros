@@ -34,8 +34,8 @@ except ImportError:
     # validate we can load ROS modules. Note other variables (like ROS_PACKAGE_PATH) should also be available.
     from .api import rospy_safe
 
-from .service import ServiceBack
-from .param import ParamBack
+from .service_if import ServiceBack
+from .param_if import ParamBack
 from .param_if_pool import RosParamIfPool
 from .service_if_pool import RosServiceIfPool
 from .subscriber_if_pool import RosSubscriberIfPool
