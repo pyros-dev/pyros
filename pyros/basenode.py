@@ -11,7 +11,8 @@ import abc
 import pyzmp
 
 from .exceptions import PyrosException
-from .baseinterface import BaseInterface
+# TODO : think about how to plug and play different interfaces for different systems here...
+from .rosinterface import BaseInterface
 
 from pyros_config import ConfigHandler
 
@@ -68,8 +69,14 @@ class PyrosBase(pyzmp.Node):
         )
 
         self.provides(self.msg_build)
+        # BWCOMPAT
         self.provides(self.topic)
         self.provides(self.topics)
+        #
+        self.provides(self.publisher)
+        self.provides(self.publishers)
+        self.provides(self.subscriber)
+        self.provides(self.subscribers)
         self.provides(self.service)
         self.provides(self.services)
         self.provides(self.param)
@@ -120,12 +127,31 @@ class PyrosBase(pyzmp.Node):
     def msg_build(self, name):
         return
 
+    # BWCOMPAT
     @abc.abstractmethod
     def topic(self, name, msg_content=None):
         return
 
     @abc.abstractmethod
     def topics(self):
+        return
+
+    @abc.abstractmethod
+    # CAREFUL : accessing a publisher means we want to receive a message from it
+    def publisher(self, name):
+        return
+
+    @abc.abstractmethod
+    def publishers(self):
+        return
+
+    @abc.abstractmethod
+    # CAREFUL : accessing a subscriber means we want to send message to it
+    def subscriber(self, name, msg_content):
+        return
+
+    @abc.abstractmethod
+    def subscribers(self):
         return
 
     # a simple string echo service
@@ -161,11 +187,25 @@ class PyrosBase(pyzmp.Node):
         """
         Dynamically reset the interface to expose the services / topics / params whose names are passed as args
         The interface class can be specified with a module to be dynamically imported
+        :param publishers:
+        :param subscribers:
         :param services:
-        :param topics:
+        :param topics: BW COMPAT ONLY !
         :param params:
         :return:
         """
+
+        #BWCOMPAT
+        if kwargs.get('topics'):
+            if kwargs.get('publishers'):
+                kwargs['publishers'] = kwargs.get('publishers', []) + kwargs.get('topics', [])
+            else:
+                kwargs['publishers'] = kwargs.get('topics', [])
+            if kwargs.get('subscribers'):
+                kwargs['subscribers'] = kwargs.get('subscribers', []) + kwargs.get('topics', [])
+            else:
+                kwargs['subscribers'] = kwargs.get('topics', [])
+        kwargs.pop('topics')
 
         # We can now import RosInterface and setup will be done ( we re in another process ).
         # TODO : context to make it cleaner (maybe use zmp.Node context ?)
@@ -192,6 +232,9 @@ class PyrosBase(pyzmp.Node):
         :param join: optionally wait for the process to end (default : True)
         :return: last exitcode from update method
         """
+        if self.interface is not None:
+            self.interface.stop()
+
         return super(PyrosBase, self).shutdown(join, timeout=timeout)
 
     def update(self, timedelta, *args, **kwargs):
@@ -205,6 +248,11 @@ class PyrosBase(pyzmp.Node):
 
         # TODO move time management somewhere else...
         self.last_update += timedelta
+        # if shutdown we want to bypass the update_interval check
+        # if shutting_down:
+        #     self.interface.update(shutting_down=shutting_down)
+        #     return 0  # return 0 as success since we arrived here without exception
+        # else
         if self.last_update > self.update_interval:
             self.last_update = 0
             self.interface.update()

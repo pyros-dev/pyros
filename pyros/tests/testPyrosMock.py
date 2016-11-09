@@ -13,14 +13,14 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 
 import time
 
-from pyros.mockinterface.mocksystem import (
-    mock_service_remote, mock_topic_remote, mock_param_remote,
+from pyros.rosinterface.mock.mocksystem import (
+    mock_publisher_remote, mock_subscriber_remote, mock_service_remote, mock_param_remote,
     services_available_remote, services_available_type_remote,
     topics_available_remote, topics_available_type_remote,
     params_available_remote, params_available_type_remote,
 )
 from pyros import PyrosMock
-from pyros.mockinterface.mocktopic import statusecho_topic, MockTopic
+from pyros.rosinterface.mock.mocksystem import statusecho_topic
 import pyzmp
 from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
 
@@ -101,10 +101,11 @@ def test_mocknode_provide_services():  # Here we check that this node actually p
         assert_false(mockn.is_alive())
 
 
-def test_mocknode_topics_detect():  # Here we check that this node actually detects a topic
+def test_mocknode_publishers_detect():  # Here we check that this node actually detects a topic
     mockn = PyrosMock(kwargs={
         'services': [],
-        'topics': ['test_topic'],
+        'publishers': ['test_topic'],
+        'subscribers': [],
         'params': []
     })
     assert_false(mockn.is_alive())
@@ -121,7 +122,7 @@ def test_mocknode_topics_detect():  # Here we check that this node actually dete
     try:
         assert_true(mockn.is_alive())
 
-        with mock_topic_remote('test_topic', statusecho_topic):
+        with mock_publisher_remote('test_topic', statusecho_topic):
 
             # asserting the mock system has done its job from our point of view at least
             assert_true('test_topic' in topics_available_remote)
@@ -145,7 +146,7 @@ def test_mocknode_topics_detect():  # Here we check that this node actually dete
         assert_false(mockn.is_alive())
 
 
-def test_mocknode_topics_detect_setup():  # Here we check that this node actually detects a topic upon setup
+def test_mocknode_publishers_detect_setup():  # Here we check that this node actually detects a topic upon setup
     mockn = PyrosMock()
     assert_false(mockn.is_alive())
 
@@ -155,7 +156,7 @@ def test_mocknode_topics_detect_setup():  # Here we check that this node actuall
     try:
         assert_true(mockn.is_alive())
 
-        with mock_topic_remote('test_topic', statusecho_topic):
+        with mock_publisher_remote('test_topic', statusecho_topic):
 
             print("Discovering topics Service...")
             topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
@@ -181,7 +182,7 @@ def test_mocknode_topics_detect_setup():  # Here we check that this node actuall
         assert_false(mockn.is_alive())
 
 
-def test_mocknode_topics_detect_throttled():
+def test_mocknode_publishers_detect_throttled():
     """
     Testing that the mocknode detection of topics is throttled properly
     :return:
@@ -203,7 +204,132 @@ def test_mocknode_topics_detect_throttled():
 
         setup.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
 
-        with mock_topic_remote('test_topic', statusecho_topic):
+        with mock_publisher_remote('test_topic', statusecho_topic):
+
+            print("Discovering topics Service...")
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
+
+            # topic is very likely not detected yet ( we didn't wait after creating and exposing it )
+            res = topics.call()
+            assert_true(not 'test_topic' in res)
+
+            time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
+
+            # topic has to be detected now
+            res = topics.call()
+            assert_true('test_topic' in res)
+
+    finally:  # to make sure we clean up on failure
+        mockn.shutdown()
+        assert_false(mockn.is_alive())
+
+
+def test_mocknode_subscribers_detect():  # Here we check that this node actually detects a topic
+    mockn = PyrosMock(kwargs={
+        'services': [],
+        'publishers': [],
+        'subscribers': ['test_topic'],
+        'params': []
+    })
+    assert_false(mockn.is_alive())
+
+    assert_true(hasattr(mockn, 'topics'))
+
+    # starting the node
+    mockn.start()
+
+    # checking interface is still None here ( instantiated in child only )
+    assert_true(mockn.interface is None)
+
+    # Services are initialized in run() method of pyzmp.Node, after interface has been initialized
+    try:
+        assert_true(mockn.is_alive())
+
+        with mock_subscriber_remote('test_topic', statusecho_topic):
+
+            # asserting the mock system has done its job from our point of view at least
+            assert_true('test_topic' in topics_available_remote)
+            assert_equal(topics_available_type_remote['test_topic'], statusecho_topic)
+
+            # Getting topics list from child process
+            print("Discovering topics Service...")
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
+
+            time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
+
+            res = topics.call(recv_timeout=6000000)
+            # the mock system should have done its job from the other process perspective too
+            # via multiprocess manager list
+            assert_true('test_topic' in res)  # topic detected since in list of exposed topics
+
+    finally:
+        mockn.shutdown()
+        assert_false(mockn.is_alive())
+
+
+def test_mocknode_subscribers_detect_setup():  # Here we check that this node actually detects a topic upon setup
+    mockn = PyrosMock()
+    assert_false(mockn.is_alive())
+
+    assert_true(hasattr(mockn, 'topics'))
+
+    mockn.start()
+    try:
+        assert_true(mockn.is_alive())
+
+        with mock_subscriber_remote('test_topic', statusecho_topic):
+
+            print("Discovering topics Service...")
+            topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start
+            assert_false(topics is None)
+            assert_equal(len(topics.providers), 1)
+
+            res = topics.call()
+            assert_true(not 'test_topic' in res)  # topic not detected since not in list of exposed topics
+
+            print("Discovering setup Service...")
+            setup = pyzmp.discover("setup", 3)  # we wait a bit to let it time to start
+            assert_false(setup is None)
+            assert_equal(len(setup.providers), 1)
+
+            setup.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
+
+            time.sleep(mockn.update_interval + 1)  # waiting for update to kick in
+
+            res = topics.call()
+            assert_true('test_topic' in res)
+    finally:
+        mockn.shutdown()
+        assert_false(mockn.is_alive())
+
+
+def test_mocknode_subscribers_detect_throttled():
+    """
+    Testing that the mocknode detection of topics is throttled properly
+    :return:
+    """
+    mockn = PyrosMock()
+    assert_false(mockn.is_alive())
+
+    assert_true(hasattr(mockn, 'topics'))
+
+    mockn.update_interval = 5  # we wait 5 seconds between each update_throttled call
+    mockn.start()  # one update will be triggered, and then nothing for the next 10 seconds
+    try:
+        assert_true(mockn.is_alive())
+
+        print("Discovering setup Service...")
+        setup = pyzmp.discover("setup", 3)  # we wait a bit to let it time to start
+        assert_false(setup is None)
+        assert_equal(len(setup.providers), 1)
+
+        setup.call(kwargs={'services': [], 'topics': ['test_topic'], 'params': []})
+
+        with mock_subscriber_remote('test_topic', statusecho_topic):
 
             print("Discovering topics Service...")
             topics = pyzmp.discover("topics", 3)  # we wait a bit to let it time to start

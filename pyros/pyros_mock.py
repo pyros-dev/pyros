@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 
-import pyzmp
-# python protocol should be usable without ROS.
-from .basenode import PyrosBase
-from .mockinterface import MockInterface
-
+from .rosinterface.mock import MockInterface
 from . import config
+from .basenode import PyrosBase
 
 
 class PyrosMock(PyrosBase):
@@ -66,7 +63,35 @@ class PyrosMock(PyrosBase):
         """
         :return: the list of topics we interfaced with ( not the list of all available topics )
         """
-        return self.interface.topics
+        topics = self.interface.publishers.copy()
+        topics.update(self.interface.subscribers)
+        return topics
+
+    # a simple publisher
+    def subscriber(self, name, msg_content):
+        # TODO : use Mock interface topics directly
+        msg = msg_content
+        self._topic_msg[name] = msg_content
+        msg = None  # consuming the message
+        return msg
+
+    def subscribers(self):
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.interface.subscribers
+
+    def publishers(self):
+        """
+        :return: the list of topics we interfaced with ( not the list of all available topics )
+        """
+        return self.interface.publishers
+
+    # a simple subscriber
+    def publisher(self, name):
+        # TODO : use Mock interface topics directly
+        msg = self._topic_msg.get(name)
+        return msg
 
     # a simple string echo service
     def service(self, name, rqst_content=None):
@@ -98,8 +123,16 @@ class PyrosMock(PyrosBase):
         """
         return self.interface.params
 
-    def setup(self, services=None, topics=None, params=None):
-        super(PyrosMock, self).setup(services, topics, params)
+    def setup(self, publishers=None, subscribers=None, services=None, topics=None, params=None):
+        """
+        :param publishers:
+        :param subscribers:
+        :param services:
+        :param topics: ONLY HERE for BW compat
+        :param params:
+        :return:
+        """
+        super(PyrosMock, self).setup(publishers=publishers, subscribers=subscribers, services=services, topics=topics, params=params)
 
 
 PyrosBase.register(PyrosMock)

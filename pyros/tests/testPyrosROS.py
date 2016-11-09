@@ -178,6 +178,7 @@ class TestPyrosROS(object):
 
         nose.tools.assert_true(not rosn.is_alive())
 
+    # For BWCompat only
     def test_rosnode_topics(self):  # Here we check that this node actually discovers topics
 
         # Starting underlying system before
@@ -283,9 +284,222 @@ class TestPyrosROS(object):
                 rosn.shutdown()
 
         nose.tools.assert_true(not rosn.is_alive())
+
+
+    def test_rosnode_publishers(self):  # Here we check that this node actually discovers topics
+
+        # Starting underlying system before
+        rospy.set_param('/string_pub/topic_name', '~test_str_topic')  # private topic name to not mess things up too much
+        rospy.set_param('/string_pub/test_message', 'testing topic discovery')
+        string_pub_node = roslaunch.core.Node('pyros_test', 'string_pub_node.py', name='string_pub')
+        string_pub_process = self.launch.launch(string_pub_node)
+        try:
+            # Starting PyrosROS with preconfigured topics,
+            rosn = PyrosROS(kwargs={'publishers': ['/string_pub/test_str_topic'], 'enable_cache': self.enable_cache})  # careful assuming the topic fullname here
+            try:
+                nose.tools.assert_true(not rosn.is_alive())
+                rosn.start()
+                nose.tools.assert_true(rosn.is_alive())
+
+                print("Discovering publishers Service...")
+                publishers = pyzmp.discover("publishers", 5)  # we wait a bit to let it time to start
+                nose.tools.assert_true(publishers is not None)
+                print("publishers providers : {svc}".format(svc=publishers.providers))
+                nose.tools.assert_equal(len(publishers.providers), 1)
+                nose.tools.assert_true(rosn.name in [p[0] for p in publishers.providers])
+
+                res = publishers.call()
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_pub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = publishers.call()
+
+                nose.tools.assert_true('/string_pub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
+            finally:
+                # finishing PyrosROS process
+                if rosn is not None and rosn.is_alive():
+                    rosn.shutdown()
+
+            nose.tools.assert_true(not rosn.is_alive())
+
+        finally:
+            # finishing string_pub_process
+            if string_pub_process is not None and string_pub_process.is_alive():
+                string_pub_process.stop()
+
+            nose.tools.assert_true(not string_pub_process.is_alive())
+
+    def test_rosnode_publishers_setup(self):  # Here we check that this node actually provides all the services
+        rosn = PyrosROS()
+        try:
+            nose.tools.assert_true(not rosn.is_alive())
+            rosn.start()
+            nose.tools.assert_true(rosn.is_alive())
+
+            print("Discovering publishers Service...")
+            publishers = pyzmp.discover("publishers", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(publishers is not None)
+            print("publishers providers : {svc}".format(svc=publishers.providers))
+            nose.tools.assert_equal(len(publishers.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in publishers.providers])
+
+            res = publishers.call()
+            nose.tools.assert_true('test_topic' not in res.keys())  # test_topic has not been created, detected or exposed
+
+            print("Discovering setup Service...")
+            setup = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(setup is not None)
+            print("setup providers : {svc}".format(svc=setup.providers))
+            nose.tools.assert_equal(len(setup.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in setup.providers])
+
+            rospy.set_param('/string_pub/topic_name', '~test_str_topic')
+            rospy.set_param('/string_pub/test_message', 'testing topic discovery')
+            string_pub_node = roslaunch.core.Node('pyros_test', 'string_pub_node.py', name='string_pub')
+            string_pub_process = self.launch.launch(string_pub_node)
+            try:
+
+                new_config = setup.call(kwargs={
+                    'services': [],
+                    'publishers': ['/string_pub/test_str_topic'],
+                    'params': [],
+                    'enable_cache': self.enable_cache
+                })
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                res = publishers.call()
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_pub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = publishers.call()
+
+                nose.tools.assert_true('/string_pub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
+
+            finally:
+                # finishing all processes
+                if string_pub_process is not None and string_pub_process.is_alive():
+                    string_pub_process.stop()
+
+            nose.tools.assert_true(not string_pub_process.is_alive())
+        finally:
+            # finishing PyrosROS process
+            if rosn is not None and rosn.is_alive():
+                rosn.shutdown()
+
+        nose.tools.assert_true(not rosn.is_alive())
         # TODO : do we need a test with subscriber ?
 
-    def test_rosnode_services(self):  # Here we check that this node actually discovers topics
+    def test_rosnode_subscribers(self):  # Here we check that this node actually discovers topics
+
+        # Starting underlying system before
+        rospy.set_param('/string_sub/topic_name', '~test_str_topic')  # private topic name to not mess things up too much
+        rospy.set_param('/string_sub/test_message', 'testing topic discovery')
+        string_sub_node = roslaunch.core.Node('pyros_test', 'string_sub_node.py', name='string_sub')
+        string_sub_process = self.launch.launch(string_sub_node)
+        try:
+            # Starting PyrosROS with preconfigured subscribers,
+            rosn = PyrosROS(kwargs={'subscribers': ['/string_sub/test_str_topic'], 'enable_cache': self.enable_cache})  # careful assuming the topic fullname here
+            try:
+                nose.tools.assert_true(not rosn.is_alive())
+                rosn.start()
+                nose.tools.assert_true(rosn.is_alive())
+
+                print("Discovering subscribers Service...")
+                subscribers = pyzmp.discover("subscribers", 5)  # we wait a bit to let it time to start
+                nose.tools.assert_true(subscribers is not None)
+                print("subscribers providers : {svc}".format(svc=subscribers.providers))
+                nose.tools.assert_equal(len(subscribers.providers), 1)
+                nose.tools.assert_true(rosn.name in [p[0] for p in subscribers.providers])
+
+                res = subscribers.call()
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_sub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = subscribers.call()
+
+                nose.tools.assert_true('/string_sub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
+            finally:
+                # finishing PyrosROS process
+                if rosn is not None and rosn.is_alive():
+                    rosn.shutdown()
+
+            nose.tools.assert_true(not rosn.is_alive())
+
+        finally:
+            # finishing string_pub_process
+            if string_sub_process is not None and string_sub_process.is_alive():
+                string_sub_process.stop()
+
+            nose.tools.assert_true(not string_sub_process.is_alive())
+
+    def test_rosnode_subscribers_setup(self):  # Here we check that this node actually provides all the services
+        rosn = PyrosROS()
+        try:
+            nose.tools.assert_true(not rosn.is_alive())
+            rosn.start()
+            nose.tools.assert_true(rosn.is_alive())
+
+            print("Discovering subscribers Service...")
+            subscribers = pyzmp.discover("subscribers", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(subscribers is not None)
+            print("subscribers providers : {svc}".format(svc=subscribers.providers))
+            nose.tools.assert_equal(len(subscribers.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in subscribers.providers])
+
+            res = subscribers.call()
+            nose.tools.assert_true('test_topic' not in res.keys())  # test_topic has not been created, detected or exposed
+
+            print("Discovering setup Service...")
+            setup = pyzmp.discover("setup", 5)  # we wait a bit to let it time to start
+            nose.tools.assert_true(setup is not None)
+            print("setup providers : {svc}".format(svc=setup.providers))
+            nose.tools.assert_equal(len(setup.providers), 1)
+            nose.tools.assert_true(rosn.name in [p[0] for p in setup.providers])
+
+            rospy.set_param('/string_pub/topic_name', '~test_str_topic')
+            rospy.set_param('/string_pub/test_message', 'testing topic discovery')
+            string_sub_node = roslaunch.core.Node('pyros_test', 'string_sub_node.py', name='string_sub')
+            string_sub_process = self.launch.launch(string_sub_node)
+            try:
+
+                new_config = setup.call(kwargs={
+                    'services': [],
+                    'subscribers': ['/string_sub/test_str_topic'],
+                    'params': [],
+                    'enable_cache': self.enable_cache
+                })
+                # What we get here is non deterministic
+                # however we can wait for topic to be detected to make sure we get it after some time
+
+                res = subscribers.call()
+                with Timeout(15) as t:
+                    while not t.timed_out and not '/string_sub/test_str_topic' in res.keys():
+                        rospy.rostime.wallsleep(1)
+                        res = subscribers.call()
+
+                nose.tools.assert_true('/string_sub/test_str_topic' in res.keys())  # test_topic has been created, detected and exposed
+
+            finally:
+                # finishing all processes
+                if string_sub_process is not None and string_sub_process.is_alive():
+                    string_sub_process.stop()
+
+            nose.tools.assert_true(not string_sub_process.is_alive())
+        finally:
+            # finishing PyrosROS process
+            if rosn is not None and rosn.is_alive():
+                rosn.shutdown()
+
+        nose.tools.assert_true(not rosn.is_alive())
+
+    def test_rosnode_services(self):  # Here we check that this node actually discovers services
 
         # Starting underlying system before
         rospy.set_param('/string_echo/topic_name', '~topic')  # private names to not mess things up too much
@@ -409,14 +623,49 @@ class TestPyrosROS(object):
 # TODO : Test appearing / disappearing ROS topics / services
 
 @nose.tools.istest
-class TestPyrosROSNoCache(TestPyrosROS):
+class TestPyrosROS1NoCache(TestPyrosROS):
 
     # Methods fixtures ( once per test method )
     def setUp(self):
-        super(TestPyrosROSNoCache, self).setUp()
+        super(TestPyrosROS1NoCache, self).setUp()
 
     def tearDown(self):
-        super(TestPyrosROSNoCache, self).tearDown()
+        super(TestPyrosROS1NoCache, self).tearDown()
+
+
+# Testing with Connection Cache
+@nose.tools.istest
+class TestPyrosROSCache(TestPyrosROS):
+
+    def setUp(self):
+        # we need to speed fast enough for the tests to not fail on timeout...
+        rospy.set_param('/connection_cache/spin_freq', 2)  # 2 Hz
+        self.connection_cache_node = roslaunch.core.Node('rocon_python_comms', 'connection_cache.py', name='connection_cache',
+                                                         remap_args=[('~list', '/pyros_ros/connections_list'),
+                                                                     ('~diff', '/pyros_ros/connections_diff'),
+                                                                     ])
+        try:
+            self.connection_cache_proc = self.launch.launch(self.connection_cache_node)
+        except roslaunch.RLException as rlexc:
+            raise nose.SkipTest("Connection Cache Node not found (part of rocon_python_comms pkg). Skipping test.")
+
+        node_api = None
+        with Timeout(5) as t:
+            while not t.timed_out and node_api is None:
+                node_api = rosnode.get_api_uri(rospy.get_master(), 'connection_cache')
+
+        assert node_api is not None  # make sure the connection cache node is started before moving on.
+
+        super(TestPyrosROSCache, self).setUp(enable_cache=True)
+
+    def tearDown(self):
+        super(TestPyrosROSCache, self).tearDown()
+
+        self.connection_cache_proc.stop()
+        while self.connection_cache_proc.is_alive():
+            time.sleep(0.2)  # waiting for cache node to die
+        assert not self.connection_cache_proc.is_alive()
+        time.sleep(1)  # TODO : investigate : we shouldnt need this
 
 
 if __name__ == '__main__':

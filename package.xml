@@ -23,7 +23,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <depend version_gte="1.11.19">rospy</depend>
 
   <!-- lets be rigorous since we are working on both at the same time... -->
-  <depend version_eq="0.0.14">pyzmp</depend>
+  <depend version_gte="0.0.14">pyzmp</depend>
 
   <!-- pyros_setup is not needed in ROS workflow, only used by python workflow -->
   <depend version_gte="0.1.3">pyros_config</depend>
@@ -45,7 +45,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <exec_depend version_gte="1.11.2">std_srvs</exec_depend>
 
   <!-- this is useful for pyros, as well as for pyros-setup when running tests from outside of ROS env -->
-  <test_depend version_gte="0.0.3">pyros_test</test_depend>
+  <test_depend version_gte="0.0.6">pyros_test</test_depend>
 
   <!-- documentation dependencies -->
   <doc_depend version_gte="0.2.10">python-catkin-pkg</doc_depend>

@@ -10,13 +10,11 @@
 #
 from __future__ import absolute_import
 
-from .baseinterface import BaseInterface, DiffTuple
-from .baseservice import BaseService
-from .basetopic import BaseTopic
+from .transient_if import TransientIf
+from .transient_if_pool import TransientIfPool, DiffTuple
 
 __all__ = [
-    'BaseService',
-    'BaseTopic',
     'DiffTuple',
-    'BaseInterface',
+    'TransientIf',
+    'TransientIfPool',
 ]
