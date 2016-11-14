@@ -30,7 +30,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <depend version_gte="0.1.2">pyros_utils</depend>
 
   <depend version_gte="1.5.2">python-six</depend>
-  <depend version_gte="0.1.0">python-tblib</depend>
+  <depend version_gte="0.1.0">tblib</depend> <!-- using tblib package release in ROS -->
 
   <!-- these dependencies are only for testing -->
 

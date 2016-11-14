@@ -67,7 +67,7 @@ class PublishCommand(setuptools.Command):
 
     def run(self):
         """runner"""
-
+        # TODO : clean build/ and dist/ before building...
         subprocess.check_call("python setup.py sdist", shell=True)
         subprocess.check_call("python setup.py bdist_wheel", shell=True)
         # OLD way:
