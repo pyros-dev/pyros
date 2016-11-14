@@ -1,8 +1,125 @@
 Changelog
 =========
 
+0.3.0 (2016-11-14)
+------------------
+
+- Changing branch to master for all readme badges. [alexv]
+
+- Small file rename to match new name from pub and sub. [alexv]
+
+- Adding api subpackage to setup.py. [AlexV]
+
+- Moving all ros api calls into subpackage to make patching easier.
+  cleaned up imports. [AlexV]
+
+- First version of rospy safe API. [AlexV]
+
+- Fixing node interface after pub/sub mixup. simplified stringpub and
+  string sub tests. [alexv]
+
+- Fixing tests filenames. cleanup debug prints. [alexv]
+
+- Fixing cross logic between pubs ans subs. [alexv]
+
+- Improving subscriber / publisher inter interfacing... added timeout to
+  connect a pub/sub. [alexv]
+
+- Now properly inverting (publisher_if is subscriber and vice versa)
+  [alexv]
+
+- Fixing broken update loop of ros_interface. [alexv]
+
+- Skipping failing rosinterface test for now. passing fine
+  independently, more investigation needed... [alexv]
+
+- Separating pubs and subs. needs pyros_test 0.0.6 for tests. [alexv]
+
+- Disabling cache builds on kinetic for now. [AlexV]
+
+  rocon_python_comms is not available on kinetic yet.
+
+- Forcing install of debs for travis script. [alexv]
+
+- Now running same tests for python flow or installed catkin build.
+  [alexv]
+
+- Improving travis build to test with cache as well... change version_eq
+  to version_gte since buidfarm doesnt handle version_eq properly
+  (yet?). [alexv]
+
+- Importing contextmanager from contextlib instead of decorator. [alexv]
+
+- Moving mockinterface into rosinterface.mock since design follows ROS
+  concepts. fixed all tests. bumped pyros minor version to 0.3.0 because
+  of all the changes... [alexv]
+
+- Merged testRosInterfaceNoCache and testRosInterfaceCache. fixed all
+  issues. [alexv]
+
+- Fixed tests without cache. [alexv]
+
+- Basic usecase now working again with cache. needs lots of cleanup...
+  [alexv]
+
+- Continuing changes in rosinterface, splitting service, topics and
+  params interface pools now rosinterface tests all passing. [alexv]
+
+- Splitting baseinterface to simplify things. fixed mockinterface and
+  tests. [alexv]
+
+- Various cleanups. [alexv]
+
+- Improved profiling script. [alexv]
+
+- Comments. [alexv]
+
+- Fixing bwcompat issues. dropping shutdown behavior fix for now.
+  [alexv]
+
+- Improved management of interface topics and reference counting. still
+  broken for multiprocess because shutdown is not working properly.
+  [alexv]
+
+- Fixing params and services removal with cache diff input. improved
+  topics interface creation and cleanup. [alexv]
+
+- Speeding up topic interfacing. [alexv]
+
+- Fixed logic for removing transients on difference update. now
+  forwarding exception if param type not found small test improvements.
+  [alexv]
+
+- Fixing param behavior in ros_interface and added unit tests. [alexv]
+
+- Fixing hybrid usecase of devel catkin workspace without ROS setup.
+  [alexv]
+
+- Adding python-tblib as a ros dependency. [alexv]
+
+- Now using ros-shadow-fixed for testing with latest dependencies.
+  [AlexV]
+
+- Making the travis_checks script switch to his own dir on startup.
+  [alexv]
+
+- Fixing envvars checks for travis. made travis_checks.bash script
+  executable. [alexv]
+
+- Fixing typos. [alexv]
+
+- Now travis tests with docker and on kinetic. [alexv]
+
+- Improving first dynamic ROS import to ros_interface. improved logging.
+  some test clean up since we use python testing framework now. [alexv]
+
+- Fixing rospkg version. fixing setup.py commands for release flow.
+  [alexv]
+
 0.2.0 (2016-09-01)
 ------------------
+
+- V0.2.0. [alexv]
 
 - Preparing release flow. cosmetics. [alexv]
 
