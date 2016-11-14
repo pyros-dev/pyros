@@ -8,6 +8,8 @@ import sys
 
 from ._version import __version__
 
+# Here in case we want to put logging config in there.
+# Useful if pyros started alone as simple "server node".
 from . import config
 
 # create logger
@@ -23,10 +25,9 @@ try:
 except (pkg_resources.DistributionNotFound, ImportError):
     # Handling hybrid usecase : package built in a devel workspace with catkin, and used from normal python
     import pyros_setup  # this has to be in your python environment.
-    from . import config  # default config
 
     # Lets use the system configuration already setup by pyros-setup
-    #pyros_setup.configurable_import().configure().activate()
+    pyros_setup.configurable_import().configure().activate()
     # This will use default pyros_setup.cfg. see http://flask.pocoo.org/docs/0.11/config/#instance-folders
     # also pyros_setup should create the file if it doesnt exist.
 

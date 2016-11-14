@@ -88,9 +88,10 @@ setuptools.setup(name='pyros',
         'pyros',
         'pyros.tests',
         'pyros.baseinterface',
-        'pyros.mockinterface',
-        'pyros.mockinterface.tests',
         'pyros.rosinterface',
+        'pyros.rosinterface.api',
+        'pyros.rosinterface.mock',
+        'pyros.rosinterface.mock.tests',
         'pyros.rosinterface.tests',
         'pyros.rosinterface.rostests',
         'pyros.zmpinterface',
@@ -107,7 +108,7 @@ setuptools.setup(name='pyros',
         'tblib',  # this might not always install six (latest version does not)
         'six',
         'pyzmq',
-        'pyzmp==0.0.14',  # lets be rigorous since we are working on both at the same time...
+        'pyzmp>=0.0.14',  # lets match the requirement in package.xml (greater than)
         'pyros_setup>=0.1.5',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
         'pyros_config>=0.1.4',
         'nose>=1.3.7',
