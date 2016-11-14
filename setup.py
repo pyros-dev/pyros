@@ -16,6 +16,9 @@ with open('pyros/_version.py') as vf:
 # $ python setup.py publish
 # => TODO : try to do a simpler "release" command
 
+# TODO : command to retrieve extra ROS stuff from a third party release repo ( for ROS devs ). useful in dev only so maybe "rosdevelop" ? or via catkin_pip ?
+# TODO : command to release to Pip and ROS (bloom) same version one after the other...
+
 
 # Clean way to add a custom "python setup.py <command>"
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
