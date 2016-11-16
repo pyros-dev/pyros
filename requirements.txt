@@ -1,6 +1,13 @@
 --index-url https://pypi.python.org/simple/
---extra-index-url https://testpypi.python.org/simple/
+# --extra-index-url https://testpypi.python.org/simple/
 
-nose
+# dependencies for development
+# Note : all tests included in package, which means we don't need anything here
 
+# dependency sources for development only
+# Note for ROS : this will end up in the wstool workspace. so we dont need to define it in the rosinstall...
+# -e git+https://github.com/asmodehn/pyros-setup.git@config_refactor#egg=pyros_setup
+
+# To always  have requirements installing current package (and dependencies) as well
+# if we try to install requirements
 -e .
