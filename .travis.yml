@@ -6,6 +6,8 @@ services:
 branches:
   except:
     - gh-pages
+    - /^rpm/.*/trusty/.*$/  # not testing rpm builds in trusty
+    - /^debian/.*/trusty/.*$/ # not testing package building here (ROS buildfarm will do it)
 
 env:
   global:
