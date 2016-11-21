@@ -166,8 +166,8 @@ class TestStringSubscriber(unittest.TestCase):
 
             # Making sure the topic interface is ready to be used just after creation
             # by checking the number of connections on the actual subscriber
-            subs_connected = self.sub_topic.impl.get_num_connections()  # no local subs
-            assert_true(subs_connected == 1)
+            pubs_connected = self.sub_topic.impl.get_num_connections()  # no local subs
+            assert_true(pubs_connected == 1)
 
             # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.sub_if.name))
