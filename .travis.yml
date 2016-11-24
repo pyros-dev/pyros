@@ -33,11 +33,12 @@ env:
   - ROS_DISTRO=jade PYTHON=2.7
   - ROS_DISTRO=jade PYTHON=3.4
 
-  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
+  # rocon_python_comms is not available on jade yet.
+#  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+#  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+#  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
+#  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
+#  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
 
   - ROS_DISTRO=kinetic ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
