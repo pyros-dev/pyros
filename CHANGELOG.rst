@@ -1,8 +1,34 @@
 Changelog
 =========
 
+0.3.1 (2017-01-13)
+------------------
+
+- Disabling cache test on jade since rocon_python_comms not available
+  yet. [alexv]
+
+- Being less strict about mock depend. [alexv]
+
+- Fixing optional dependency for travis tests. [alexv]
+
+- Small comments for tests. [alexv]
+
+- Skipping travis test of rpm & debian branches. [alexv]
+
+- Removing old gone six submodule. [alexv]
+
+- Changed dependency to tblib third party released package to allow
+  build for any ROS platform. [alexv]
+
+- Making python-mock a full dependency (used in package, for
+  transitivity). commenting tblib, might not be needed. [alexv]
+
 0.3.0 (2016-11-14)
 ------------------
+
+- Fixed rospkg version. [alexv]
+
+- V0.3.0. [alexv]
 
 - Changing branch to master for all readme badges. [alexv]
 
