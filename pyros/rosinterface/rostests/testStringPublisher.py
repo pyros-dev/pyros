@@ -153,7 +153,7 @@ class TestStringPublisher(unittest.TestCase):
             # Making sure the topic interface is ready to be used just after creation
             # by checking number of connections on the actual publisher
             subs_connected = self.pub_topic.impl.get_num_connections()  # no local pub
-            assert_true(subs_connected == 1)
+            assert_true(subs_connected == 1)  # TODO : FIX ! kinetic test failed here ! (happens only sometimes => race condition...)
 
             # Topics are up. Use them.
             print("sending : {msg} on topic {topic}".format(msg=self.test_message, topic=self.pub_topic.name))

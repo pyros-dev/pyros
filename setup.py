@@ -42,7 +42,7 @@ class PrepareReleaseCommand(setuptools.Command):
         # $ gitchangelog >CHANGELOG.rst
         # $ git commit CHANGELOG.rst -m "updating changelog"
         # change version in code and changelog
-        subprocess.check_call("git commit CHANGELOG.rst pyros/_version.py -m 'v{0}'".format(__version__), shell=True)
+        subprocess.check_call("git commit CHANGELOG.rst pyros/_version.py package.xml -m 'v{0}'".format(__version__), shell=True)
         subprocess.check_call("git push", shell=True)
 
         print("You should verify travis checks, and you can publish this release with :")
@@ -115,7 +115,7 @@ setuptools.setup(name='pyros',
         'pyros_setup>=0.1.5',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/
         'pyros_config>=0.1.4',
         'nose>=1.3.7',
-        'mock==1.0.1',  # old mock to be compatible with trusty versions
+        'mock>=1.0.1',  # old mock to be compatible with trusty versions
     ],
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     test_suite="nose.collector",

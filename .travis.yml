@@ -6,6 +6,8 @@ services:
 branches:
   except:
     - gh-pages
+    - /^rpm/.*$/  # not testing rpm builds in trusty
+    - /^debian/.*$/ # not testing package building here (ROS buildfarm will do it)
 
 env:
   global:
@@ -31,11 +33,12 @@ env:
   - ROS_DISTRO=jade PYTHON=2.7
   - ROS_DISTRO=jade PYTHON=3.4
 
-  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
+  # rocon_python_comms is not available on jade yet.
+#  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
+#  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
+#  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
+#  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
+#  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
 
   - ROS_DISTRO=kinetic ROS_FLOW=devel
   # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
@@ -82,7 +85,7 @@ install:
   # Installing package dependencies
   - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
   # Installing OPTIONAL package dependencies if enabled for this build
-  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-indigo-rocon-python-comms -y; fi
+  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-${ROS_DISTRO}-rocon-python-comms -y; fi
   # getting virtualenv setup with dependencies if we need to work with pure python setup
   - if [ ! -z ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
 
