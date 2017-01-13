@@ -3,7 +3,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
 import setuptools
 
 # Ref : https://packaging.python.org/single_source_version/#single-sourcing-the-version
@@ -162,6 +161,29 @@ class RosDevelopCommand(setuptools.Command):
         sys.exit()
 
 
+class ROSPublishCommand(setuptools.Command):
+    """Command to release this package to Pypi"""
+    description = "releases pyros to ROS"
+    user_options = []
+
+    def initialize_options(self):
+        """init options"""
+        pass
+
+    def finalize_options(self):
+        """finalize options"""
+        pass
+
+    def run(self):
+        """runner"""
+        # TODO : distro from parameter. default : ['indigo', 'jade', 'kinetic']
+        subprocess.check_call("git tag -a ros-{0} -m 'version {0} for ROS'".format(__version__), shell=True)
+        subprocess.check_call("git push --tags", shell=True)
+
+        subprocess.check_call("bloom-release --rosdistro indigo --track indigo pyros", shell=True)
+        sys.exit()
+
+
 setuptools.setup(name='pyros',
     version=__version__,
     description='ROS Node to provide ROS introspection for non-ROS users.',
@@ -206,6 +228,7 @@ setuptools.setup(name='pyros',
         'rosdevelop': RosDevelopCommand,
         'prepare_release': PrepareReleaseCommand,
         'publish': PublishCommand,
+        'rospublish': ROSPublishCommand,
     },
     zip_safe=False,  # TODO testing...
 )
