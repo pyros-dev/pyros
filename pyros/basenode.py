@@ -12,7 +12,6 @@ import pyzmp
 
 from .exceptions import PyrosException
 # TODO : think about how to plug and play different interfaces for different systems here...
-from .rosinterface import BaseInterface
 
 from pyros_config import ConfigHandler
 
