@@ -83,8 +83,13 @@ class PyrosBase(pyzmp.Node):
         self.provides(self.params)
         self.provides(self.setup)
 
-        if not isinstance(interface_class, tuple) and not issubclass(interface_class, BaseInterface):
-            raise PyrosException("The interface passed to the Node is neither a tuple nor a subclass of BaseInterface")
+
+        if not isinstance(interface_class, tuple) and not (
+                # TODO : we should pre check all the used members are present...
+                hasattr(interface_class, 'services')
+                # TODO : etc.
+        ):
+            raise PyrosException("The interface passed to the Node is not a tuple or is missing some members to be used as an interface : {interface_class}".format(**locals()))
         else:
             self.interface_class = interface_class
         self.interface = None  # delayed interface creation
@@ -221,8 +226,13 @@ class PyrosBase(pyzmp.Node):
             # get the class, will raise AttributeError if class cannot be found
             self.interface_class = getattr(m, class_name)
 
-        if not issubclass(self.interface_class, BaseInterface):
-            raise PyrosException("The interface class is not a subclass of BaseInterface. Aborting Setup.")
+
+        if not (
+                # TODO : we should pre check all the used members are present...
+                hasattr(self.interface_class, 'services')
+                # TODO : etc.
+        ):
+            raise PyrosException("The interface class is missing some members to be used as an interface. Aborting Setup. {interface_class}".format(**locals()))
 
         self.interface = self.interface_class(*args, **kwargs)
 
