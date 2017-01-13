@@ -15,7 +15,7 @@ TopicType = namedtuple("TopicType", "msgtype")
 statusecho_topic = TopicType("StatusMsg")
 
 
-# This manager process provides a mock implementation while allowing multiprocess access to it
+# This manager process provides a mockinterface implementation while allowing multiprocess access to it
 # Especially useful for test client process.
 mock_manager = multiprocessing.Manager()
 

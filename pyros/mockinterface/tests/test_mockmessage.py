@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
-import sys
 import os
+import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from pyros.rosinterface.mock import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
+from pyros.mockinterface import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
 from nose.tools import assert_true, assert_false, assert_raises
 
 

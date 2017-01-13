@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
-from ...baseinterface import TransientIf
+from pyros.baseinterface import TransientIf
 
 
 class MockPublisher(TransientIf):
     """
-    MockPublisher is a mock of the class handling conversion from Python API to Publisher call
+    MockPublisher is a mockinterface of the class handling conversion from Python API to Publisher call
     """
 
     def __init__(self, topic_name, topic_type):

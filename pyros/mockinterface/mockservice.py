@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import deque, namedtuple
 
-from ...baseinterface import TransientIf
+from pyros.baseinterface import TransientIf
 
 ServiceType = namedtuple("ServiceType", "reqtype resptype")
 
@@ -11,7 +11,7 @@ statusecho_service = ServiceType("StatusMsg", "StatusMsg")
 
 class MockService(TransientIf):
     """
-    MockService is a mock for the class handling conversion from python API to Service call
+    MockService is a mockinterface for the class handling conversion from python API to Service call
     """
     def __init__(self, service_name, service_type):
         # setting the name to make sure we start with /

@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function
 
-from ...baseinterface import TransientIf
+from pyros.baseinterface import TransientIf
 
 
 class MockParam(TransientIf):
     """
-    MockParam is the class handling mock behavior for Param
+    MockParam is the class handling mockinterface behavior for Param
     """
     def __init__(self, param_name, param_type):
 

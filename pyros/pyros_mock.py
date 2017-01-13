@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .rosinterface.mock import MockInterface
+from pyros.mockinterface import MockInterface
 from . import config
 from .basenode import PyrosBase
 
@@ -17,9 +17,9 @@ class PyrosMock(PyrosBase):
         'PARAMS': [],
     }
 
-    # TODO : we probably want to reuse the standard mock module here...
+    # TODO : we probably want to reuse the standard mockinterface module here...
     def __init__(self, name=None, pyros_config=None, args=None, kwargs=None):
-        name = name or 'pyros-mock'
+        name = name or 'pyros-mockinterface'
 
         # No default config here for now
 
@@ -44,7 +44,7 @@ class PyrosMock(PyrosBase):
 
     # These should match the design of PyrosClient and Protocol so we are consistent between pipe and python API
     def msg_build(self, name):
-        # TODO : better mock : this can except if not string.
+        # TODO : better mockinterface : this can except if not string.
         msg = str()
         return msg
 

@@ -13,16 +13,13 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 
 import time
 
-from pyros.rosinterface.mock.mocksystem import (
-    mock_publisher_remote, mock_subscriber_remote, mock_service_remote, mock_param_remote,
-    services_available_remote, services_available_type_remote,
-    topics_available_remote, topics_available_type_remote,
-    params_available_remote, params_available_type_remote,
+from pyros.mockinterface.mocksystem import (
+    mock_publisher_remote, mock_subscriber_remote, topics_available_remote, topics_available_type_remote,
 )
 from pyros import PyrosMock
-from pyros.rosinterface.mock.mocksystem import statusecho_topic
+from pyros.mockinterface.mocksystem import statusecho_topic
 import pyzmp
-from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
+from nose.tools import timed, assert_true, assert_false, assert_equal
 
 
 ### TESTING NODE CREATION / TERMINATION ###
@@ -124,7 +121,7 @@ def test_mocknode_publishers_detect():  # Here we check that this node actually 
 
         with mock_publisher_remote('test_topic', statusecho_topic):
 
-            # asserting the mock system has done its job from our point of view at least
+            # asserting the mockinterface system has done its job from our point of view at least
             assert_true('test_topic' in topics_available_remote)
             assert_equal(topics_available_type_remote['test_topic'], statusecho_topic)
 
@@ -137,7 +134,7 @@ def test_mocknode_publishers_detect():  # Here we check that this node actually 
             time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
 
             res = topics.call(recv_timeout=6000000)
-            # the mock system should have done its job from the other process perspective too
+            # the mockinterface system should have done its job from the other process perspective too
             # via multiprocess manager list
             assert_true('test_topic' in res)  # topic detected since in list of exposed topics
 
@@ -249,7 +246,7 @@ def test_mocknode_subscribers_detect():  # Here we check that this node actually
 
         with mock_subscriber_remote('test_topic', statusecho_topic):
 
-            # asserting the mock system has done its job from our point of view at least
+            # asserting the mockinterface system has done its job from our point of view at least
             assert_true('test_topic' in topics_available_remote)
             assert_equal(topics_available_type_remote['test_topic'], statusecho_topic)
 
@@ -262,7 +259,7 @@ def test_mocknode_subscribers_detect():  # Here we check that this node actually
             time.sleep(mockn.update_interval + 1)  # make sure we let update time to kick in
 
             res = topics.call(recv_timeout=6000000)
-            # the mock system should have done its job from the other process perspective too
+            # the mockinterface system should have done its job from the other process perspective too
             # via multiprocess manager list
             assert_true('test_topic' in res)  # topic detected since in list of exposed topics
 

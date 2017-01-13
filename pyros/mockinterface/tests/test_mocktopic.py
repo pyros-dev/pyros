@@ -1,18 +1,18 @@
 from __future__ import absolute_import, print_function
 
-import sys
 import os
+import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 import nose
-from nose.tools import assert_true, assert_false, assert_raises
 import unittest
+from nose.tools import assert_true
 
-from pyros.rosinterface.mock import extract_values, populate_instance, FieldTypeMismatchException, NonexistentFieldException, StatusMsg
-from pyros.rosinterface.mock import statusecho_service, MockSystem
+from pyros.mockinterface import populate_instance, StatusMsg
+from pyros.mockinterface import statusecho_topic, MockSystem
 
 
-class TestMockService(unittest.TestCase):
+class TestMockTopic(unittest.TestCase):
     """
     Main test fixture holding all tests
     Subclasses can override setup / teardown to test different environments
@@ -34,16 +34,16 @@ class TestMockService(unittest.TestCase):
             'message': 'A bad Error happened'
         }, StatusMsg('ERROR', 42, 'details'))
         assert_true(isinstance(msg, StatusMsg))
-        echo_service = self.system.create_service('random_service', statusecho_service)
-        resp = echo_service.call(msg)
-        print(resp)
-        assert_true(resp.error == 'BAD_ERROR')
-        assert_true(resp.code == 7)
-        assert_true(resp.message == 'A bad Error happened')
+        echo_topic_pub = self.system.create_publisher('random_topic', statusecho_topic)
+        echo_topic_sub = self.system.create_subscriber('random_topic', statusecho_topic)
+        assert_true(echo_topic_pub.publish(msg))
+        recv = echo_topic_sub.get()
+        print(recv)
+        assert_true(recv.error == 'BAD_ERROR')
+        assert_true(recv.code == 7)
+        assert_true(recv.message == 'A bad Error happened')
 
-# TODO : make sure we handle errors when the service is exposed, but not existing any longer
 
 if __name__ == '__main__':
 
     nose.runmodule()
-

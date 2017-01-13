@@ -20,7 +20,7 @@ from nose.tools import assert_equal, assert_raises
 class TestPyrosClientOnMock(object):
     def setUp(self):
         self.mockInstance = PyrosMock()
-        # setting up mock instance
+        # setting up mockinterface instance
         cmd_conn = self.mockInstance.start()
         self.client = PyrosClient(cmd_conn)
 
@@ -32,7 +32,7 @@ class TestPyrosClientOnMock(object):
     # TODO : test list features more !
     def test_list_all(self):
         t = self.client.topics()
-        # Make sure we get all mock topics
+        # Make sure we get all mockinterface topics
         assert t is not None
 
 

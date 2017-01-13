@@ -1,15 +1,15 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import sys
 import os
+import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from pyros.rosinterface.mock import MockInterface
-from pyros.rosinterface.mock.mockservice import statusecho_service, MockService
+from pyros.mockinterface import MockInterface
+from pyros.mockinterface.mockservice import statusecho_service, MockService
 
-import nose
-from nose.tools import timed, assert_true, assert_false, assert_equal, assert_raises
+from nose.tools import timed, assert_true, assert_false
 
 
 # @nose.SkipTest  # to help debugging ( FIXME : how to programmatically start only one test - maybe in fixture - ? )

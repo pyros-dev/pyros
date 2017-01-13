@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 from collections import namedtuple, deque
 
-from ...baseinterface import TransientIf
+from pyros.baseinterface import TransientIf
 
 
 class MockSubscriber(TransientIf):
     """
-    MockSubscriber is a mock of the class handling conversion from Python API to subscriber call
+    MockSubscriber is a mockinterface of the class handling conversion from Python API to subscriber call
     """
 
     def __init__(self, topic_name, topic_type, queue_size=1):

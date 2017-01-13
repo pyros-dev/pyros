@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-from ...baseinterface import TransientIfPool
+from pyros.baseinterface import TransientIfPool
 from .mocksystem import (
     params_available_remote, params_available_type_remote,
 )
@@ -19,7 +19,7 @@ class MockParamPool(TransientIfPool):
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(MockParamPool, self).__init__(params)
 
-    # mock functions that simulate/mock similar interface than what is found on multiprocess framework supported
+    # mockinterface functions that simulate/mockinterface similar interface than what is found on multiprocess framework supported
     # We should try our best to go for the lowest common denominator here
     # PARAMS
     def get_transients_available(self):  # function returning all params available on the system

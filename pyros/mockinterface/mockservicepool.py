@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from contextlib import contextmanager
 
-from ...baseinterface import TransientIfPool
+from pyros.baseinterface import TransientIfPool
 from .mocksystem import (
     services_available_remote, services_available_type_remote,
 )
@@ -20,7 +20,7 @@ class MockServicePool(TransientIfPool):
         # This base constructor assumes the system to interface with is already available ( can do a get_svc_available() )
         super(MockServicePool, self).__init__(services)
 
-    # mock functions that simulate/mock similar interface than what is found on multiprocess framework supported
+    # mockinterface functions that simulate/mockinterface similar interface than what is found on multiprocess framework supported
     # We should try our best to go for the lowest common denominator here
     # SERVICES
     def get_transients_available(self):  # function returning all services available on the system

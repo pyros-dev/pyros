@@ -25,10 +25,10 @@ from .mockpublisher import MockPublisher
 from .mocksystem import MockSystem, statusecho_topic
 
 
-# Since this mock interface follows ROS design (params, service, topics)
+# Since this mockinterface interface follows ROS design (params, service, topics)
 # We decided to make it part of ROS interface
 
-# TODO : We should probably use mock library for this and test against it...
+# TODO : We should probably use mockinterface library for this and test against it...
 
 __all__ = [
     'MockPublisher',

@@ -5,13 +5,13 @@ from .mocksubscriberpool import MockSubscriberPool
 from .mockpublisherpool import MockPublisherPool
 from .mockparampool import MockParamPool
 
-from ..baseinterface import BaseInterface
+from pyros.rosinterface.baseinterface import BaseInterface
 
 
 class MockInterface(BaseInterface):
 
     """
-    MockInterface. A simple mock following ROS design.
+    MockInterface. A simple mockinterface following ROS design.
     Userful to test the multiprocess parts of pyros without worrying about real connexion with ROS.
     """
     def __init__(self, publishers=None, subscribers=None, services=None, params=None):
