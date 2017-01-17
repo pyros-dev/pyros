@@ -1,10 +1,7 @@
 from __future__ import absolute_import
 
-import logging
-import os
-import unicodedata
-
 import sys
+import unicodedata
 
 import six
 
@@ -18,7 +15,7 @@ Required for multiprocess communication.
 import pyzmp
 
 
-from pyros.exceptions import PyrosException
+from pyros.common.exceptions import PyrosException
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.
