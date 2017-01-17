@@ -10,11 +10,13 @@ current_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 # if not current_path in sys.path:
 sys.path.insert(1, current_path)  # sys.path[0] is always current path as per python spec
 
+import unittest
+
 from pyros.interfaces.mock import PyrosMock
 from pyros.client.client import PyrosClient
 
 
-class TestPyrosClientOnMock(object):
+class TestPyrosClientOnMock(unittest.TestCase):
     def setUp(self):
         self.mockInstance = PyrosMock()
         # setting up mockinterface instance
