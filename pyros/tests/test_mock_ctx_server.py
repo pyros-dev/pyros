@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 from pyros.client.client import PyrosClient
 from pyros.ctx_server import pyros_ctx
+from pyros.interfaces.mock import PyrosMock
 
 
 def testPyrosMockCtx():
-    with pyros_ctx(mock_node=True) as ctx:
+    with pyros_ctx(node_impl=PyrosMock) as ctx:
         assert isinstance(ctx.client, PyrosClient)
 
     # TODO : assert the context manager does his job ( HOW ? )
