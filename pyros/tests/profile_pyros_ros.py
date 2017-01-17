@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 
-# ROS SETUP if needed
-import logging
-import multiprocessing
-import time
 import cProfile
-
+import logging
 import sys
-from pyros import PyrosROS
-import rospy
+import time
+
 import rosgraph
 import roslaunch
+import rospy
+
+from pyros import PyrosROS
 
 roscore_process = None
 
@@ -63,8 +62,8 @@ def start_pub_node(pubnum):
             "pyros_test is needed to run this. Please verify that it is installed in your ROS environment")
         raise
 
-# TODO : make MANY nodes / services / params to simulate complex robot and make profiling more realistic.
-time.sleep(2)  # waiting for nodes to be up
+# TODO : make MANY node / services / params to simulate complex robot and make profiling more realistic.
+time.sleep(2)  # waiting for node to be up
 
 rosn = PyrosROS()
 
@@ -96,17 +95,17 @@ def update_loop():
 
         count += 1
 
-        # creating and removing nodes while looping
+        # creating and removing node while looping
         node_step = count * max_pubnodes * 2/ total_count
         if node_step != last_node_step:
             last_node_step = node_step
             if count < total_count/2:
-                # adding nodes
+                # adding node
                 print("adding node {0}".format(node_step))
                 start_pub_node(node_step)
 
             elif pub_proc:
-                # stopping nodes LIFO
+                # stopping node LIFO
                 print("stopping node {0}".format(len(pub_proc)-1))
                 pub_proc.pop().stop()
 

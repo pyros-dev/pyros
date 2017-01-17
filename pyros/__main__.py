@@ -54,6 +54,9 @@ _path = pkg_resources.resource_filename("pyros", "__main__.py")
 _parent = os.path.normpath(os.path.join(os.path.dirname(_path), ".."))
 
 
+#TODO : enable starting different interface nodes for different MP frameworks
+
+
 def nosemain():
     args = sys.argv + [opt for opt in (
         # "--exe",  # DO NOT look in exe (maybe old rostests ?)
