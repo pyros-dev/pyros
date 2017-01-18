@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from collections import namedtuple
 
-from pyros.interfaces.base import TransientIf
+from pyros_common.transient_if import TransientIf
 
 ServiceType = namedtuple("ServiceType", "reqtype resptype")
 

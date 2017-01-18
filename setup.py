@@ -196,13 +196,8 @@ setuptools.setup(name='pyros',
         'pyros.client',
         'pyros.client.tests',
         'pyros.interfaces',
-        'pyros.interfaces.base',
         'pyros.interfaces.mock',
         'pyros.interfaces.mock.tests',
-        'pyros.interfaces.zmp',
-        'pyros.interfaces.zmp.tests',
-        'pyros.protocol',
-        'pyros.tests',
     ],
     entry_points={
         'console_scripts': [

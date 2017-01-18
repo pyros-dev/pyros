@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from pyros.client.client import PyrosClient
-from pyros.ctx_server import pyros_ctx
+from pyros_common.ctx_server import pyros_ctx
 from pyros.interfaces.mock import PyrosMock
 
 

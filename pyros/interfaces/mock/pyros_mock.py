@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 
 from pyros import config
-from pyros.interfaces.base.basenode import PyrosBase
+from pyros_common.basenode import PyrosBase
 
 from .mockinterface import MockInterface
 

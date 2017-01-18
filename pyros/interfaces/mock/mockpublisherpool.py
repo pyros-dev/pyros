@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from pyros.interfaces.base import TransientIfPool
+from pyros_common.transient_if_pool import TransientIfPool
 from .mockpublisher import MockPublisher
 from .mocksystem import (
     topics_available_remote, topics_available_type_remote,
