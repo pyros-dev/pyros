@@ -31,5 +31,6 @@ if (CATKIN_ENABLE_TESTING)
     catkin_add_nosetests(pyros/interfaces/mock/tests)
     catkin_add_nosetests(pyros/tests)
 
+    # TODO : run ROS tests with --no-skip to force them...
 
 endif()
