@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>pyros</name>
-  <version>0.3.1</version>
+  <version>0.3.2</version>
   <description>
 Provides Python to ROS multiprocess API, useful for using ROS from different multiprocess environment (think webserver, celery, etc.) while keeping both isolated.
   </description>
@@ -16,7 +16,7 @@ Provides Python to ROS multiprocess API, useful for using ROS from different mul
   <maintainer email="asmodehn@gmail.com">AlexV</maintainer>
 
   <buildtool_depend version_gte="0.6.18">catkin</buildtool_depend>
-  <build_depend version_gte="0.1.3">catkin_pip</build_depend>
+  <build_depend version_gte="0.2.0">catkin_pip</build_depend>
 
   <depend version_gte="1.0.1">python-mock</depend>
 
