@@ -15,7 +15,7 @@ import pyros.config
 def pyros_ctx(name='pyros',
               argv=None,  # TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
               mock_client=False,
-              node_impl=pyros.interfaces.mock.PyrosMock,
+              node_impl=pyros_interfaces.mock.PyrosMock,
               pyros_config=None):
 
     pyros_config = pyros_config or pyros.config  # using internal config if no other config passed

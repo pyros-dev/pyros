@@ -195,9 +195,6 @@ setuptools.setup(name='pyros',
         'pyros',
         'pyros.client',
         'pyros.client.tests',
-        'pyros.interfaces',
-        'pyros.interfaces.mock',
-        'pyros.interfaces.mock.tests',
     ],
     entry_points={
         'console_scripts': [
@@ -226,5 +223,4 @@ setuptools.setup(name='pyros',
         'rospublish': ROSPublishCommand,
     },
     zip_safe=False,  # TODO testing...
-    # namespace_packages=['pyros', 'pyros.interfaces']
 )

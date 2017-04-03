@@ -4,7 +4,7 @@ import time
 import nose
 
 from pyros.client import PyrosClient
-from pyros_common.ctx_server import pyros_ctx
+from pyros_interfaces.common.ctx_server import pyros_ctx
 
 try:
     import pyros_interfaces_ros

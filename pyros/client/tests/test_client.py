@@ -12,7 +12,7 @@ sys.path.insert(1, current_path)  # sys.path[0] is always current path as per py
 
 import unittest
 
-from pyros.interfaces.mock import PyrosMock
+from pyros_interfaces.mock import PyrosMock
 from pyros.client.client import PyrosClient
 
 
