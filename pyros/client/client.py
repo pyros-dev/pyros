@@ -15,7 +15,7 @@ Required for multiprocess communication.
 import pyzmp
 
 
-from pyros_interfaces.common.exceptions import PyrosException
+from pyros_interfaces_common.exceptions import PyrosException
 
 # TODO : Requirement : Check TOTAL send/receive SYMMETRY.
 # If needed get rid of **kwargs arguments in call. Makes the interface less obvious and can trap unaware devs.

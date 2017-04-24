@@ -7,7 +7,7 @@ from contextlib import contextmanager
 
 from pyros.client import PyrosClient
 import pyros.config
-from pyros_interfaces.mock.pyros_mock import PyrosMock
+from pyros_interfaces_mock.pyros_mock import PyrosMock
 
 
 # A context manager to handle server process launch and shutdown properly.
