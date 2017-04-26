@@ -26,17 +26,17 @@ def pyros_ctx(name='pyros',
 
     if mock_client:
 
-        logging.warn("Setting up pyros mock client...")
+        logging.warning("Setting up pyros mock client...")
         with mock.patch('pyros.client.PyrosClient', autospec=True) as client:
             yield ctx(client=client)
     else:
 
-        logging.warn("Setting up pyros {0} node...".format(node_impl))
+        logging.warning("Setting up pyros {0} node...".format(node_impl))
         subproc = node_impl(name, argv).configure(pyros_config)
 
         client_conn = subproc.start()
 
-        logging.warn("Setting up pyros actual client...")
+        logging.warning("Setting up pyros actual client...")
         yield ctx(client=PyrosClient(client_conn))
 
     if subproc is not None:
