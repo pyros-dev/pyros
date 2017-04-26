@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
 from pyros.client.client import PyrosClient
-from pyros_common.ctx_server import pyros_ctx
-from pyros.interfaces.mock import PyrosMock
+from pyros.server.ctx_server import pyros_ctx
+from pyros_interfaces_mock import PyrosMock
 
 
 def testPyrosMockCtx():

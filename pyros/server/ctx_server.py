@@ -7,6 +7,7 @@ from contextlib import contextmanager
 
 from pyros.client import PyrosClient
 import pyros.config
+from pyros_interfaces_mock.pyros_mock import PyrosMock
 
 
 # A context manager to handle server process launch and shutdown properly.
@@ -15,7 +16,7 @@ import pyros.config
 def pyros_ctx(name='pyros',
               argv=None,  # TODO : think about passing ros arguments http://wiki.ros.org/Remapping%20Arguments
               mock_client=False,
-              node_impl=pyros.interfaces.mock.PyrosMock,
+              node_impl=PyrosMock,
               pyros_config=None):
 
     pyros_config = pyros_config or pyros.config  # using internal config if no other config passed
@@ -25,17 +26,17 @@ def pyros_ctx(name='pyros',
 
     if mock_client:
 
-        logging.warn("Setting up pyros mock client...")
+        logging.warning("Setting up pyros mock client...")
         with mock.patch('pyros.client.PyrosClient', autospec=True) as client:
             yield ctx(client=client)
     else:
 
-        logging.warn("Setting up pyros {0} node...".format(node_impl))
+        logging.warning("Setting up pyros {0} node...".format(node_impl))
         subproc = node_impl(name, argv).configure(pyros_config)
 
         client_conn = subproc.start()
 
-        logging.warn("Setting up pyros actual client...")
+        logging.warning("Setting up pyros actual client...")
         yield ctx(client=PyrosClient(client_conn))
 
     if subproc is not None:

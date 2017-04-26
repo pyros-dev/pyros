@@ -195,9 +195,6 @@ setuptools.setup(name='pyros',
         'pyros',
         'pyros.client',
         'pyros.client.tests',
-        'pyros.interfaces',
-        'pyros.interfaces.mock',
-        'pyros.interfaces.mock.tests',
     ],
     entry_points={
         'console_scripts': [
@@ -213,10 +210,18 @@ setuptools.setup(name='pyros',
         'pyzmp>=0.0.14',  # lets match the requirement in package.xml (greater than)
         'pyros_setup>=0.1.5',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/ => we still need to force hte install in the venv to have permissions to create hte configuration file...
         'pyros_config>=0.1.4',
+        'pyros-common',
         'nose>=1.3.7',
         'mock==1.0.1',  # old mock to be compatible with trusty versions
     ],
+    extras_require={
+      'ros': 'pyros_interfaces_ros',
+    },
+    dependency_links=[
+        'git+https://github.com/asmodehn/pyros-rosinterface.git@namespace#egg=pyros_interfaces_ros'
+    ],
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
+
     test_suite="nose.collector",
     tests_require=["nose"],
     cmdclass={
@@ -226,5 +231,4 @@ setuptools.setup(name='pyros',
         'rospublish': ROSPublishCommand,
     },
     zip_safe=False,  # TODO testing...
-    # namespace_packages=['pyros', 'pyros.interfaces']
 )

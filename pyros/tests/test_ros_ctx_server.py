@@ -4,7 +4,7 @@ import time
 import nose
 
 from pyros.client import PyrosClient
-from pyros_common.ctx_server import pyros_ctx
+from pyros.server.ctx_server import pyros_ctx
 
 try:
     import pyros_interfaces_ros
@@ -18,7 +18,7 @@ def testPyrosROSCtx():
     try:
         import pyros_utils
     except ImportError:
-        # TODO : find a proper ay to log from a test like here...
+        # TODO : find a proper way to log from a test like here...
         #_logger.warning("loading pyros_setup and configuring your ROS environment")
         import pyros_setup
         # This will load the pyros_setup configuration from the environment

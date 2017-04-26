@@ -15,8 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 #set (CATKIN_PIP_NO_DEPS False FORCE)
 
 # defining current package as a package that should be managed by pip (not catkin - even though we make it usable with workspaces)
-catkin_pip_setup()
-catkin_package()
+catkin_pip_package(pyros)
 
 ## Unit tests
 if (CATKIN_ENABLE_TESTING)
@@ -28,7 +27,6 @@ if (CATKIN_ENABLE_TESTING)
 
     # Careful this will not support parallel testing, due to multiprocess environment used in tests
     catkin_add_nosetests(pyros/client/tests)
-    catkin_add_nosetests(pyros/interfaces/mock/tests)
     catkin_add_nosetests(pyros/tests)
 
     # TODO : run ROS tests with --no-skip to force them...
