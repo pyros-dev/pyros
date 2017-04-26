@@ -63,6 +63,13 @@ class PyrosClient(object):
         ):
             raise PyrosServiceNotFound('msg_build')
 
+        self.setup_svc = pyzmp.Service.discover('setup', 5)
+        if self.setup_svc is None or (
+                        self.node_name is not None and
+                        self.node_name not in [p[0] for p in self.setup_svc.providers]
+        ):
+            raise PyrosServiceNotFound('setup')
+
         self.topic_svc = pyzmp.Service.discover('topic', 5)
         if self.topic_svc is None or (
             self.node_name is not None and
@@ -213,6 +220,16 @@ class PyrosClient(object):
 
     def params(self):
         res = self.params_svc.call(send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
+        return res
+
+    def setup(self, publishers=None, subscribers=None, services=None, params=None): #, enable_cache=False):
+        res = self.setup_svc.call(kwargs={
+            'publishers': publishers,
+            'subscribers': subscribers,
+            'services': services,
+            'params': params,
+            #'enable_cache': enable_cache,  # TODO : CAREFUL : check if we can actually enable the cache dynamically ?
+        }, send_timeout=5000, recv_timeout=10000)  # Need to be generous on timeout in case we are starting up multiprocesses
         return res
 
     #def listacts(self):
