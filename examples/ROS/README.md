@@ -36,12 +36,12 @@ $ workon pyros
 (pyros) $
 ```
 
-And install the required package (pyros) from [PyPI](https://pypi.python.org/pypi)
+And install the required package (pyros) with the proper interface package for ROS from [PyPI](https://pypi.python.org/pypi)
 ```
-(pyros) $ pip install pyros
+(pyros) $ pip install pyros[ros]
 ```
 
-The first command to know is pyros_setup.
+The first command to know is pyros_setup. It is installed as a dependency to pyros_interfaces_ros.
 It will let you configure how the virtual environment can access the ROS installation on your machine : 
 ```
 (pyros) $ pyros_setup --help
@@ -83,18 +83,18 @@ This will allow you to check in detail your setup and edit the configuration fil
 For more detail about pyros-setup, you should check the [pyros-setup website](https://github.com/asmodehn/pyros-setup.git)
 
 
-Using Pyros (v0.3.x)
+Using Pyros (v0.4.x)
 --------------------
 
 If a pyros ROS node was not launched previously on the ROS system, you can dynamically start the pyros node inside the running ROS system, and create a client to connect to it : 
 ```
-(pyros) $ $ python
+(pyros) $ python
 Python 2.7.6 (default, Oct 26 2016, 20:30:19) 
 [GCC 4.8.4] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
->>> import pyros
+>>> import pyros_interfaces_ros
 WARNING:root:ZMQ : Protobuf message implementation not found. Using pickle based protocol
-WARNING:pyros.rosinterface:loading pyros_setup and configuring your ROS environment
+WARNING:pyros_interfaces_ros:loading pyros_setup and configuring your ROS environment
 WARNING:pyros_setup:Dynamic PyROS setup starting...
 WARNING:pyros_setup.ros_setup: => Pyros_setup v0.2.1 Emulating ROS setup now for distro indigo and workspaces ()
 WARNING:pyros_setup.ros_setup:Prepending path /opt/ros/indigo to CMAKE_PREFIX_PATH
@@ -107,23 +107,33 @@ Re-adding /opt/ros/indigo/lib/python2.7/dist-packages in front of sys.path
 WARNING:pyros_setup.ros_setup: => ROS setup emulation done.
 WARNING:pyros_setup:Dynamic PyROS setup done.
 WARNING:rosout:Failed to load Python extension for LZ4 support. LZ4 compression will not be available.
->>> pyros.pyros_ctx(name="testnode")
-<contextlib.GeneratorContextManager object at 0x7f5d96926190>
->>> client = pyros.PyrosROS("pyrosnode")
->>> subproc = pyros.PyrosROS("pyrosnode")
+>>> subproc = pyros_interfaces_ros.PyrosROS("pyrosnode")
 >>> client_conn = subproc.start()
-[pyrosnode] Node started as [16657 <= ipc:///tmp/zmp-pyrosnode-IyZXtp/services.pipe]
-[INFO] [WallTime: 1493179049.865000] RosInterface pyrosnode node started with args : []
-[INFO] [WallTime: 1493179049.872728] [pyros.rosinterface.ros_interface] ROS Interface initialized with:
+[pyrosnode] Node started as [9226 <= ipc:///tmp/zmp-pyrosnode-9wwwUn/services.pipe]
+[INFO] [WallTime: 1493190663.803954] RosInterface pyrosnode node started with args : []
+[INFO] [WallTime: 1493190663.808503] [pyros_interfaces_ros.ros_interface] ROS Interface initialized with:
         -    services : []
         -    publishers : []
         -    subscribers : []
         -    params : []
         -    enable_cache : False
-        
->>> 
->>> client = pyros.PyrosClient(client_conn)
->>> 
+```
+If you connect onto your ROS system, you will see a node has been added : 
+```
+alexv@AlexV-Linux:~$ source /opt/ros/indigo/setup.bash 
+alexv@AlexV-Linux:~$ rosnode list 
+/listener
+/pyrosnode
+/rosout
+/talker
+```
+More details about this on the [pyros-rosinterface website](https://github.com/asmodehn/pyros-rosinterface.git)
+
+We can now, from python, create a client and connect to our new pyros ROS node
+```
+>>> import pyros 
+>>> import pyros.client
+>>> client = pyros.client.PyrosClient(client_conn)
 
 ```
 
@@ -133,13 +143,14 @@ _**TODO : connect to an existing pyros node on ROS system**_
 Now you can connect to the Pyros ROS node to introspect and interract with the ROS system.
 ```
 >>> client = pyros.PyrosClient(client_conn)
->>> client.topics()
+>>> client.subscribers()
+{}
+>>> client.publishers()
 {}
 >>> client.services()
 {}
 >>> client.params()
 {}
-
 ``` 
 
 To finally stop the node you launched, you can : 

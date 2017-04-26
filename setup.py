@@ -214,12 +214,12 @@ setuptools.setup(name='pyros',
         'nose>=1.3.7',
         'mock==1.0.1',  # old mock to be compatible with trusty versions
     ],
-    # extras_require={
-    #   'ros': 'pyros-ros',
-    # },
-    # dependency_links=[
-    #     'git+https://github.com/asmodehn/pyros-rosinterface.git@namespace#egg=pyros_interfaces.ros'
-    # ],
+    extras_require={
+      'ros': 'pyros_interfaces_ros',
+    },
+    dependency_links=[
+        'git+https://github.com/asmodehn/pyros-rosinterface.git@namespace#egg=pyros_interfaces_ros'
+    ],
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
 
     test_suite="nose.collector",
