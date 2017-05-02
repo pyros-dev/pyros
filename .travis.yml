@@ -4,6 +4,8 @@ language: python
 branches:
   except:
     - gh-pages
+    - /^rpm/.*$/  # not testing rpm builds in trusty
+    - /^debian/.*$/ # not testing package building here (ROS buildfarm will do it)
 
 python:
   - 2.7
