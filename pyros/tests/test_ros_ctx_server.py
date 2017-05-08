@@ -19,11 +19,15 @@ def testPyrosROSCtx():
         import pyros_utils
     except ImportError:
         # TODO : find a proper way to log from a test like here...
-        #_logger.warning("loading pyros_setup and configuring your ROS environment")
-        import pyros_setup
-        # This will load the pyros_setup configuration from the environment
-        pyros_setup.configurable_import().configure().activate()
-        import pyros_utils
+        try :
+            #_logger.warning("loading pyros_setup and configuring your ROS environment")
+            import pyros_setup
+            # This will load the pyros_setup configuration from the environment
+            pyros_setup.configurable_import().configure().activate()
+            import pyros_utils
+        except ImportError:
+            # This is expected when testing pyros by itself
+            raise nose.SkipTest("pyros_utils could not be imported, and trying to import pyros_setup for dynamic ros setup failed.")
 
     master, roscore_proc = pyros_utils.get_master(spawn=True)  # we start the master if needed
 
