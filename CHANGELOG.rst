@@ -2,8 +2,16 @@ Changelog
 =========
 
 
+0.4.1 (2017-05-08)
+------------------
+- Adding pyros.server package to setup.py. [alexv]
+- Improving imports to rely on pyros_setup only for ros server test.
+  [alexv]
+
+
 0.4.0 (2017-05-08)
 ------------------
+- V0.4.0. [alexv]
 - Removing catkin build files (should be in release repo). [alexv]
 - Package.xml -> 0.3.2. [alexv]
 - Fixing setup and examples using upcoming version of dependencies.
