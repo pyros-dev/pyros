@@ -40,11 +40,8 @@ class PrepareReleaseCommand(setuptools.Command):
     def run(self):
         """runner"""
 
-        # TODO :
-        # $ gitchangelog >CHANGELOG.rst
-        # $ git commit CHANGELOG.rst -m "updating changelog"
-        # change version in code and changelog
-        subprocess.check_call("git commit CHANGELOG.rst pyros/_version.py package.xml -m 'v{0}'".format(__version__), shell=True)
+        # change version in code and changelog before running this
+        subprocess.check_call("git commit CHANGELOG.rst pyros/_version.py CHANGELOG.rst -m 'v{0}'".format(__version__), shell=True)
         subprocess.check_call("git push", shell=True)
 
         print("You should verify travis checks, and you can publish this release with :")
@@ -195,6 +192,8 @@ setuptools.setup(name='pyros',
         'pyros',
         'pyros.client',
         'pyros.client.tests',
+        'pyros.server',
+        'pyros.server.tests',
     ],
     entry_points={
         'console_scripts': [
