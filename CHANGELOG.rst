@@ -2,8 +2,41 @@ Changelog
 =========
 
 
+0.4.0 (2017-05-08)
+------------------
+- Removing catkin build files (should be in release repo). [alexv]
+- Package.xml -> 0.3.2. [alexv]
+- Fixing setup and examples using upcoming version of dependencies.
+  [AlexV]
+- Added dynamic setup API on client. [AlexV]
+- Fixing usage of deprecated logging.warn. [AlexV]
+- Adding examples doc. [AlexV]
+- Fixes package names for tests to pass locally. [AlexV]
+- Moving context server in pyros main package from pyros-common. [AlexV]
+- Fixing package dependency names for new namespaced interface ROS
+  packages. [AlexV]
+- Moving pyros.interfaces to pyros_interfaces in pyros_common repo. now
+  using namespace pyros_interfaces as dependency. [AlexV]
+- WIP restructuring config and readding ctx_server here... [alexv]
+- Fixing tests with new structure. [alexv]
+- Moved a lot of things to pyros-common. [alexv]
+- Fixing tests. [alexv]
+- WIP : main with click. [alexv]
+- Extracting ros dependent part and restructure. [alexv]
+- Fixing doc to build without catkin. [alexv]
+- Fixing import of BaseInterface. [AlexV]
+- Fixing interface inheritance on the way to splitting mock and ros...
+  [alexv]
+- Moving mock interface outside of ROS, to not depend on ROS for mocks.
+  [alexv]
+- Adding rospublish command. [alexv]
+- Mutating into a pure python package. adding rosdevelop setup.py
+  command. [alexv]
+
+
 0.3.2 (2017-03-21)
 ------------------
+- V0.3.2. [alexv]
 - Changing api for catkin_pip 0.2. [AlexV]
 - Now relying on catkin_pip >0.2. [alexv]
 
