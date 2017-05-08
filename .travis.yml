@@ -1,7 +1,5 @@
-sudo: required
-language: generic
-services:
-  - docker
+sudo: false
+language: python
 
 branches:
   except:
@@ -9,98 +7,19 @@ branches:
     - /^rpm/.*$/  # not testing rpm builds in trusty
     - /^debian/.*$/ # not testing package building here (ROS buildfarm will do it)
 
-env:
-  global:
-    - CONTAINER_NAME=pyros_docker
-  # This will check any ROS distro with any python interpreter supported on this OS
-  # checking devel and install separately so that they don't influence each other (dependencies, path, env, etc.)
-  matrix:
-  - ROS_DISTRO=indigo ROS_FLOW=devel
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=indigo ROS_FLOW=install
-  - ROS_DISTRO=indigo PYTHON=2.7
-  - ROS_DISTRO=indigo PYTHON=3.4
+python:
+  - 2.7
+  # Tests hang !
+  #- 3.4
 
-  - ROS_DISTRO=indigo ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=indigo ROS_FLOW=install OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=indigo PYTHON=2.7 OPTION_ROCON_CACHE=ON
-  - ROS_DISTRO=indigo PYTHON=3.4 OPTION_ROCON_CACHE=ON
-
-  - ROS_DISTRO=jade ROS_FLOW=devel
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=jade ROS_FLOW=install
-  - ROS_DISTRO=jade PYTHON=2.7
-  - ROS_DISTRO=jade PYTHON=3.4
-
-  # rocon_python_comms is not available on jade yet.
-#  - ROS_DISTRO=jade ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-#  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-#  - ROS_DISTRO=jade ROS_FLOW=install OPTION_ROCON_CACHE=ON
-#  - ROS_DISTRO=jade PYTHON=2.7 OPTION_ROCON_CACHE=ON
-#  - ROS_DISTRO=jade PYTHON=3.4 OPTION_ROCON_CACHE=ON
-
-  - ROS_DISTRO=kinetic ROS_FLOW=devel
-  # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  - ROS_DISTRO=kinetic ROS_FLOW=install
-  - ROS_DISTRO=kinetic PYTHON=2.7
-  - ROS_DISTRO=kinetic PYTHON=3.4
-
-  # rocon_python_comms is not available on kinetic yet.
-  # - ROS_DISTRO=kinetic ROS_FLOW=devel OPTION_ROCON_CACHE=ON
-  # # Pyros is released as a pip package as well as a ros deb package : dependencies should work from install space as well
-  # - ROS_DISTRO=kinetic ROS_FLOW=install OPTION_ROCON_CACHE=ON
-  # - ROS_DISTRO=kinetic PYTHON=2.7 OPTION_ROCON_CACHE=ON
-  # - ROS_DISTRO=kinetic PYTHON=3.4 OPTION_ROCON_CACHE=ON
-
-  # TODO : pypy + pypy3
-
-
-# We need to get a ROS distro to be able to test pyros
-# from different ros environments, or
-# from different virtualenv using site-packages.
-before_install:
-  # Getting docker ros image
-  - docker pull ros:${ROS_DISTRO}-ros-core
-  # Running as daemon
-  - docker run --name ${CONTAINER_NAME} -d -t ros:${ROS_DISTRO}-ros-core /bin/bash | tee container.id
-  # Switching to use ros shadow fixed packages
-  - docker exec -ti ${CONTAINER_NAME} /bin/bash -c "sed -i.bak -e s,packages.ros.org/ros/ubuntu,packages.ros.org/ros-shadow-fixed/ubuntu, /etc/apt/sources.list.d/ros-latest.list"
-  # Checking current container
-  - docker ps -a
-  - docker exec -ti ${CONTAINER_NAME} hostname
-  - docker exec -ti ${CONTAINER_NAME} uname -a
-  - docker exec -ti ${CONTAINER_NAME} cat /etc/lsb-release
+  #- pypy
+  #- pypy3
 
 install:
-  # refreshing packages
-  - docker exec -ti ${CONTAINER_NAME} apt-get update
-  - docker exec -ti ${CONTAINER_NAME} rosdep update
-  # TMP Patch because rosdep doesnt declare a dependency to sudo yet (2016-08-25) and it doesnt come with xenial
-  - docker exec -ti ${CONTAINER_NAME} apt-get install sudo -y
-  # Install python and required packages on system if needed
-  - docker exec -ti ${CONTAINER_NAME} apt-get install python${PYTHON} virtualenvwrapper -y
-  # copying local clone to the running container (volume is currently broken)
-  - docker cp . ${CONTAINER_NAME}:/git_clone
-  # Installing package dependencies
-  - docker exec -ti ${CONTAINER_NAME} rosdep install --default-yes --from-paths /git_clone --rosdistro $ROS_DISTRO
-  # Installing OPTIONAL package dependencies if enabled for this build
-  - if [ ! -z ${OPTION_ROCON_CACHE+undef} ]; then docker exec -ti ${CONTAINER_NAME} apt-get install ros-${ROS_DISTRO}-rocon-python-comms -y; fi
-  # getting virtualenv setup with dependencies if we need to work with pure python setup
-  - if [ ! -z ${PYTHON+undef} ]; then docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && mkvirtualenv --system-site-packages -i /git_clone -a /git_clone -q python_${PYTHON}_ros"; fi
-
+  - pip install tox tox-travis
 
 script:
-  - CONTAINER_ID=$(cat container.id)
-  - docker ps -a
-  - if [ -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && rospack profile"); fi
-  # Passing env vars here since passing in docker run currently breaks (2016-08-25)
-  - if [ -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "export ROS_DISTRO=$ROS_DISTRO && export ROS_FLOW=$ROS_FLOW && /git_clone/travis_checks.bash"); fi
-  # TODO : we need to call nose with --exe here to NOT SKIP tests (but will need to guarantee process isolation)
-  - if [ ! -z ${PYTHON+undef} ]; then (docker exec -ti ${CONTAINER_NAME} /bin/bash -c "source /usr/share/virtualenvwrapper/virtualenvwrapper.sh && workon python_${PYTHON}_ros && /git_clone/travis_checks.bash"); fi
-
-  - docker stop "${CONTAINER_ID}"
-
+  - tox
 
 notifications:
   email: false
