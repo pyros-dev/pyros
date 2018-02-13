@@ -15,11 +15,7 @@ Pyros
 .. image:: https://landscape.io/github/asmodehn/pyros/master/landscape.svg?style=flat
    :target: https://landscape.io/github/asmodehn/pyros/master
    :alt: Code Health
-
-.. image:: https://www.quantifiedcode.com/api/v1/project/68d207b248dd4b3f89cf48e5de89c461/badge.svg
-  :target: https://www.quantifiedcode.com/app/project/68d207b248dd4b3f89cf48e5de89c461
-  :alt: Code issues
-
+   
 
 - If you are a `ROS`_ developer and want to use python inside `ROS`_, you can stop reading and go have a look there instead https://github.com/ros/ros_comm
 
