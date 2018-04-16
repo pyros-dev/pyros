@@ -8,6 +8,8 @@
 # Note for ROS : this will end up in the wstool workspace. so we dont need to define it in the rosinstall...
 # -e git+https://github.com/asmodehn/pyros-setup.git@config_refactor#egg=pyros_setup
 
+# -e git+https://github.com/pyros-dev/pyros-common.git@fix_exception#egg=pyros_common
+
 # TMP interface Dependencies
 # -e git+https://github.com/asmodehn/pyros-rosinterface.git@namespace#egg=pyros_interfaces_ros
 

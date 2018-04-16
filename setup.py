@@ -209,7 +209,7 @@ setuptools.setup(name='pyros',
         'pyzmp>=0.0.14',  # lets match the requirement in package.xml (greater than)
         'pyros_setup>=0.1.5',  # Careful : pyros-setup < 0.0.8 might already be installed as a deb in /opt/ros/indigo/lib/python2.7/dist-packages/ => we still need to force hte install in the venv to have permissions to create hte configuration file...
         'pyros_config>=0.1.4',
-        'pyros-common',
+        'pyros-common>=0.5.1',
         'nose>=1.3.7',
         'mock>=1.0.1',  # old mock to be compatible with trusty versions
     ],
