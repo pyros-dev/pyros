@@ -2,8 +2,15 @@ Changelog
 =========
 
 
+0.4.2 (2018-04-17)
+------------------
+- Fixing pyros_common exceptions. [AlexV]
+- Removing QC badge. [AlexV]
+
+
 0.4.1 (2017-05-08)
 ------------------
+- V0.4.1. [alexv]
 - Adding pyros.server package to setup.py. [alexv]
 - Improving imports to rely on pyros_setup only for ros server test.
   [alexv]
