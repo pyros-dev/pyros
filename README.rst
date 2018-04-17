@@ -5,15 +5,15 @@ Pyros
    :alt: Join the chat at https://gitter.im/asmodehn/pyros
    :target: https://gitter.im/asmodehn/pyros?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
-.. image:: https://travis-ci.org/asmodehn/pyros.svg?branch=master
-    :target: https://travis-ci.org/asmodehn/pyros
+.. image:: https://travis-ci.org/pyros-dev/pyros.svg?branch=master
+    :target: https://travis-ci.org/pyros-dev/pyros
 
-.. image:: https://requires.io/github/asmodehn/pyros/requirements.svg?branch=master
-     :target: https://requires.io/github/asmodehn/pyros/requirements/?branch=master
+.. image:: https://requires.io/github/pyros-dev/pyros/requirements.svg?branch=master
+     :target: https://requires.io/github/pyros-dev/pyros/requirements/?branch=master
      :alt: Requirements Status
 
-.. image:: https://landscape.io/github/asmodehn/pyros/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/asmodehn/pyros/master
+.. image:: https://landscape.io/github/pyros-dev/pyros/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/pyros-dev/pyros/master
    :alt: Code Health
    
 
