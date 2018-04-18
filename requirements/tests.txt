@@ -1,0 +1,5 @@
+# latest version to validate behavior on pure python env
+pytest
+# pytest-xdist  # for --boxed  # dropping this because of compat req with six...
+hypothesis
+numpy

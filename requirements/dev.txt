@@ -1,0 +1,4 @@
+# Requirements to get specific development version fo various dependencies
+
+# -e git+https://github.com/pyros-dev/pyzmp.git#egg=pyzmp
+
