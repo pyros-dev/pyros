@@ -6,7 +6,7 @@ import pytest
 from pyros.client import PyrosClient
 from pyros.server.ctx_server import pyros_ctx
 
-pyros_interfaces_ros = pytest.importorskip("pyros_interfaces_ros", minversion="0.4")
+pyros_interfaces_ros = pytest.importorskip("pyros_interfaces_ros")  # , minversion="0.4")  # TODO : make version avialable in pyros_interfaces_ros
 
 
 def testPyrosROSCtx():
