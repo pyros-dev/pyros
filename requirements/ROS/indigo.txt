@@ -17,4 +17,5 @@ pyzmq==14.0.1
 pyzmp==0.0.17
 pyros_config==0.2.0
 pyros_common==0.5.1
+pyros_interfaces_ros==0.4.0
 mock==1.0.1
