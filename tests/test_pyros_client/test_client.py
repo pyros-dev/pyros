@@ -183,3 +183,10 @@ class TestPyrosClientOnMock(unittest.TestCase):
         assert recv == {'first': 'first_string', 'second': 'second_string'}
 
 # TODO test service that throw exception
+
+# Just in case we run this directly
+if __name__ == '__main__':
+    import pytest
+    pytest.main([
+        '-s', __file__,
+])
