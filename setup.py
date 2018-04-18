@@ -191,9 +191,9 @@ setuptools.setup(name='pyros',
     packages=[
         'pyros',
         'pyros.client',
-        'pyros.client.tests',
+        # 'pyros.client.tests',
         'pyros.server',
-        'pyros.server.tests',
+        # 'pyros.server.tests',
     ],
     entry_points={
         'console_scripts': [
@@ -221,8 +221,6 @@ setuptools.setup(name='pyros',
     ],
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
 
-    test_suite="nose.collector",
-    tests_require=["nose"],
     cmdclass={
         'rosdevelop': RosDevelopCommand,
         'prepare_release': PrepareReleaseCommand,

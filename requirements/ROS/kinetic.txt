@@ -1,0 +1,20 @@
+# Requirements for running on top of kinetic
+
+# xenial packages versions to validate behavior with these versions for a potential ROS package for rostful
+# pytest==2.8.7
+# pytest-xdist==1.8  # for --boxed
+# hypothesis==3.0.1
+# numpy==1.11.0
+# TESTS are outside the package : they dont need to match the system packages on the corresponding ROS DISTRO
+# since they willnot be distributed as part of the package.
+
+# Package Dependencies need to match ROS (or xenial's) package version
+
+tblib==1.2.0  # this might not always install six (latest version does not)
+six==1.10.0
+pyzmq==15.2.0
+pyzmp==0.0.17
+pyros_config==0.2.0
+pyros_common==0.5.1
+# pyros_interfaces_ros==0.4.0  # TODO : follow up on what packages from ROS are needed as pure python to test this...
+mock==1.3.0

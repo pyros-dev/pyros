@@ -12,7 +12,9 @@ def testPyrosMockCtx():
     # TODO : assert the context manager does his job ( HOW ? )
 
 
+# Just in case we run this directly
 if __name__ == '__main__':
-
-    import nose
-    nose.runmodule()
+    import pytest
+    pytest.main([
+        '-s', __file__,
+])

@@ -1,15 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
 import time
-import nose
+import pytest
 
 from pyros.client import PyrosClient
 from pyros.server.ctx_server import pyros_ctx
 
-try:
-    import pyros_interfaces_ros
-except ImportError:
-    raise nose.SkipTest('Importing pyros_interfaces_ros.pyros_ros FAILED ! Skipping Test...')
+pyros_interfaces_ros = pytest.importorskip("pyros_interfaces_ros", minversion="0.4")
 
 
 def testPyrosROSCtx():
@@ -45,7 +42,9 @@ def testPyrosROSCtx():
             time.sleep(0.2)  # waiting for roscore to die
 
 
+# Just in case we run this directly
 if __name__ == '__main__':
-
-    import nose
-    nose.runmodule()
+    import pytest
+    pytest.main([
+        '-s', __file__,
+])

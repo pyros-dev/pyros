@@ -1,0 +1,21 @@
+# Requirements for running on top of indigo
+
+# trusty packages versions to validate behavior with these versions for a potential ROS package for rostful
+# pytest==2.5.1
+# pytest-xdist==1.8  # for --boxed
+# hypothesis==3.0.1  # backported to indigo as https://github.com/asmodehn/hypothesis-rosrelease
+# numpy>=1.8.1
+# TESTS are outside the package : they dont need to match the system packages on the corresponding ROS DISTRO
+# since they willnot be distributed as part of the package.
+
+
+# Package Dependencies need to match ROS (or trusty's) package version
+
+tblib==1.2.0  # this might not always install six (latest version does not)
+# six==1.5.2  # dropping six here, our usage is minimal and it breaks test tools
+pyzmq==14.0.1
+pyzmp==0.0.17
+pyros_config==0.2.0
+pyros_common==0.5.1
+#pyros_interfaces_ros==0.4.0  # TODO : follow up on what packages from ROS are needed as pure python to test this...
+mock==1.0.1
