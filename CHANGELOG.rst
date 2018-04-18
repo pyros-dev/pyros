@@ -2,8 +2,24 @@ Changelog
 =========
 
 
+0.4.3 (2018-04-18)
+------------------
+- Disabling integration tests in python for now. [AlexV]
+- Removing ros interface as test requirement as there is no python
+  package for it just yet. [AlexV]
+- Adding ros interface to testing requirements on ROS. [AlexV]
+- Moving tests outside of the package, to ease test dependency
+  maintenance. [AlexV]
+- Adding pyup config. [AlexV]
+- Fixing tox config. [AlexV]
+- Improving testing by adding requirements matching rosdistro packages
+  versions. [AlexV]
+- Fixing badge links. [AlexV]
+
+
 0.4.2 (2018-04-17)
 ------------------
+- V0.4.2. [AlexV]
 - Fixing pyros_common exceptions. [AlexV]
 - Removing QC badge. [AlexV]
 
